@@ -6,23 +6,42 @@
     <title>Xavier Scott - Systems Specialist</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #1a1a1a; color: #e0e0e0; }
-        header { border-bottom: 2px solid #00ff00; margin-bottom: 20px; text-align: center; }
-        h1, h2 { color: #00ff00; }
+        header { border-bottom: 2px solid #ff00ff; margin-bottom: 20px; text-align: center; }
+        h1, h2 { color: #ff00ff; }
         section { margin-bottom: 30px; background: #2a2a2a; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
         ul { list-style-type: none; padding: 0; }
         li { margin-bottom: 15px; }
-        b { color: #00ff00; }
-        footer { margin-top: 50px; text-align: center; font-size: 1.5em; border-top: 1px solid #444; padding-top: 20px; color: #00ff00; }
-        canvas { display: block; margin: 20px auto; background: #0a0a0a; border: 2px solid #00ff00; width: 100%; max-width: 400px; }
+        b { color: #ff00ff; }
+        footer { margin-top: 50px; text-align: center; font-size: 1.5em; border-top: 1px solid #444; padding-top: 20px; color: #ff00ff; }
+        canvas { display: block; margin: 20px auto; background: #0a0a0a; border: 2px solid #ff00ff; width: 100%; max-width: 400px; touch-action: manipulation; }
+        
+        /* Game Buttons */
         .game-container { text-align: center; }
-        .jump-btn { background-color: #00ff00; color: #000; border: none; padding: 15px 40px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; user-select: none; }
-        .jump-btn:active { background-color: #00cc00; }
+        .jump-btn { background-color: #ff00ff; color: #000; border: none; padding: 15px 40px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; user-select: none; touch-action: manipulation; }
+        .jump-btn:active { background-color: #cc00cc; }
+
+        /* Fake Dashboard Lights */
+        .status-dot { display: inline-block; width: 12px; height: 12px; background-color: #00ff00; border-radius: 50%; margin-right: 8px; box-shadow: 0 0 8px #00ff00; animation: blink 2s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+        /* Secret Terminal Overlay */
+        #terminalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #00ff00; font-family: monospace; padding: 20px; z-index: 9999; overflow-y: auto; font-size: 1.2em; }
     </style>
 </head>
 <body>
   <header>
     <h1>Systems Specialist & Network Infrastructure</h1>
   </header>
+
+  <section>
+    <h2>Live Infrastructure Status</h2>
+    <ul>
+      <li><span class="status-dot"></span> <b>Proxmox Node 01</b>: ONLINE (Uptime: 45 Days)</li>
+      <li><span class="status-dot"></span> <b>TrueNAS Core</b>: ONLINE (Storage Pool: Healthy)</li>
+      <li><span class="status-dot"></span> <b>AdGuard Home</b>: ONLINE (DNS Filtering Active)</li>
+      <li><span class="status-dot"></span> <b>WireGuard VPN</b>: SECURE (Tunnels Encrypted)</li>
+    </ul>
+  </section>
 
   <section>
     <h2>Computers & Hardware Technical Environment</h2>
@@ -62,7 +81,12 @@
     <p><b>Xavier Scott :3</b></p>
   </footer>
 
+  <div id="terminalOverlay">
+      <div id="terminalText"></div>
+  </div>
+
   <script>
+    // Game Logic
     const canvas = document.getElementById("jumpGame");
     const ctx = canvas.getContext("2d");
     let isJumping = false;
@@ -78,7 +102,7 @@
     function jump() {
       if (!isJumping && !gameOver) {
         isJumping = true;
-        velocity = -10;
+        velocity = -12;
       }
       if (gameOver) {
         obstacleX = 400;
@@ -90,6 +114,7 @@
       }
     }
 
+    // Instant Keyboard Jump
     window.addEventListener("keydown", e => { 
         if(e.code === "Space" || e.code === "ArrowUp") {
             e.preventDefault();
@@ -97,15 +122,16 @@
         }
     });
     
+    // Instant Mobile Jump
     const btn = document.getElementById("mobileJumpBtn");
-    btn.addEventListener("touchstart", (e) => { e.preventDefault(); jump(); });
-    btn.addEventListener("mousedown", (e) => { e.preventDefault(); jump(); });
+    btn.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
 
     function update() {
       ctx.fillStyle = "#0a0a0a";
       ctx.fillRect(0, 0, 400, 200);
 
-      ctx.strokeStyle = "#003300";
+      // Neon Pink Grid
+      ctx.strokeStyle = "#330033";
       ctx.lineWidth = 1;
       for(let i=0; i<=400; i+=20) {
           ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke();
@@ -115,7 +141,7 @@
       }
 
       if (!gameOver) {
-        velocity += 0.6; 
+        velocity += 0.8; 
         playerY += velocity;
         if (playerY >= 150) {
           playerY = 150;
@@ -132,7 +158,6 @@
 
         if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
           gameOver = true;
-          
           if (score > highScore) {
               highScore = score;
               localStorage.setItem('cyberRunnerHighScore', highScore);
@@ -140,9 +165,11 @@
         }
       }
 
-      ctx.fillStyle = "#00ff00";
+      // Neon Pink Player Block
+      ctx.fillStyle = "#ff00ff";
       ctx.fillRect(20, playerY, 20, 20);
 
+      // Red Enemy Block
       ctx.fillStyle = "red";
       ctx.fillRect(obstacleX, 150, 20, 20);
 
@@ -164,6 +191,49 @@
       requestAnimationFrame(update);
     }
     update();
+
+    // Terminal Easter Egg Logic
+    let keyBuffer = "";
+    const secretWord = "sudo";
+    
+    document.addEventListener('keydown', (e) => {
+        if(e.key.length === 1) { // Only track letters
+            keyBuffer += e.key.toLowerCase();
+            if (keyBuffer.length > secretWord.length) {
+                keyBuffer = keyBuffer.slice(-secretWord.length);
+            }
+            if (keyBuffer === secretWord) {
+                document.getElementById('terminalOverlay').style.display = 'block';
+                document.body.style.overflow = 'hidden';
+                runTerminalBoot();
+            }
+        }
+    });
+
+    function runTerminalBoot() {
+        const lines = [
+            "INIT: version 2.88 booting",
+            "Loading Debian Linux...",
+            "Mounting local filesystems... [OK]",
+            "Starting networking... [OK]",
+            "Starting WireGuard VPN... [OK]",
+            "Starting AdGuard Home... [OK]",
+            "Mounting TrueNAS storage... [OK]",
+            "Welcome to Xavier's Secure Server.",
+            "root@server:~# "
+        ];
+        let term = document.getElementById("terminalText");
+        term.innerHTML = "";
+        let i = 0;
+        let interval = setInterval(() => {
+            if (i < lines.length) {
+                term.innerHTML += lines[i] + "<br><br>";
+                i++;
+            } else {
+                clearInterval(interval);
+            }
+        }, 600);
+    }
   </script>
 </body>
 </html>
