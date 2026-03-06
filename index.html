@@ -1,265 +1,429 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xavier Scott - Systems Specialist</title>
-    <style>
-        :root {
-            --bg-color: #1a1a1a;
-            --section-bg: #2a2a2a;
-            --text-color: #e0e0e0;
-            --neon-color: #ff00ff;
-            --canvas-bg: #0a0a0a;
-            --grid-color: #330033;
-            --enemy-color: red;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xavier Scott - Systems Specialist</title>
+<style>
+:root {
+--bg-color: #1a1a1a;
+--section-bg: #2a2a2a;
+--text-color: #e0e0e0;
+--neon-color: #ff00ff;
+--canvas-bg: #0a0a0a;
+--grid-color: #330033;
+--enemy-color: red;
+}
 
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            line-height: 1.8; 
-            max-width: 800px; 
-            margin: 0 auto; 
-            padding: 40px 20px; 
-            background-color: var(--bg-color); 
-            color: var(--text-color); 
-            transition: background-color 1s ease;
-        }
+body { 
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+line-height: 1.8; 
+max-width: 800px; 
+margin: 0 auto; 
+padding: 40px 20px; 
+background-color: var(--bg-color); 
+color: var(--text-color); 
+}
 
-        header { border-bottom: 2px solid var(--neon-color); margin-bottom: 40px; text-align: center; }
-        h1, h2 { color: var(--neon-color); margin-bottom: 20px; }
+header { 
+border-bottom: 2px solid var(--neon-color); 
+margin-bottom: 40px; 
+text-align: center; 
+}
 
-        section { 
-            margin-bottom: 40px; 
-            background: var(--section-bg); 
-            padding: 25px; 
-            border-radius: 8px; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-            transition: transform 0.3s ease;
-        }
+h1, h2 { color: var(--neon-color); margin-bottom: 20px; }
 
-        section:hover { transform: translateY(-5px); }
-        ul { list-style-type: none; padding: 0; }
-        li { margin-bottom: 20px; transition: color 0.3s ease; }
-        li:hover { color: var(--neon-color); }
-        b { color: var(--neon-color); }
+section { 
+margin-bottom: 40px; 
+background: var(--section-bg); 
+padding: 25px; 
+border-radius: 8px; 
+box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+transition: transform 0.3s ease;
+}
 
-        .project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
-        .project-card { background: #111; padding: 20px; border: 1px solid var(--neon-color); border-radius: 5px; }
+section:hover { transform: translateY(-5px); }
 
-        canvas { display: block; margin: 20px auto; background: var(--canvas-bg); border: 2px solid var(--neon-color); width: 100%; max-width: 400px; }
-        .game-container { text-align: center; }
-        .jump-btn { background-color: var(--neon-color); color: #000; border: none; padding: 15px 40px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+ul { list-style-type: none; padding: 0; }
 
-        #modMenu { 
-            display: none; position: fixed; top: 50%; left: 50%; 
-            transform: translate(-50%, -50%); background: #000; 
-            border: 3px solid #ff0000; padding: 20px; z-index: 10000; 
-            width: 300px; border-radius: 10px; color: #fff;
-        }
+li { 
+margin-bottom: 20px; 
+transition: color 0.3s ease, text-shadow 0.3s ease;
+}
 
-        .mod-row { margin-bottom: 15px; }
-        .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
-        .nuke-btn.active { background: #00ff00; color: #000; }
+li:hover { 
+color: var(--neon-color); 
+text-shadow: 0 0 8px var(--neon-color); 
+}
 
-        #nukeCanvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999; }
-    </style>
+b { color: var(--neon-color); }
+
+footer { 
+margin-top: 60px; 
+text-align: center; 
+border-top: 1px solid #444; 
+padding-top: 30px; 
+}
+
+/* Project Grid */
+.project-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 20px;
+margin-top: 15px;
+}
+
+.project-card {
+background: #111;
+padding: 20px;
+border: 1px solid var(--neon-color);
+border-radius: 5px;
+}
+
+/* Pulsing Neon Indicator */
+.pulse-indicator {
+color: var(--neon-color);
+animation: pulse 1.5s infinite;
+margin-right: 10px;
+}
+
+@keyframes pulse {
+0% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+50% { opacity: 0.3; text-shadow: none; }
+100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+}
+
+/* Contact Form */
+.contact-form {
+display: flex;
+flex-direction: column;
+gap: 15px;
+}
+
+.contact-form input, 
+.contact-form select, 
+.contact-form textarea {
+padding: 12px;
+background: var(--canvas-bg);
+color: var(--text-color);
+border: 1px solid #444;
+border-radius: 4px;
+font-family: inherit;
+font-size: 1rem;
+}
+
+.contact-form button {
+background: var(--neon-color);
+color: #000;
+padding: 15px;
+font-weight: bold;
+border: none;
+cursor: pointer;
+border-radius: 4px;
+font-size: 1.1rem;
+}
+
+canvas { 
+display: block; 
+margin: 20px auto; 
+background: var(--canvas-bg); 
+border: 2px solid var(--neon-color); 
+width: 100%; 
+max-width: 400px; 
+touch-action: manipulation; 
+cursor: pointer; 
+}
+
+.game-container { text-align: center; position: relative; }
+
+.jump-btn { 
+background-color: var(--neon-color); 
+color: #000; 
+border: none; 
+padding: 15px 40px; 
+font-size: 1.2em; 
+font-weight: bold; 
+border-radius: 5px; 
+cursor: pointer; 
+margin-top: 10px; 
+user-select: none; 
+}
+
+#terminalOverlay { 
+display: none; 
+position: fixed; 
+top: 0; left: 0; 
+width: 100%; height: 100%; 
+background: #000; 
+color: #00ff00; 
+font-family: monospace; 
+padding: 20px; 
+z-index: 9999; 
+overflow-y: auto; 
+}
+
+#modMenu { 
+display: none; 
+position: fixed; 
+top: 50%; left: 50%; 
+transform: translate(-50%, -50%); 
+background: #000; 
+border: 3px solid #ff0000; 
+padding: 20px; 
+z-index: 10000; 
+box-shadow: 0 0 20px #ff0000; 
+color: #fff; 
+width: 300px; 
+border-radius: 10px; 
+}
+
+.nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+.nuked-element { transform: scale(0) rotate(45deg); opacity: 0; transition: all 0.4s ease-out; pointer-events: none; }
+</style>
 </head>
 <body>
 
-    <header>
-        <h1>Systems Specialist & Network Infrastructure</h1>
-    </header>
+<header>
+<h1>Systems Specialist & Network Infrastructure</h1>
+</header>
 
-    <section>
-        <h2>Project Showcase</h2>
-        <div class="project-grid">
-            <div class="project-card">
-                <h3><b>Proxmox Virtualization</b></h3>
-                <p>Deploying and managing high-availability clusters and LXC containers for home lab efficiency.</p>
-            </div>
-            <div class="project-card">
-                <h3><b>Software Optimization</b></h3>
-                <p>Custom Windows debloating and macOS performance tuning for specialized workflows.</p>
-            </div>
-        </div>
-    </section>
+<section>
+<h2>Project Showcase</h2>
+<div class="project-grid">
+<div class="project-card">
+<h3><b>TrueNAS Build</b></h3>
+<p>Built a secure, high-capacity storage server using ZFS for data protection.</p>
+</div>
+<div class="project-card">
+<h3><b>MacBook Rescue</b></h3>
+<p>Performed component-level repair and liquid damage recovery on Apple hardware.</p>
+</div>
+</div>
+</section>
 
-    <section>
-        <h2>Computers & Hardware Technical Environment</h2>
-        <ul>
-            <li><b>Hardware Repair</b>: 6 years of self-taught experience fixing <b>Windows PCs</b> and <b>MacBooks</b>.</li>
-            <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> application to ensure peak performance.</li>
-            <li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
-        </ul>
-    </section>
+<section>
+<h2><span class="pulse-indicator">●</span> Tech Tip of the Day</h2>
+<p>Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.</p>
+</section>
 
-    <section>
-        <h2>Phones & Tablets</h2>
-        <ul>
-            <li><b>Mobile Hardware</b>: Expert repair for <b>iPhone</b> and <b>iPad</b> devices.</li>
-            <li><b>Component Service</b>: Professional replacement of <b>screens</b> and <b>batteries</b>.</li>
-            <li><b>Recovery</b>: Resolving <b>iOS</b> boot issues and performing critical data recovery.</li>
-        </ul>
-    </section>
+<section>
+<h2>Hardware Technical Environment</h2>
+<ul>
+<li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and <b>mobile devices</b>.</li>
+<li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> (cooling compound) application.</li>
+<li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
+</ul>
+</section>
 
-    <section>
-        <h2>Infrastructure & Security</h2>
-        <ul>
-            <li><b>Virtualization</b>: Managing server clusters with <b>Proxmox VE</b>, <b>Debian</b>, and <b>TrueNAS</b>.</li>
-            <li><b>Security</b>: Implementing <b>WireGuard</b> encrypted tunnels and <b>AdGuard Home</b> for network-wide protection.</li>
-            <li><b>Automation</b>: Complex smart home management using <b>Home Assistant</b>.</li>
-        </ul>
-    </section>
+<section>
+<h2>Infrastructure & Security</h2>
+<ul>
+<li><b>Virtualization</b>: Managing server clusters with <b>Proxmox VE</b> and <b>Debian</b>.</li>
+<li><b>Security</b>: Implementing <b>WireGuard</b> tunnels and <b>AdGuard Home</b> for network-wide protection.</li>
+</ul>
+</section>
 
-    <section class="game-container">
-        <h2>Cyber Runner Game</h2>
-        <canvas id="jumpGame" width="400" height="200"></canvas>
-        <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
-    </section>
+<section>
+<h2>Request Service</h2>
+<form class="contact-form">
+<input type="text" placeholder="Your Name" required>
+<select required>
+<option value="">Select a Service...</option>
+<option value="pc">PC Repair</option>
+<option value="mobile">Mobile Repair</option>
+<option value="homelab">Home Lab Setup</option>
+</select>
+<textarea rows="4" placeholder="Describe the issue..." required></textarea>
+<button type="submit">Send Message</button>
+</form>
+</section>
 
-    <footer>
-        <p><b>Xavier Scott :3</b></p>
-    </footer>
+<section class="game-container">
+<h2>Cyber Runner Game</h2>
+<canvas id="jumpGame" width="400" height="200"></canvas>
+<p style="font-size: 0.9em;">[ Tap Game or Button to <b>Start</b> ]</p>
+<button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+</section>
 
-    <canvas id="nukeCanvas"></canvas>
+<footer>
+<p><b>Xavier Scott :3</b></p>
+</footer>
 
-    <div id="modMenu">
-        <h3 id="modMenuHeader" style="cursor: move; text-align: center; border-bottom: 1px solid red; padding-bottom: 5px;">SYSTEM OVERRIDE</h3>
-        <div class="mod-row">
-            <label>Gravity (<span id="gravVal">0.8</span>)</label>
-            <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
-        </div>
-        <button id="godModeToggle" class="nuke-btn" style="background: #444;">GOD MODE: OFF</button>
-        <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
-        <button onclick="document.getElementById('modMenu').style.display='none'" style="width:100%; margin-top:10px; background: #222; color: #fff; border: 1px solid #444;">Close</button>
-    </div>
+<div id="terminalOverlay">
+<div id="terminalText"></div>
+</div>
 
-    <script>
-        // Nuke Persistent Logic
-        let nukeModeActive = localStorage.getItem('nukeEnabled') === 'true';
-        const nukeBtn = document.getElementById('nukeToggle');
-        
-        function updateNukeUI() {
-            nukeBtn.innerText = nukeModeActive ? "NUKE MODE: ON" : "NUKE PAGE ;)";
-            nukeBtn.classList.toggle('active', nukeModeActive);
-        }
-        updateNukeUI();
+<div id="modMenu">
+        <h3>SYSTEM OVERRIDE</h3>
+        <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
+            SYSTEM OVERRIDE
+        </h3>
+<div class="mod-row">
+<label>Gravity (<span id="gravVal">0.8</span>)</label>
+<input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
+</div>
+<div class="mod-row">
+<label>Jump Power (<span id="jumpVal">12</span>)</label>
+<input type="range" id="modJump" min="5" max="25" step="1" value="12">
+</div>
+<div class="mod-row">
+<label>Base Speed (<span id="speedVal">5</span>)</label>
+<input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
+</div>
+<button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
+        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'">Close Menu</button>
+        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 5px; margin-top: 10px; border: none; cursor: pointer;">Close Menu</button>
+</div>
 
-        nukeBtn.addEventListener('click', () => {
-            nukeModeActive = !nukeModeActive;
-            localStorage.setItem('nukeEnabled', nukeModeActive);
-            updateNukeUI();
+<script>
+const canvas = document.getElementById("jumpGame");
+const ctx = canvas.getContext("2d");
+const style = getComputedStyle(document.body);
+const neonColor = style.getPropertyValue('--neon-color').trim();
+const gridColor = style.getPropertyValue('--grid-color').trim();
+const enemyColor = style.getPropertyValue('--enemy-color').trim();
+
+let currentGravity = 0.8;
+let currentJumpPower = 12;
+let currentBaseSpeed = 5;
+let nukeModeActive = false;
+
+document.getElementById('modGravity').addEventListener('input', (e) => {
+currentGravity = parseFloat(e.target.value);
+document.getElementById('gravVal').innerText = currentGravity;
+});
+document.getElementById('modJump').addEventListener('input', (e) => {
+currentJumpPower = parseInt(e.target.value);
+document.getElementById('jumpVal').innerText = currentJumpPower;
+});
+document.getElementById('modSpeed').addEventListener('input', (e) => {
+currentBaseSpeed = parseInt(e.target.value);
+document.getElementById('speedVal').innerText = currentBaseSpeed;
+});
+
+document.getElementById('nukeToggle').addEventListener('click', (e) => {
+nukeModeActive = !nukeModeActive;
+e.target.classList.toggle('active');
+});
+
+document.addEventListener('click', (e) => {
+if (!nukeModeActive || e.target.closest('#modMenu')) return;
+e.target.classList.add('nuked-element');
+setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 400);
+});
+
+        // Draggable Menu Logic
+        const menu = document.getElementById("modMenu");
+        const header = document.getElementById("modMenuHeader");
+        let isDragging = false, offsetX, offsetY;
+
+        header.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            const rect = menu.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            menu.style.transform = "none";
+            menu.style.cursor = "grabbing";
         });
 
-        // Pixel Disintegration Logic
-        const pCanvas = document.getElementById('nukeCanvas');
-        const pCtx = pCanvas.getContext('2d');
-        let particles = [];
-
-        window.addEventListener('resize', () => {
-            pCanvas.width = window.innerWidth;
-            pCanvas.height = window.innerHeight;
-        });
-        window.dispatchEvent(new Event('resize'));
-
-        document.addEventListener('click', (e) => {
-            if (!nukeModeActive || e.target.closest('#modMenu')) return;
-            
-            const rect = e.target.getBoundingClientRect();
-            // Generate many tiny pixels
-            for(let i=0; i<100; i++) {
-                particles.push({
-                    x: rect.left + Math.random() * rect.width,
-                    y: rect.top + Math.random() * rect.height,
-                    vx: (Math.random() - 0.5) * 6,
-                    vy: (Math.random() - 0.5) * 6,
-                    size: Math.random() * 2 + 1,
-                    life: 1.0,
-                    color: i % 2 === 0 ? '#ff00ff' : '#ffffff'
-                });
-            }
-            e.target.style.visibility = 'hidden';
-            
-            // Auto-refresh when page is nuked
-            const remaining = Array.from(document.querySelectorAll('section, header, footer'))
-                                   .filter(el => el.style.visibility !== 'hidden');
-            if (remaining.length === 0) {
-                document.body.style.backgroundColor = 'white';
-                setTimeout(() => location.reload(), 1500);
-            }
+        document.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            menu.style.left = `${e.clientX - offsetX}px`;
+            menu.style.top = `${e.clientY - offsetY}px`;
         });
 
-        function animateParticles() {
-            pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
-            particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.01;
-                pCtx.fillStyle = p.color;
-                pCtx.globalAlpha = p.life;
-                pCtx.fillRect(p.x, p.y, p.size, p.size);
-                if (p.life <= 0) particles.splice(i, 1);
-            });
-            pCtx.globalAlpha = 1;
-            requestAnimationFrame(animateParticles);
-        }
-        animateParticles();
-
-        // Cyber Runner Logic
-        const canvas = document.getElementById("jumpGame");
-        const ctx = canvas.getContext("2d");
-        let godMode = false;
-        let playerY = 150, velocity = 0, obstacleX = 400, score = 0, gameOver = false, currentGravity = 0.8;
-
-        document.getElementById('modGravity').addEventListener('input', (e) => {
-            currentGravity = parseFloat(e.target.value);
-            document.getElementById('gravVal').innerText = currentGravity;
+        document.addEventListener("mouseup", () => {
+            isDragging = false;
+            menu.style.cursor = "default";
         });
 
-        document.getElementById('godModeToggle').addEventListener('click', (e) => {
-            godMode = !godMode;
-            e.target.innerText = godMode ? "GOD MODE: ON" : "GOD MODE: OFF";
-            e.target.style.background = godMode ? "#00ff00" : "#444";
-        });
+        // Game Logic
+let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, speed = 5;
+let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 
-        function update() {
-            ctx.clearRect(0, 0, 400, 200);
-            if (!gameOver) {
-                velocity += currentGravity; playerY += velocity;
-                if (playerY >= 150) { playerY = 150; }
-                obstacleX -= 5;
-                if (obstacleX < -20) { obstacleX = 400; score++; }
-                // God Mode Collision Check
-                if (obstacleX < 40 && obstacleX > 0 && playerY > 130 && !godMode) {
-                    gameOver = true;
-                }
-            }
-            ctx.fillStyle = "#ff00ff"; ctx.fillRect(20, playerY, 20, 20);
-            ctx.fillStyle = "red"; ctx.fillRect(obstacleX, 150, 20, 20);
-            ctx.fillStyle = "white"; ctx.fillText("Score: " + score, 10, 20);
-            if(gameOver) ctx.fillText("SYSTEM FAILURE - Click to Reboot", 110, 100);
-            requestAnimationFrame(update);
-        }
-        update();
+function jump() {
+if (!gameStarted) { gameStarted = true; }
+if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
+if (gameOver) { obstacleX = 400; playerY = 150; score = 0; gameOver = false; velocity = 0; }
+}
 
-        const jump = () => { if(playerY === 150) velocity = -12; if(gameOver) { gameOver = false; obstacleX = 400; score = 0; } };
-        document.getElementById('mobileJumpBtn').addEventListener('click', jump);
-        canvas.addEventListener('click', jump);
+window.addEventListener("keydown", e => { if((e.code === "Space" || e.code === "ArrowUp")) { e.preventDefault(); jump(); } });
+canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
+document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
 
-        // Mod Menu Drag Logic
-        const menu = document.getElementById('modMenu');
-        const header = document.getElementById('modMenuHeader');
-        let dragging = false, mX, mY;
-        header.onmousedown = (e) => { dragging = true; mX = e.clientX - menu.offsetLeft; mY = e.clientY - menu.offsetTop; menu.style.transform = 'none'; };
-        window.onmousemove = (e) => { if(dragging) { menu.style.left = (e.clientX - mX) + 'px'; menu.style.top = (e.clientY - mY) + 'px'; } };
-        window.onmouseup = () => dragging = false;
+function update() {
+ctx.clearRect(0, 0, 400, 200);
+ctx.strokeStyle = gridColor;
+for(let i=0; i<=400; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); }
+for(let i=0; i<=200; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); }
 
-        // Hack Secret Key
-        let keys = "";
-        window.onkeydown = (e) => {
-            keys = (keys + e.key).slice(-4);
-            if(keys === "hack") menu.style.display = 'block';
-            if(e.code === "Space") jump();
-        };
-    </script>
+if (gameStarted && !gameOver) {
+velocity += currentGravity;
+playerY += velocity;
+if (playerY >= 150) { playerY = 150; isJumping = false; }
+speed = currentBaseSpeed + (score * 0.25);
+obstacleX -= speed;
+if (obstacleX < -20) { obstacleX = 400; score++; }
+if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
+gameOver = true;
+if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
+}
+}
+
+ctx.fillStyle = neonColor;
+ctx.fillRect(20, playerY, 20, 20);
+if (gameStarted) { ctx.fillStyle = enemyColor; ctx.fillRect(obstacleX, 150, 20, 20); }
+ctx.fillStyle = "#444";
+ctx.fillRect(0, 170, 400, 30);
+ctx.fillStyle = "#fff";
+ctx.font = "14px Arial";
+ctx.fillText("Score: " + score, 10, 20);
+ctx.fillText("High Score: " + highScore, 10, 40);
+
+if (!gameStarted) { ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; }
+else if (gameOver) { ctx.textAlign = "center"; ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100); ctx.textAlign = "left"; }
+requestAnimationFrame(update);
+}
+update();
+
+let keyBuffer = "";
+document.addEventListener('keydown', (e) => {
+if(e.key.length === 1) {
+keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-4);
+if (keyBuffer === "sudo") { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
+if (keyBuffer === "hack") { document.getElementById('modMenu').style.display = 'block'; }
+}
+});
+
+function runTerminalBoot() {
+const lines = ["INIT: version 2.88 booting", "Loading Debian Linux...", "Mounting local filesystems... [OK]", "Starting networking... [OK]", "Welcome to Xavier's Secure Server.", "root@server:~# "];
+let term = document.getElementById("terminalText"), i = 0;
+term.innerHTML = "";
+let interval = setInterval(() => {
+if (i < lines.length) { term.innerHTML += lines[i] + "<br><br>"; i++; }
+else clearInterval(interval);
+}, 600);
+}
+
+        // Tech Joke Logic
+        const jokes = [
+            "I would tell you a UDP joke, but you might not get it.",
+            "There are 10 types of people: those who understand binary, and those who don't.",
+            "Why do programmers prefer dark mode? Because light attracts bugs.",
+            "My IP address is local, but my mindset is global."
+        ];
+
+        const jokes = ["I would tell you a UDP joke, but you might not get it.", "There are 10 types of people: those who understand binary, and those who don't.", "Why do programmers prefer dark mode? Because light attracts bugs.", "My IP address is local, but my mindset is global."];
+document.addEventListener("DOMContentLoaded", () => {
+const footer = document.querySelector("footer");
+const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+const jokeElement = document.createElement("p");
+jokeElement.style.fontSize = "0.8em";
+jokeElement.style.color = "#888";
+jokeElement.style.marginTop = "10px";
+jokeElement.innerText = randomJoke;
+footer.appendChild(jokeElement);
+});
+</script>
 </body>
 </html>
