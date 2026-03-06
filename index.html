@@ -1,148 +1,188 @@
 <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Xavier Scott - Systems Specialist</title>
-        <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #1a1a1a; color: #e0e0e0; }
-            header { border-bottom: 2px solid #00ff00; margin-bottom: 20px; text-align: center; }
-            h1, h2 { color: #00ff00; }
-            section { margin-bottom: 30px; background: #2a2a2a; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-            ul { list-style-type: none; padding: 0; }
-            li { margin-bottom: 15px; }
-            b { color: #00ff00; }
-            footer { margin-top: 50px; text-align: center; font-size: 1.5em; border-top: 1px solid #444; padding-top: 20px; color: #00ff00; }
-            canvas { display: block; margin: 20px auto; background: #000; border: 2px solid #00ff00; width: 100%; max-width: 400px; }
-            .game-container { text-align: center; }
-            .jump-btn { background-color: #00ff00; color: #000; border: none; padding: 15px 40px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; user-select: none; }
-            .jump-btn:active { background-color: #00cc00; }
-        </style>
-    </head>
-    <body>
-      <header>
-        <h1>Systems Specialist & Network Infrastructure</h1>
-      </header>
-    
-      <section>
-        <h2>Computers & Hardware Technical Environment</h2>
-        <ul>
-          <li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and practically <b>any tech</b> you throw at me.</li>
-          <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> (cooling compound) application to ensure peak performance.</li>
-          <li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
-        </ul>
-      </section>
-    
-      <section>
-        <h2>Phones & Tablets</h2>
-        <ul>
-          <li><b>Mobile Hardware</b>: Expert repair for <b>iPhone</b> and <b>iPad</b> devices.</li>
-          <li><b>Component Service</b>: Professional replacement of <b>screens</b> and <b>batteries</b>.</li>
-          <li><b>Recovery</b>: Resolving <b>iOS</b> boot issues (stuck on Apple logo) and performing critical data recovery.</li>
-        </ul>
-      </section>
-    
-      <section>
-        <h2>Infrastructure & Security</h2>
-        <ul>
-          <li><b>Virtualization</b>: Managing high-availability server clusters with <b>Proxmox VE</b> and <b>Debian</b>.</li>
-          <li><b>Data Integrity</b>: Architecting robust storage solutions using <b>TrueNAS</b>.</li>
-          <li><b>Security</b>: Implementing <b>WireGuard</b> encrypted tunnels (private connections) and <b>AdGuard Home</b> for network-wide protection.</li>
-        </ul>
-      </section>
-    
-      <section class="game-container">
-        <h2>Cyber Runner Game</h2>
-        <canvas id="jumpGame" width="400" height="200"></canvas>
-        <p style="font-size: 0.9em;">[ Press <b>Spacebar</b> or Tap <b>JUMP</b> ]</p>
-        <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
-      </section>
-    
-      <footer>
-        <p><b>Xavier Scott :3</b></p>
-      </footer>
-    
-      <script>
-        const canvas = document.getElementById("jumpGame");
-        const ctx = canvas.getContext("2d");
-        let isJumping = false;
-        let velocity = 0;
-        let playerY = 150;
-        let obstacleX = 400;
-        let score = 0;
-        let gameOver = false;
-    
-        function jump() {
-          if (!isJumping && !gameOver) {
-            isJumping = true;
-            velocity = -10;
-          }
-          if (gameOver) {
-            obstacleX = 400;
-            playerY = 150;
-            score = 0;
-            gameOver = false;
-            velocity = 0;
-          }
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xavier Scott - Systems Specialist</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #1a1a1a; color: #e0e0e0; }
+        header { border-bottom: 2px solid #00ff00; margin-bottom: 20px; text-align: center; }
+        h1, h2 { color: #00ff00; }
+        section { margin-bottom: 30px; background: #2a2a2a; padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 15px; }
+        b { color: #00ff00; }
+        footer { margin-top: 50px; text-align: center; font-size: 1.5em; border-top: 1px solid #444; padding-top: 20px; color: #00ff00; }
+        canvas { display: block; margin: 20px auto; background: #0a0a0a; border: 2px solid #00ff00; width: 100%; max-width: 400px; }
+        .game-container { text-align: center; }
+        .jump-btn { background-color: #00ff00; color: #000; border: none; padding: 15px 40px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; user-select: none; }
+        .jump-btn:active { background-color: #00cc00; }
+    </style>
+</head>
+<body>
+  <header>
+    <h1>Systems Specialist & Network Infrastructure</h1>
+  </header>
+
+  <section>
+    <h2>Computers & Hardware Technical Environment</h2>
+    <ul>
+      <li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and practically <b>any tech</b> you throw at me.</li>
+      <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> (cooling compound) application to ensure peak performance.</li>
+      <li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Phones & Tablets</h2>
+    <ul>
+      <li><b>Mobile Hardware</b>: Expert repair for <b>iPhone</b> and <b>iPad</b> devices.</li>
+      <li><b>Component Service</b>: Professional replacement of <b>screens</b> and <b>batteries</b>.</li>
+      <li><b>Recovery</b>: Resolving <b>iOS</b> boot issues (stuck on Apple logo) and performing critical data recovery.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Infrastructure & Security</h2>
+    <ul>
+      <li><b>Virtualization</b>: Managing high-availability server clusters with <b>Proxmox VE</b> and <b>Debian</b>.</li>
+      <li><b>Data Integrity</b>: Architecting robust storage solutions using <b>TrueNAS</b>.</li>
+      <li><b>Security</b>: Implementing <b>WireGuard</b> encrypted tunnels (private connections) and <b>AdGuard Home</b> for network-wide protection.</li>
+    </ul>
+  </section>
+
+  <section class="game-container">
+    <h2>Cyber Runner Game</h2>
+    <canvas id="jumpGame" width="400" height="200"></canvas>
+    <p style="font-size: 0.9em;">[ Press <b>Spacebar</b> or Tap <b>JUMP</b> ]</p>
+    <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+  </section>
+
+  <footer>
+    <p><b>Xavier Scott :3</b></p>
+  </footer>
+
+  <script>
+    const canvas = document.getElementById("jumpGame");
+    const ctx = canvas.getContext("2d");
+    let isJumping = false;
+    let velocity = 0;
+    let playerY = 150;
+    let obstacleX = 400;
+    let score = 0;
+    let gameOver = false;
+    let speed = 5;
+
+    let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
+    let highScoreName = localStorage.getItem('cyberRunnerHighName') || 'Anonymous';
+
+    const forbiddenWords = ["badword", "swear", "profanity", "crap"]; // Add inappropriate words to this list here
+
+    function checkName(name) {
+        if (!name) return "Anonymous";
+        let cleanText = name.toLowerCase();
+        for (let word of forbiddenWords) {
+            if (cleanText.includes(word)) {
+                return "Player";
+            }
         }
+        return name.substring(0, 10);
+    }
+
+    function jump() {
+      if (!isJumping && !gameOver) {
+        isJumping = true;
+        velocity = -10;
+      }
+      if (gameOver) {
+        obstacleX = 400;
+        playerY = 150;
+        score = 0;
+        speed = 5;
+        gameOver = false;
+        velocity = 0;
+      }
+    }
+
+    window.addEventListener("keydown", e => { 
+        if(e.code === "Space" || e.code === "ArrowUp") {
+            e.preventDefault();
+            jump(); 
+        }
+    });
     
-        window.addEventListener("keydown", e => { 
-            if(e.code === "Space" || e.code === "ArrowUp") {
-                e.preventDefault();
-                jump(); 
-            }
-        });
-        
-        const btn = document.getElementById("mobileJumpBtn");
-        btn.addEventListener("touchstart", (e) => { e.preventDefault(); jump(); });
-        btn.addEventListener("mousedown", (e) => { e.preventDefault(); jump(); });
-    
-        function update() {
-          ctx.clearRect(0, 0, 400, 200);
-    
-          if (!gameOver) {
-            velocity += 0.6; 
-            playerY += velocity;
-            if (playerY >= 150) {
-              playerY = 150;
-              isJumping = false;
-            }
-    
-            obstacleX -= 5 + (score * 0.1);
-            if (obstacleX < -20) {
-              obstacleX = 400;
-              score++;
-            }
-    
-            if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
-              gameOver = true;
-            }
-          }
-    
-          ctx.fillStyle = "#00ff00";
-          ctx.fillRect(20, playerY, 20, 20);
-    
-          ctx.fillStyle = "red";
-          ctx.fillRect(obstacleX, 150, 20, 20);
-    
-          ctx.fillStyle = "#444";
-          ctx.fillRect(0, 170, 400, 30);
-    
-          ctx.fillStyle = "#fff";
-          ctx.font = "16px Arial";
-          ctx.fillText("Score: " + score, 10, 20);
+    const btn = document.getElementById("mobileJumpBtn");
+    btn.addEventListener("touchstart", (e) => { e.preventDefault(); jump(); });
+    btn.addEventListener("mousedown", (e) => { e.preventDefault(); jump(); });
+
+    function update() {
+      ctx.fillStyle = "#0a0a0a";
+      ctx.fillRect(0, 0, 400, 200);
+
+      ctx.strokeStyle = "#003300";
+      ctx.lineWidth = 1;
+      for(let i=0; i<=400; i+=20) {
+          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke();
+      }
+      for(let i=0; i<=200; i+=20) {
+          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke();
+      }
+
+      if (!gameOver) {
+        velocity += 0.6; 
+        playerY += velocity;
+        if (playerY >= 150) {
+          playerY = 150;
+          isJumping = false;
+        }
+
+        speed = 5 + (score * 0.25);
+        obstacleX -= speed;
+
+        if (obstacleX < -20) {
+          obstacleX = 400;
+          score++;
+        }
+
+        if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
+          gameOver = true;
           
-          if (gameOver) {
-             ctx.fillStyle = "#fff";
-             ctx.textAlign = "center";
-             ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100);
-             ctx.textAlign = "left";
+          if (score > highScore) {
+              highScore = score;
+              setTimeout(() => {
+                  let newName = prompt("New High Score! Enter your Alias:");
+                  highScoreName = checkName(newName);
+                  localStorage.setItem('cyberRunnerHighScore', highScore);
+                  localStorage.setItem('cyberRunnerHighName', highScoreName);
+              }, 50);
           }
-    
-          requestAnimationFrame(update);
         }
-        update();
-      </script>
-    </body>
-    </html>
-    
+      }
+
+      ctx.fillStyle = "#00ff00";
+      ctx.fillRect(20, playerY, 20, 20);
+
+      ctx.fillStyle = "red";
+      ctx.fillRect(obstacleX, 150, 20, 20);
+
+      ctx.fillStyle = "#444";
+      ctx.fillRect(0, 170, 400, 30);
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "14px Arial";
+      ctx.fillText("Score: " + score, 10, 20);
+      ctx.fillText("High Score: " + highScore + " (" + highScoreName + ")", 10, 40);
+      
+      if (gameOver) {
+         ctx.fillStyle = "#fff";
+         ctx.textAlign = "center";
+         ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100);
+         ctx.textAlign = "left";
+      }
+
+      requestAnimationFrame(update);
+    }
+    update();
+  </script>
+</body>
+</html>
