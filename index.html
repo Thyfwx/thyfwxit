@@ -1,41 +1,96 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-    <html>
+<!DOCTYPE html>
+    <html lang="en">
     <head>
-      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-      <meta http-equiv="Content-Style-Type" content="text/css">
-      <title></title>
-      <meta name="Generator" content="Cocoa HTML Writer">
-      <meta name="CocoaVersion" content="2685.4">
-      <style type="text/css">
-        p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000}
-        p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Times; -webkit-text-stroke: #000000; min-height: 14.0px}
-        span.s1 {font-kerning: none}
-      </style>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Xavier Scott - Systems Specialist</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #f4f4f4; color: #333; }
+            header { border-bottom: 2px solid #333; margin-bottom: 20px; }
+            h1, h2 { color: #222; }
+            section { margin-bottom: 30px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+            ul { list-style-type: none; padding: 0; }
+            li { margin-bottom: 10px; }
+            b { color: #0056b3; }
+            footer { margin-top: 50px; text-align: center; font-size: 1.2em; border-top: 1px solid #ccc; padding-top: 20px; }
+            canvas { display: block; margin: 20px auto; background: #000; border: 2px solid #333; }
+        </style>
     </head>
     <body>
       <header>
-        <h1>Xavier Scott</h1>
-        <p><b>Systems Specialist & Network Infrastructure Enthusiast</b></p>
+        <h1>Systems Specialist & Network Infrastructure</h1>
       </header>
     
       <section>
-        <h2>Core Competencies</h2>
+        <h2>Computers & Consoles Technical Environment</h2>
         <ul>
-          <li><b>Enterprise Virtualization</b>: Deploying and managing environments using <b>Proxmox VE</b>.</li>
-          <li><b>Data Management</b>: Architecting redundant storage solutions with <b>TrueNAS Scale/Core</b>.</li>
-          <li><b>Network Engineering</b>: Configuring <b>WireGuard VPNs</b> for secure transit and <b>AdGuard Home</b> for DNS-level security.</li>
-          <li><b>Hardware Engineering</b>: 6 years of specialized repair for PC, Mac, and console hardware (PS5, iPhone).</li>
+          <li><b>Hardware Repair</b>: 6 years of experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and <b>PS5 consoles</b>.</li>
+          <li><b>Maintenance</b>: Deep cleaning and applying <b>thermal paste</b> (cooling paste) to prevent overheating.</li>
+          <li><b>Operating Systems</b>: Expert in <b>Windows</b> and <b>macOS</b> troubleshooting (fixing software errors).</li>
         </ul>
       </section>
     
       <section>
-        <h2>Technical Environment</h2>
-        <p>Managing a self-hosted infrastructure focused on high availability and secure remote access using <b>Debian Linux</b> and <b>Docker containerization</b>.</p>
+        <h2>Phones & Tablets</h2>
+        <ul>
+          <li><b>Mobile Repair</b>: Specialized in <b>iPhone</b> and <b>iPad</b> hardware service.</li>
+          <li><b>Component Replacement</b>: Swapping <b>screens</b>, <b>batteries</b>, and <b>charging ports</b>.</li>
+          <li><b>Software Recovery</b>: Fixing <b>iOS</b> boot loops (when the phone gets stuck starting up) and data recovery.</li>
+        </ul>
+      </section>
+    
+      <section>
+        <h2>Infrastructure & Security</h2>
+        <ul>
+          <li><b>Virtualization</b>: Managing servers with <b>Proxmox VE</b> and <b>Debian Linux</b>.</li>
+          <li><b>Data Storage</b>: Handling high-capacity storage using <b>TrueNAS</b>.</li>
+          <li><b>Network Protection</b>: Implementing <b>WireGuard VPN</b> (secure private tunnel) and <b>AdGuard Home</b>.</li>
+        </ul>
+      </section>
+    
+      <section>
+        <h2>Retro Terminal Game</h2>
+        <canvas id="snakeGame" width="400" height="400"></canvas>
+        <p style="text-align: center;">Use <b>Arrow Keys</b> to move.</p>
       </section>
     
       <footer>
-        <p>Located in <b>Denton, Texas</b></p>
+        <p><b>Xavier Scott :3</b></p>
       </footer>
+    
+      <script>
+        const canvas = document.getElementById("snakeGame");
+        const ctx = canvas.getContext("2d");
+        let snake = [{x: 10, y: 10}];
+        let food = {x: 15, y: 15};
+        let dx = 0; let dy = 0;
+    
+        function draw() {
+          ctx.fillStyle = "black"; ctx.fillRect(0,0,400,400);
+          ctx.fillStyle = "lime";
+          snake.forEach(part => ctx.fillRect(part.x*20, part.y*20, 18, 18));
+          ctx.fillStyle = "red"; ctx.fillRect(food.x*20, food.y*20, 18, 18);
+          
+          let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+          snake.unshift(head);
+          if(head.x === food.x && head.y === food.y) {
+            food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
+          } else { snake.pop(); }
+          
+          if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || snake.slice(1).some(p => p.x === head.x && p.y === head.y)) {
+            snake = [{x: 10, y: 10}]; dx = 0; dy = 0;
+          }
+        }
+    
+        window.addEventListener("keydown", e => {
+          if(e.key === "ArrowUp" && dy !== 1) { dx=0; dy=-1; }
+          if(e.key === "ArrowDown" && dy !== -1) { dx=0; dy=1; }
+          if(e.key === "ArrowLeft" && dx !== 1) { dx=-1; dy=0; }
+          if(e.key === "ArrowRight" && dx !== -1) { dx=1; dy=0; }
+        });
+    
+        setInterval(draw, 100);
+      </script>
     </body>
     </html>
     
