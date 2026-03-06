@@ -58,13 +58,11 @@
             width: 300px; border-radius: 10px; color: #fff;
         }
 
+        .mod-row { margin-bottom: 15px; }
         .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; margin-top: 10px; }
         .nuke-btn.active { background: #00ff00; color: #000; }
 
-        /* Particle Canvas for Nuke Effect */
-        #nukeCanvas {
-            position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999;
-        }
+        #nukeCanvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 99999; }
     </style>
 </head>
 <body>
@@ -73,7 +71,7 @@
         <h1>Systems Specialist & Network Infrastructure</h1>
     </header>
 
-    <section id="showcase">
+    <section>
         <h2>Project Showcase</h2>
         <div class="project-grid">
             <div class="project-card">
@@ -88,10 +86,29 @@
     </section>
 
     <section>
+        <h2>Computers & Hardware Technical Environment</h2>
+        <ul>
+            <li><b>Hardware Repair</b>: 6 years of self-taught experience fixing <b>Windows PCs</b> and <b>MacBooks</b>.</li>
+            <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> application to ensure peak performance.</li>
+            <li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Phones & Tablets</h2>
+        <ul>
+            <li><b>Mobile Hardware</b>: Expert repair for <b>iPhone</b> and <b>iPad</b> devices.</li>
+            <li><b>Component Service</b>: Professional replacement of <b>screens</b> and <b>batteries</b>.</li>
+            <li><b>Recovery</b>: Resolving <b>iOS</b> boot issues and performing critical data recovery.</li>
+        </ul>
+    </section>
+
+    <section>
         <h2>Infrastructure & Security</h2>
         <ul>
-            <li><b>Virtualization</b>: Managing server clusters with <b>Proxmox VE</b> and <b>Debian</b>.</li>
-            <li><b>Security</b>: Implementing <b>WireGuard</b> tunnels and <b>AdGuard Home</b>.</li>
+            <li><b>Virtualization</b>: Managing server clusters with <b>Proxmox VE</b>, <b>Debian</b>, and <b>TrueNAS</b>.</li>
+            <li><b>Security</b>: Implementing <b>WireGuard</b> encrypted tunnels and <b>AdGuard Home</b> for network-wide protection.</li>
+            <li><b>Automation</b>: Complex smart home management using <b>Home Assistant</b>.</li>
         </ul>
     </section>
 
@@ -101,36 +118,31 @@
         <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
     </section>
 
-    <footer id="mainFooter">
+    <footer>
         <p><b>Xavier Scott :3</b></p>
     </footer>
 
     <canvas id="nukeCanvas"></canvas>
 
     <div id="modMenu">
-        <h3 id="modMenuHeader" style="cursor: move; text-align: center; border-bottom: 1px solid red;">SYSTEM OVERRIDE</h3>
-        <div style="margin: 10px 0;">
-            <label>Gravity</label>
+        <h3 id="modMenuHeader" style="cursor: move; text-align: center; border-bottom: 1px solid red; padding-bottom: 5px;">SYSTEM OVERRIDE</h3>
+        <div class="mod-row">
+            <label>Gravity (<span id="gravVal">0.8</span>)</label>
             <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
         </div>
         <button id="godModeToggle" class="nuke-btn" style="background: #444;">GOD MODE: OFF</button>
         <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
-        <button onclick="document.getElementById('modMenu').style.display='none'" style="width:100%; margin-top:10px;">Close</button>
+        <button onclick="document.getElementById('modMenu').style.display='none'" style="width:100%; margin-top:10px; background: #222; color: #fff; border: 1px solid #444;">Close</button>
     </div>
 
     <script>
-        // Persistent Nuke State
+        // Nuke Persistent Logic
         let nukeModeActive = localStorage.getItem('nukeEnabled') === 'true';
         const nukeBtn = document.getElementById('nukeToggle');
         
         function updateNukeUI() {
-            if (nukeModeActive) {
-                nukeBtn.innerText = "NUKE MODE: ON";
-                nukeBtn.classList.add('active');
-            } else {
-                nukeBtn.innerText = "NUKE PAGE ;)";
-                nukeBtn.classList.remove('active');
-            }
+            nukeBtn.innerText = nukeModeActive ? "NUKE MODE: ON" : "NUKE PAGE ;)";
+            nukeBtn.classList.toggle('active', nukeModeActive);
         }
         updateNukeUI();
 
@@ -140,7 +152,7 @@
             updateNukeUI();
         });
 
-        // Nuke Particle Logic
+        // Pixel Disintegration Logic
         const pCanvas = document.getElementById('nukeCanvas');
         const pCtx = pCanvas.getContext('2d');
         let particles = [];
@@ -155,49 +167,53 @@
             if (!nukeModeActive || e.target.closest('#modMenu')) return;
             
             const rect = e.target.getBoundingClientRect();
-            createParticles(rect.left + rect.width/2, rect.top + rect.height/2, e.target);
-            e.target.style.visibility = 'hidden';
-            
-            // Check if everything is gone
-            const visible = Array.from(document.querySelectorAll('section, header, footer'))
-                                .filter(el => el.style.visibility !== 'hidden');
-            if (visible.length === 0) {
-                document.body.style.backgroundColor = 'white';
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            }
-        });
-
-        function createParticles(x, y, el) {
-            for (let i = 0; i < 50; i++) {
+            // Generate many tiny pixels
+            for(let i=0; i<100; i++) {
                 particles.push({
-                    x: x, y: y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    size: Math.random() * 4,
-                    life: 1.0
+                    x: rect.left + Math.random() * rect.width,
+                    y: rect.top + Math.random() * rect.height,
+                    vx: (Math.random() - 0.5) * 6,
+                    vy: (Math.random() - 0.5) * 6,
+                    size: Math.random() * 2 + 1,
+                    life: 1.0,
+                    color: i % 2 === 0 ? '#ff00ff' : '#ffffff'
                 });
             }
-        }
+            e.target.style.visibility = 'hidden';
+            
+            // Auto-refresh when page is nuked
+            const remaining = Array.from(document.querySelectorAll('section, header, footer'))
+                                   .filter(el => el.style.visibility !== 'hidden');
+            if (remaining.length === 0) {
+                document.body.style.backgroundColor = 'white';
+                setTimeout(() => location.reload(), 1500);
+            }
+        });
 
         function animateParticles() {
             pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
             particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-                pCtx.fillStyle = `rgba(255, 0, 255, ${p.life})`;
+                p.x += p.vx; p.y += p.vy; p.life -= 0.01;
+                pCtx.fillStyle = p.color;
+                pCtx.globalAlpha = p.life;
                 pCtx.fillRect(p.x, p.y, p.size, p.size);
                 if (p.life <= 0) particles.splice(i, 1);
             });
+            pCtx.globalAlpha = 1;
             requestAnimationFrame(animateParticles);
         }
         animateParticles();
 
-        // Game Logic
+        // Cyber Runner Logic
         const canvas = document.getElementById("jumpGame");
         const ctx = canvas.getContext("2d");
         let godMode = false;
-        let playerY = 150, velocity = 0, obstacleX = 400, score = 0, gameOver = false;
+        let playerY = 150, velocity = 0, obstacleX = 400, score = 0, gameOver = false, currentGravity = 0.8;
+
+        document.getElementById('modGravity').addEventListener('input', (e) => {
+            currentGravity = parseFloat(e.target.value);
+            document.getElementById('gravVal').innerText = currentGravity;
+        });
 
         document.getElementById('godModeToggle').addEventListener('click', (e) => {
             godMode = !godMode;
@@ -208,39 +224,41 @@
         function update() {
             ctx.clearRect(0, 0, 400, 200);
             if (!gameOver) {
-                velocity += 0.8; playerY += velocity;
+                velocity += currentGravity; playerY += velocity;
                 if (playerY >= 150) { playerY = 150; }
                 obstacleX -= 5;
                 if (obstacleX < -20) { obstacleX = 400; score++; }
-                // Collision
+                // God Mode Collision Check
                 if (obstacleX < 40 && obstacleX > 0 && playerY > 130 && !godMode) {
                     gameOver = true;
                 }
             }
             ctx.fillStyle = "#ff00ff"; ctx.fillRect(20, playerY, 20, 20);
             ctx.fillStyle = "red"; ctx.fillRect(obstacleX, 150, 20, 20);
+            ctx.fillStyle = "white"; ctx.fillText("Score: " + score, 10, 20);
+            if(gameOver) ctx.fillText("SYSTEM FAILURE - Click to Reboot", 110, 100);
             requestAnimationFrame(update);
         }
         update();
 
-        // Mobile Jump
-        const jump = () => { if(playerY === 150) velocity = -12; if(gameOver) { gameOver = false; obstacleX = 400; } };
+        const jump = () => { if(playerY === 150) velocity = -12; if(gameOver) { gameOver = false; obstacleX = 400; score = 0; } };
         document.getElementById('mobileJumpBtn').addEventListener('click', jump);
         canvas.addEventListener('click', jump);
 
-        // Mod Menu Drag
+        // Mod Menu Drag Logic
         const menu = document.getElementById('modMenu');
         const header = document.getElementById('modMenuHeader');
-        let dragging = false;
-        header.onmousedown = () => dragging = true;
-        window.onmousemove = (e) => { if(dragging) { menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px'; menu.style.transform = 'translate(-50%, -50%)'; } };
+        let dragging = false, mX, mY;
+        header.onmousedown = (e) => { dragging = true; mX = e.clientX - menu.offsetLeft; mY = e.clientY - menu.offsetTop; menu.style.transform = 'none'; };
+        window.onmousemove = (e) => { if(dragging) { menu.style.left = (e.clientX - mX) + 'px'; menu.style.top = (e.clientY - mY) + 'px'; } };
         window.onmouseup = () => dragging = false;
 
-        // Unlock Mod Menu
+        // Hack Secret Key
         let keys = "";
         window.onkeydown = (e) => {
             keys = (keys + e.key).slice(-4);
             if(keys === "hack") menu.style.display = 'block';
+            if(e.code === "Space") jump();
         };
     </script>
 </body>
