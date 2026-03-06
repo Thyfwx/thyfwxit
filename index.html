@@ -74,20 +74,6 @@
     let speed = 5;
 
     let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
-    let highScoreName = localStorage.getItem('cyberRunnerHighName') || 'Anonymous';
-
-    const forbiddenWords = ["badword", "swear", "profanity", "crap"]; // Add inappropriate words to this list here
-
-    function checkName(name) {
-        if (!name) return "Anonymous";
-        let cleanText = name.toLowerCase();
-        for (let word of forbiddenWords) {
-            if (cleanText.includes(word)) {
-                return "Player";
-            }
-        }
-        return name.substring(0, 10);
-    }
 
     function jump() {
       if (!isJumping && !gameOver) {
@@ -149,12 +135,7 @@
           
           if (score > highScore) {
               highScore = score;
-              setTimeout(() => {
-                  let newName = prompt("New High Score! Enter your Alias:");
-                  highScoreName = checkName(newName);
-                  localStorage.setItem('cyberRunnerHighScore', highScore);
-                  localStorage.setItem('cyberRunnerHighName', highScoreName);
-              }, 50);
+              localStorage.setItem('cyberRunnerHighScore', highScore);
           }
         }
       }
@@ -171,7 +152,7 @@
       ctx.fillStyle = "#fff";
       ctx.font = "14px Arial";
       ctx.fillText("Score: " + score, 10, 20);
-      ctx.fillText("High Score: " + highScore + " (" + highScoreName + ")", 10, 40);
+      ctx.fillText("High Score: " + highScore, 10, 40);
       
       if (gameOver) {
          ctx.fillStyle = "#fff";
