@@ -254,7 +254,9 @@
     </div>
 
     <div id="modMenu">
-        <h3>SYSTEM OVERRIDE</h3>
+        <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
+            SYSTEM OVERRIDE
+        </h3>
         <div class="mod-row">
             <label>Gravity (<span id="gravVal">0.8</span>)</label>
             <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
@@ -268,7 +270,7 @@
             <input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
         </div>
         <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
-        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'">Close Menu</button>
+        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 5px; margin-top: 10px; border: none; cursor: pointer;">Close Menu</button>
     </div>
 
     <script>
@@ -308,6 +310,32 @@
             setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 400);
         });
 
+        // Draggable Menu Logic
+        const menu = document.getElementById("modMenu");
+        const header = document.getElementById("modMenuHeader");
+        let isDragging = false, offsetX, offsetY;
+
+        header.addEventListener("mousedown", (e) => {
+            isDragging = true;
+            const rect = menu.getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            menu.style.transform = "none";
+            menu.style.cursor = "grabbing";
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            if (!isDragging) return;
+            menu.style.left = `${e.clientX - offsetX}px`;
+            menu.style.top = `${e.clientY - offsetY}px`;
+        });
+
+        document.addEventListener("mouseup", () => {
+            isDragging = false;
+            menu.style.cursor = "default";
+        });
+
+        // Game Logic
         let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, speed = 5;
         let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 
@@ -375,14 +403,7 @@
             }, 600);
         }
 
-        // Tech Joke Logic
-        const jokes = [
-            "I would tell you a UDP joke, but you might not get it.",
-            "There are 10 types of people: those who understand binary, and those who don't.",
-            "Why do programmers prefer dark mode? Because light attracts bugs.",
-            "My IP address is local, but my mindset is global."
-        ];
-
+        const jokes = ["I would tell you a UDP joke, but you might not get it.", "There are 10 types of people: those who understand binary, and those who don't.", "Why do programmers prefer dark mode? Because light attracts bugs.", "My IP address is local, but my mindset is global."];
         document.addEventListener("DOMContentLoaded", () => {
             const footer = document.querySelector("footer");
             const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
