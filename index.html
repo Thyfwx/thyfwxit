@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xavier Scott - Systems Specialist</title>
     <style>
-        /* CHANGE YOUR COLORS HERE */
         :root {
             --bg-color: #1a1a1a;
             --section-bg: #2a2a2a;
@@ -26,11 +25,24 @@
         footer { margin-top: 50px; text-align: center; font-size: 1.5em; border-top: 1px solid #444; padding-top: 20px; color: var(--neon-color); }
         
         canvas { display: block; margin: 20px auto; background: var(--canvas-bg); border: 2px solid var(--neon-color); width: 100%; max-width: 400px; touch-action: manipulation; cursor: pointer; }
-        .game-container { text-align: center; }
+        .game-container { text-align: center; position: relative; }
         .jump-btn { background-color: var(--neon-color); color: #000; border: none; padding: 15px 40px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; user-select: none; touch-action: manipulation; }
         .jump-btn:active { opacity: 0.8; }
         
         #terminalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #00ff00; font-family: monospace; padding: 20px; z-index: 9999; overflow-y: auto; font-size: 1.2em; }
+        
+        /* Mod Menu Styles */
+        #modMenu { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 3px solid #ff0000; padding: 20px; z-index: 10000; box-shadow: 0 0 20px #ff0000; color: #fff; width: 300px; border-radius: 10px; }
+        #modMenu h3 { color: #ff0000; text-align: center; margin-top: 0; }
+        .mod-row { margin-bottom: 15px; }
+        .mod-row label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .mod-row input[type="range"] { width: 100%; cursor: pointer; }
+        .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+        .nuke-btn.active { background: #00ff00; color: #000; box-shadow: 0 0 10px #00ff00; }
+        .close-mod { background: #444; color: #fff; width: 100%; padding: 5px; margin-top: 10px; border: none; cursor: pointer; }
+
+        /* Nuke Animation Class */
+        .nuked-element { transform: scale(0) rotate(45deg); opacity: 0; transition: all 0.4s ease-out; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -80,6 +92,28 @@
       <div id="terminalText"></div>
   </div>
 
+  <div id="modMenu">
+      <h3>SYSTEM OVERRIDE</h3>
+      
+      <div class="mod-row">
+          <label>Gravity (<span id="gravVal">0.8</span>)</label>
+          <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
+      </div>
+      
+      <div class="mod-row">
+          <label>Jump Power (<span id="jumpVal">12</span>)</label>
+          <input type="range" id="modJump" min="5" max="25" step="1" value="12">
+      </div>
+      
+      <div class="mod-row">
+          <label>Base Speed (<span id="speedVal">5</span>)</label>
+          <input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
+      </div>
+
+      <button id="nukeToggle" class="nuke-btn">NUKE MODE: OFF</button>
+      <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'">Close Menu</button>
+  </div>
+
   <script>
     const canvas = document.getElementById("jumpGame");
     const ctx = canvas.getContext("2d");
@@ -88,6 +122,56 @@
     const neonColor = style.getPropertyValue('--neon-color').trim();
     const gridColor = style.getPropertyValue('--grid-color').trim();
     const enemyColor = style.getPropertyValue('--enemy-color').trim();
+
+    // Mod Menu Variables
+    let currentGravity = 0.8;
+    let currentJumpPower = 12;
+    let currentBaseSpeed = 5;
+    let nukeModeActive = false;
+
+    // Connect Mod Menu Sliders
+    document.getElementById('modGravity').addEventListener('input', (e) => {
+        currentGravity = parseFloat(e.target.value);
+        document.getElementById('gravVal').innerText = currentGravity;
+    });
+    document.getElementById('modJump').addEventListener('input', (e) => {
+        currentJumpPower = parseInt(e.target.value);
+        document.getElementById('jumpVal').innerText = currentJumpPower;
+    });
+    document.getElementById('modSpeed').addEventListener('input', (e) => {
+        currentBaseSpeed = parseInt(e.target.value);
+        document.getElementById('speedVal').innerText = currentBaseSpeed;
+    });
+
+    // Connect Nuke Button
+    document.getElementById('nukeToggle').addEventListener('click', (e) => {
+        nukeModeActive = !nukeModeActive;
+        if (nukeModeActive) {
+            e.target.innerText = "NUKE MODE: ON";
+            e.target.classList.add('active');
+        } else {
+            e.target.innerText = "NUKE MODE: OFF";
+            e.target.classList.remove('active');
+        }
+    });
+
+    // Global Click Listener for Nuke Mode
+    document.addEventListener('click', (e) => {
+        if (!nukeModeActive) return;
+        
+        // Prevent nuking the mod menu itself
+        if (e.target.closest('#modMenu')) return;
+        
+        // Add the shrink/fade CSS class
+        e.target.classList.add('nuked-element');
+        
+        // Remove the element completely after animation
+        setTimeout(() => {
+            if(e.target && e.target.parentNode) {
+                e.target.parentNode.removeChild(e.target);
+            }
+        }, 400);
+    });
 
     let isJumping = false;
     let velocity = 0;
@@ -111,13 +195,12 @@
       if (!gameStarted) return;
       if (!isJumping && !gameOver) {
         isJumping = true;
-        velocity = -12;
+        velocity = -currentJumpPower; // Uses Mod Menu Value
       }
       if (gameOver) {
         obstacleX = 400;
         playerY = 150;
         score = 0;
-        speed = 5;
         gameOver = false;
         velocity = 0;
       }
@@ -147,14 +230,14 @@
       }
 
       if (gameStarted && !gameOver) {
-        velocity += 0.8; 
+        velocity += currentGravity; // Uses Mod Menu Value
         playerY += velocity;
         if (playerY >= 150) {
           playerY = 150;
           isJumping = false;
         }
 
-        speed = 5 + (score * 0.25);
+        speed = currentBaseSpeed + (score * 0.25); // Uses Mod Menu Value
         obstacleX -= speed;
 
         if (obstacleX < -20) {
@@ -203,18 +286,25 @@
     }
     update();
 
+    // Secret Key Tracker (Handles "sudo" and "hack")
     let keyBuffer = "";
-    const secretWord = "sudo";
     document.addEventListener('keydown', (e) => {
         if(e.key.length === 1) { 
             keyBuffer += e.key.toLowerCase();
-            if (keyBuffer.length > secretWord.length) {
-                keyBuffer = keyBuffer.slice(-secretWord.length);
+            if (keyBuffer.length > 5) {
+                keyBuffer = keyBuffer.slice(-5);
             }
-            if (keyBuffer === secretWord) {
+            
+            // Terminal Easter Egg
+            if (keyBuffer.endsWith("sudo")) {
                 document.getElementById('terminalOverlay').style.display = 'block';
                 document.body.style.overflow = 'hidden';
                 runTerminalBoot();
+            }
+            
+            // Mod Menu Unlock
+            if (keyBuffer.endsWith("hack")) {
+                document.getElementById('modMenu').style.display = 'block';
             }
         }
     });
@@ -225,9 +315,6 @@
             "Loading Debian Linux...",
             "Mounting local filesystems... [OK]",
             "Starting networking... [OK]",
-            "Starting WireGuard VPN... [OK]",
-            "Starting AdGuard Home... [OK]",
-            "Mounting TrueNAS storage... [OK]",
             "Welcome to Xavier's Secure Server.",
             "root@server:~# "
         ];
