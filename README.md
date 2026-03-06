@@ -1,7 +1,3 @@
 # Domain
-IT Repair Portfolio - Coming Soon
 
-
-
-
-Xavier Scott :3
+This is where I test stuff for my domain.
