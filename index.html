@@ -15,321 +15,384 @@
             --enemy-color: red;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; background-color: var(--bg-color); color: var(--text-color); }
-        header { border-bottom: 2px solid var(--neon-color); margin-bottom: 20px; text-align: center; }
-        h1, h2 { color: var(--neon-color); }
-        section { margin-bottom: 30px; background: var(--section-bg); padding: 15px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-        ul { list-style-type: none; padding: 0; }
-        li { margin-bottom: 15px; }
-        b { color: var(--neon-color); }
-        footer { margin-top: 50px; text-align: center; font-size: 1.5em; border-top: 1px solid #444; padding-top: 20px; color: var(--neon-color); }
-        
-        canvas { display: block; margin: 20px auto; background: var(--canvas-bg); border: 2px solid var(--neon-color); width: 100%; max-width: 400px; touch-action: manipulation; cursor: pointer; }
-        .game-container { text-align: center; position: relative; }
-        .jump-btn { background-color: var(--neon-color); color: #000; border: none; padding: 15px 40px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; user-select: none; touch-action: manipulation; }
-        .jump-btn:active { opacity: 0.8; }
-        
-        #terminalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #00ff00; font-family: monospace; padding: 20px; z-index: 9999; overflow-y: auto; font-size: 1.2em; }
-        
-        /* Mod Menu Styles */
-        #modMenu { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 3px solid #ff0000; padding: 20px; z-index: 10000; box-shadow: 0 0 20px #ff0000; color: #fff; width: 300px; border-radius: 10px; }
-        #modMenu h3 { color: #ff0000; text-align: center; margin-top: 0; }
-        .mod-row { margin-bottom: 15px; }
-        .mod-row label { display: block; margin-bottom: 5px; font-weight: bold; }
-        .mod-row input[type="range"] { width: 100%; cursor: pointer; }
-        .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
-        .nuke-btn.active { background: #00ff00; color: #000; box-shadow: 0 0 10px #00ff00; }
-        .close-mod { background: #444; color: #fff; width: 100%; padding: 5px; margin-top: 10px; border: none; cursor: pointer; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            line-height: 1.8; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 40px 20px; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+        }
 
-        /* Nuke Animation Class */
+        header { 
+            border-bottom: 2px solid var(--neon-color); 
+            margin-bottom: 40px; 
+            text-align: center; 
+        }
+
+        h1, h2 { color: var(--neon-color); margin-bottom: 20px; }
+
+        section { 
+            margin-bottom: 40px; 
+            background: var(--section-bg); 
+            padding: 25px; 
+            border-radius: 8px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+            transition: transform 0.3s ease;
+        }
+
+        section:hover { transform: translateY(-5px); }
+
+        ul { list-style-type: none; padding: 0; }
+
+        li { 
+            margin-bottom: 20px; 
+            transition: color 0.3s ease, text-shadow 0.3s ease;
+        }
+
+        li:hover { 
+            color: var(--neon-color); 
+            text-shadow: 0 0 8px var(--neon-color); 
+        }
+
+        b { color: var(--neon-color); }
+
+        footer { 
+            margin-top: 60px; 
+            text-align: center; 
+            border-top: 1px solid #444; 
+            padding-top: 30px; 
+        }
+
+        /* Project Grid */
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        .project-card {
+            background: #111;
+            padding: 20px;
+            border: 1px solid var(--neon-color);
+            border-radius: 5px;
+        }
+
+        /* Pulsing Neon Indicator */
+        .pulse-indicator {
+            color: var(--neon-color);
+            animation: pulse 1.5s infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+            50% { opacity: 0.3; text-shadow: none; }
+            100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+        }
+
+        /* Contact Form */
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .contact-form input, 
+        .contact-form select, 
+        .contact-form textarea {
+            padding: 12px;
+            background: var(--canvas-bg);
+            color: var(--text-color);
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .contact-form button {
+            background: var(--neon-color);
+            color: #000;
+            padding: 15px;
+            font-weight: bold;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 1.1rem;
+        }
+
+        canvas { 
+            display: block; 
+            margin: 20px auto; 
+            background: var(--canvas-bg); 
+            border: 2px solid var(--neon-color); 
+            width: 100%; 
+            max-width: 400px; 
+            touch-action: manipulation; 
+            cursor: pointer; 
+        }
+
+        .game-container { text-align: center; position: relative; }
+
+        .jump-btn { 
+            background-color: var(--neon-color); 
+            color: #000; 
+            border: none; 
+            padding: 15px 40px; 
+            font-size: 1.2em; 
+            font-weight: bold; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin-top: 10px; 
+            user-select: none; 
+        }
+
+        #terminalOverlay { 
+            display: none; 
+            position: fixed; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            background: #000; 
+            color: #00ff00; 
+            font-family: monospace; 
+            padding: 20px; 
+            z-index: 9999; 
+            overflow-y: auto; 
+        }
+
+        #modMenu { 
+            display: none; 
+            position: fixed; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: #000; 
+            border: 3px solid #ff0000; 
+            padding: 20px; 
+            z-index: 10000; 
+            box-shadow: 0 0 20px #ff0000; 
+            color: #fff; 
+            width: 300px; 
+            border-radius: 10px; 
+        }
+
+        .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
         .nuked-element { transform: scale(0) rotate(45deg); opacity: 0; transition: all 0.4s ease-out; pointer-events: none; }
     </style>
 </head>
 <body>
-  <header>
-    <h1>Systems Specialist & Network Infrastructure</h1>
-  </header>
 
-  <section>
-    <h2>Computers & Hardware Technical Environment</h2>
-    <ul>
-      <li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and practically <b>any tech</b> you throw at me.</li>
-      <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> (cooling compound) application to ensure peak performance.</li>
-      <li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
-    </ul>
-  </section>
+    <header>
+        <h1>Systems Specialist & Network Infrastructure</h1>
+    </header>
 
-  <section>
-    <h2>Phones & Tablets</h2>
-    <ul>
-      <li><b>Mobile Hardware</b>: Expert repair for <b>iPhone</b> and <b>iPad</b> devices.</li>
-      <li><b>Component Service</b>: Professional replacement of <b>screens</b> and <b>batteries</b>.</li>
-      <li><b>Recovery</b>: Resolving <b>iOS</b> boot issues (stuck on Apple logo) and performing critical data recovery.</li>
-    </ul>
-  </section>
+    <section>
+        <h2>Project Showcase</h2>
+        <div class="project-grid">
+            <div class="project-card">
+                <h3><b>TrueNAS Build</b></h3>
+                <p>Built a secure, high-capacity storage server using ZFS for data protection.</p>
+            </div>
+            <div class="project-card">
+                <h3><b>MacBook Rescue</b></h3>
+                <p>Performed component-level repair and liquid damage recovery on Apple hardware.</p>
+            </div>
+        </div>
+    </section>
 
-  <section>
-    <h2>Infrastructure & Security</h2>
-    <ul>
-      <li><b>Virtualization</b>: Managing high-availability server clusters with <b>Proxmox VE</b> and <b>Debian</b>.</li>
-      <li><b>Data Integrity</b>: Architecting robust storage solutions using <b>TrueNAS</b>.</li>
-      <li><b>Security</b>: Implementing <b>WireGuard</b> encrypted tunnels (private connections) and <b>AdGuard Home</b> for network-wide protection.</li>
-    </ul>
-  </section>
+    <section>
+        <h2><span class="pulse-indicator">●</span> Tech Tip of the Day</h2>
+        <p>Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.</p>
+    </section>
 
-  <section class="game-container">
-    <h2>Cyber Runner Game</h2>
-    <canvas id="jumpGame" width="400" height="200"></canvas>
-    <p style="font-size: 0.9em;">[ Tap Game or Button to <b>Start</b> ]</p>
-    <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
-  </section>
+    <section>
+        <h2>Hardware Technical Environment</h2>
+        <ul>
+            <li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and <b>mobile devices</b>.</li>
+            <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> (cooling compound) application.</li>
+            <li><b>Operating Systems</b>: Advanced troubleshooting for <b>Windows</b> and <b>macOS</b> environments.</li>
+        </ul>
+    </section>
 
-  <footer>
-    <p><b>Xavier Scott :3</b></p>
-  </footer>
+    <section>
+        <h2>Infrastructure & Security</h2>
+        <ul>
+            <li><b>Virtualization</b>: Managing server clusters with <b>Proxmox VE</b> and <b>Debian</b>.</li>
+            <li><b>Security</b>: Implementing <b>WireGuard</b> tunnels and <b>AdGuard Home</b> for network-wide protection.</li>
+        </ul>
+    </section>
 
-  <div id="terminalOverlay">
-      <div id="terminalText"></div>
-  </div>
+    <section>
+        <h2>Request Service</h2>
+        <form class="contact-form">
+            <input type="text" placeholder="Your Name" required>
+            <select required>
+                <option value="">Select a Service...</option>
+                <option value="pc">PC Repair</option>
+                <option value="mobile">Mobile Repair</option>
+                <option value="homelab">Home Lab Setup</option>
+            </select>
+            <textarea rows="4" placeholder="Describe the issue..." required></textarea>
+            <button type="submit">Send Message</button>
+        </form>
+    </section>
 
-  <div id="modMenu">
-      <h3>SYSTEM OVERRIDE</h3>
-      
-      <div class="mod-row">
-          <label>Gravity (<span id="gravVal">0.8</span>)</label>
-          <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
-      </div>
-      
-      <div class="mod-row">
-          <label>Jump Power (<span id="jumpVal">12</span>)</label>
-          <input type="range" id="modJump" min="5" max="25" step="1" value="12">
-      </div>
-      
-      <div class="mod-row">
-          <label>Base Speed (<span id="speedVal">5</span>)</label>
-          <input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
-      </div>
+    <section class="game-container">
+        <h2>Cyber Runner Game</h2>
+        <canvas id="jumpGame" width="400" height="200"></canvas>
+        <p style="font-size: 0.9em;">[ Tap Game or Button to <b>Start</b> ]</p>
+        <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+    </section>
 
-      <button id="nukeToggle" class="nuke-btn">NUKE MODE: OFF</button>
-      <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'">Close Menu</button>
-  </div>
+    <footer>
+        <p><b>Xavier Scott :3</b></p>
+    </footer>
 
-  <script>
-    const canvas = document.getElementById("jumpGame");
-    const ctx = canvas.getContext("2d");
-    
-    const style = getComputedStyle(document.body);
-    const neonColor = style.getPropertyValue('--neon-color').trim();
-    const gridColor = style.getPropertyValue('--grid-color').trim();
-    const enemyColor = style.getPropertyValue('--enemy-color').trim();
+    <div id="terminalOverlay">
+        <div id="terminalText"></div>
+    </div>
 
-    // Mod Menu Variables
-    let currentGravity = 0.8;
-    let currentJumpPower = 12;
-    let currentBaseSpeed = 5;
-    let nukeModeActive = false;
+    <div id="modMenu">
+        <h3>SYSTEM OVERRIDE</h3>
+        <div class="mod-row">
+            <label>Gravity (<span id="gravVal">0.8</span>)</label>
+            <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
+        </div>
+        <div class="mod-row">
+            <label>Jump Power (<span id="jumpVal">12</span>)</label>
+            <input type="range" id="modJump" min="5" max="25" step="1" value="12">
+        </div>
+        <div class="mod-row">
+            <label>Base Speed (<span id="speedVal">5</span>)</label>
+            <input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
+        </div>
+        <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
+        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'">Close Menu</button>
+    </div>
 
-    // Connect Mod Menu Sliders
-    document.getElementById('modGravity').addEventListener('input', (e) => {
-        currentGravity = parseFloat(e.target.value);
-        document.getElementById('gravVal').innerText = currentGravity;
-    });
-    document.getElementById('modJump').addEventListener('input', (e) => {
-        currentJumpPower = parseInt(e.target.value);
-        document.getElementById('jumpVal').innerText = currentJumpPower;
-    });
-    document.getElementById('modSpeed').addEventListener('input', (e) => {
-        currentBaseSpeed = parseInt(e.target.value);
-        document.getElementById('speedVal').innerText = currentBaseSpeed;
-    });
+    <script>
+        const canvas = document.getElementById("jumpGame");
+        const ctx = canvas.getContext("2d");
+        const style = getComputedStyle(document.body);
+        const neonColor = style.getPropertyValue('--neon-color').trim();
+        const gridColor = style.getPropertyValue('--grid-color').trim();
+        const enemyColor = style.getPropertyValue('--enemy-color').trim();
 
-    // Connect Nuke Button
-    document.getElementById('nukeToggle').addEventListener('click', (e) => {
-        nukeModeActive = !nukeModeActive;
-        if (nukeModeActive) {
-            e.target.innerText = "NUKE MODE: ON";
-            e.target.classList.add('active');
-        } else {
-            e.target.innerText = "NUKE MODE: OFF";
-            e.target.classList.remove('active');
+        let currentGravity = 0.8;
+        let currentJumpPower = 12;
+        let currentBaseSpeed = 5;
+        let nukeModeActive = false;
+
+        document.getElementById('modGravity').addEventListener('input', (e) => {
+            currentGravity = parseFloat(e.target.value);
+            document.getElementById('gravVal').innerText = currentGravity;
+        });
+        document.getElementById('modJump').addEventListener('input', (e) => {
+            currentJumpPower = parseInt(e.target.value);
+            document.getElementById('jumpVal').innerText = currentJumpPower;
+        });
+        document.getElementById('modSpeed').addEventListener('input', (e) => {
+            currentBaseSpeed = parseInt(e.target.value);
+            document.getElementById('speedVal').innerText = currentBaseSpeed;
+        });
+
+        document.getElementById('nukeToggle').addEventListener('click', (e) => {
+            nukeModeActive = !nukeModeActive;
+            e.target.classList.toggle('active');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!nukeModeActive || e.target.closest('#modMenu')) return;
+            e.target.classList.add('nuked-element');
+            setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 400);
+        });
+
+        let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, speed = 5;
+        let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
+
+        function jump() {
+            if (!gameStarted) { gameStarted = true; }
+            if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
+            if (gameOver) { obstacleX = 400; playerY = 150; score = 0; gameOver = false; velocity = 0; }
         }
-    });
 
-    // Global Click Listener for Nuke Mode
-    document.addEventListener('click', (e) => {
-        if (!nukeModeActive) return;
-        
-        // Prevent nuking the mod menu itself
-        if (e.target.closest('#modMenu')) return;
-        
-        // Add the shrink/fade CSS class
-        e.target.classList.add('nuked-element');
-        
-        // Remove the element completely after animation
-        setTimeout(() => {
-            if(e.target && e.target.parentNode) {
-                e.target.parentNode.removeChild(e.target);
+        window.addEventListener("keydown", e => { if((e.code === "Space" || e.code === "ArrowUp")) { e.preventDefault(); jump(); } });
+        canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
+        document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
+
+        function update() {
+            ctx.clearRect(0, 0, 400, 200);
+            ctx.strokeStyle = gridColor;
+            for(let i=0; i<=400; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); }
+            for(let i=0; i<=200; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); }
+
+            if (gameStarted && !gameOver) {
+                velocity += currentGravity;
+                playerY += velocity;
+                if (playerY >= 150) { playerY = 150; isJumping = false; }
+                speed = currentBaseSpeed + (score * 0.25);
+                obstacleX -= speed;
+                if (obstacleX < -20) { obstacleX = 400; score++; }
+                if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
+                    gameOver = true;
+                    if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
+                }
             }
-        }, 400);
-    });
 
-    let isJumping = false;
-    let velocity = 0;
-    let playerY = 150;
-    let obstacleX = 400;
-    let score = 0;
-    let gameOver = false;
-    let gameStarted = false;
-    let speed = 5;
-
-    let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
-
-    function startGame() {
-        if (!gameStarted) {
-            gameStarted = true;
-            jump();
-        }
-    }
-
-    function jump() {
-      if (!gameStarted) return;
-      if (!isJumping && !gameOver) {
-        isJumping = true;
-        velocity = -currentJumpPower; // Uses Mod Menu Value
-      }
-      if (gameOver) {
-        obstacleX = 400;
-        playerY = 150;
-        score = 0;
-        gameOver = false;
-        velocity = 0;
-      }
-    }
-
-    window.addEventListener("keydown", e => { 
-        if((e.code === "Space" || e.code === "ArrowUp") && gameStarted) {
-            e.preventDefault();
-            jump(); 
-        }
-    });
-    
-    canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); startGame(); jump(); });
-    const btn = document.getElementById("mobileJumpBtn");
-    btn.addEventListener("pointerdown", (e) => { e.preventDefault(); startGame(); jump(); });
-
-    function update() {
-      ctx.clearRect(0, 0, 400, 200);
-
-      ctx.strokeStyle = gridColor;
-      ctx.lineWidth = 1;
-      for(let i=0; i<=400; i+=20) {
-          ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke();
-      }
-      for(let i=0; i<=200; i+=20) {
-          ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke();
-      }
-
-      if (gameStarted && !gameOver) {
-        velocity += currentGravity; // Uses Mod Menu Value
-        playerY += velocity;
-        if (playerY >= 150) {
-          playerY = 150;
-          isJumping = false;
-        }
-
-        speed = currentBaseSpeed + (score * 0.25); // Uses Mod Menu Value
-        obstacleX -= speed;
-
-        if (obstacleX < -20) {
-          obstacleX = 400;
-          score++;
-        }
-
-        if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
-          gameOver = true;
-          if (score > highScore) {
-              highScore = score;
-              localStorage.setItem('cyberRunnerHighScore', highScore);
-          }
-        }
-      }
-
-      ctx.fillStyle = neonColor;
-      ctx.fillRect(20, playerY, 20, 20);
-
-      if (gameStarted) {
-          ctx.fillStyle = enemyColor;
-          ctx.fillRect(obstacleX, 150, 20, 20);
-      }
-
-      ctx.fillStyle = "#444";
-      ctx.fillRect(0, 170, 400, 30);
-
-      ctx.fillStyle = "#fff";
-      ctx.font = "14px Arial";
-      ctx.fillText("Score: " + score, 10, 20);
-      ctx.fillText("High Score: " + highScore, 10, 40);
-      
-      if (!gameStarted) {
-         ctx.fillStyle = "#fff";
-         ctx.textAlign = "center";
-         ctx.fillText("Tap to Start", 200, 100);
-         ctx.textAlign = "left";
-      } else if (gameOver) {
-         ctx.fillStyle = "#fff";
-         ctx.textAlign = "center";
-         ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100);
-         ctx.textAlign = "left";
-      }
-
-      requestAnimationFrame(update);
-    }
-    update();
-
-    // Secret Key Tracker (Handles "sudo" and "hack")
-    let keyBuffer = "";
-    document.addEventListener('keydown', (e) => {
-        if(e.key.length === 1) { 
-            keyBuffer += e.key.toLowerCase();
-            if (keyBuffer.length > 5) {
-                keyBuffer = keyBuffer.slice(-5);
-            }
+            ctx.fillStyle = neonColor;
+            ctx.fillRect(20, playerY, 20, 20);
+            if (gameStarted) { ctx.fillStyle = enemyColor; ctx.fillRect(obstacleX, 150, 20, 20); }
+            ctx.fillStyle = "#444";
+            ctx.fillRect(0, 170, 400, 30);
+            ctx.fillStyle = "#fff";
+            ctx.font = "14px Arial";
+            ctx.fillText("Score: " + score, 10, 20);
+            ctx.fillText("High Score: " + highScore, 10, 40);
             
-            // Terminal Easter Egg
-            if (keyBuffer.endsWith("sudo")) {
-                document.getElementById('terminalOverlay').style.display = 'block';
-                document.body.style.overflow = 'hidden';
-                runTerminalBoot();
-            }
-            
-            // Mod Menu Unlock
-            if (keyBuffer.endsWith("hack")) {
-                document.getElementById('modMenu').style.display = 'block';
-            }
+            if (!gameStarted) { ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; }
+            else if (gameOver) { ctx.textAlign = "center"; ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100); ctx.textAlign = "left"; }
+            requestAnimationFrame(update);
         }
-    });
+        update();
 
-    function runTerminalBoot() {
-        const lines = [
-            "INIT: version 2.88 booting",
-            "Loading Debian Linux...",
-            "Mounting local filesystems... [OK]",
-            "Starting networking... [OK]",
-            "Welcome to Xavier's Secure Server.",
-            "root@server:~# "
+        let keyBuffer = "";
+        document.addEventListener('keydown', (e) => {
+            if(e.key.length === 1) {
+                keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-4);
+                if (keyBuffer === "sudo") { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
+                if (keyBuffer === "hack") { document.getElementById('modMenu').style.display = 'block'; }
+            }
+        });
+
+        function runTerminalBoot() {
+            const lines = ["INIT: version 2.88 booting", "Loading Debian Linux...", "Mounting local filesystems... [OK]", "Starting networking... [OK]", "Welcome to Xavier's Secure Server.", "root@server:~# "];
+            let term = document.getElementById("terminalText"), i = 0;
+            term.innerHTML = "";
+            let interval = setInterval(() => {
+                if (i < lines.length) { term.innerHTML += lines[i] + "<br><br>"; i++; }
+                else clearInterval(interval);
+            }, 600);
+        }
+
+        // Tech Joke Logic
+        const jokes = [
+            "I would tell you a UDP joke, but you might not get it.",
+            "There are 10 types of people: those who understand binary, and those who don't.",
+            "Why do programmers prefer dark mode? Because light attracts bugs.",
+            "My IP address is local, but my mindset is global."
         ];
-        let term = document.getElementById("terminalText");
-        term.innerHTML = "";
-        let i = 0;
-        let interval = setInterval(() => {
-            if (i < lines.length) {
-                term.innerHTML += lines[i] + "<br><br>";
-                i++;
-            } else {
-                clearInterval(interval);
-            }
-        }, 600);
-    }
-  </script>
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const footer = document.querySelector("footer");
+            const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+            const jokeElement = document.createElement("p");
+            jokeElement.style.fontSize = "0.8em";
+            jokeElement.style.color = "#888";
+            jokeElement.style.marginTop = "10px";
+            jokeElement.innerText = randomJoke;
+            footer.appendChild(jokeElement);
+        });
+    </script>
 </body>
 </html>
