@@ -438,7 +438,7 @@ font-size: 0.9em;
 
 <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET PROGRESS</button>
 <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
-        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
+        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
 </div>
 
 <script>
@@ -555,12 +555,14 @@ let currentDuckColor = rainbowColors[0];
 // Pac-Man Game Vars
 let pacGameActive = false;
 let pacGameOver = false;
+let pacGameStarted = false;
 let pacScore = 0;
 let pacGodMode = false;
 let pacWallHack = false;
 let pacMultiplier = 1;
 let pacSpeed = 2;
 let ghostSpeed = 1;
+let pacFrame = 0;
 
 let pacX = 30, pacY = 30;
 let pacDx = 0, pacDy = 0;
@@ -764,12 +766,14 @@ if (gameStarted && !gameOver) {
     playerY += velocity;
     if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
 
-    currentSpeed = currentBaseSpeed + (score * 0.4); // Multiplier makes it insanely fast
+    // Speed increases every 15 points
+    let speedLevel = Math.floor(score / 15);
+    currentSpeed = currentBaseSpeed + (speedLevel * 1.5); 
     
-    let lastObs = runnerObstacles[runnerObstacles.length - 1];
-    let minGap = 150 + (currentSpeed * 12); // Gap expands dynamically so blocks don't overlap
+    let minGap = 200 + (currentSpeed * 10); // Gap scales dynamically so blocks don't overlap
 
-    if (lastObs && lastObs.x < (400 - minGap)) {
+    let lastObs = runnerObstacles[runnerObstacles.length - 1];
+    if (!lastObs || lastObs.x < (400 - minGap)) {
         runnerObstacles.push({x: 400, passed: false});
     }
 
@@ -862,7 +866,11 @@ targetCanvas.addEventListener('pointerdown', (e) => {
     
     if (duckActive && clickX >= duckX && clickX <= duckX + targetSize && clickY >= duckY && clickY <= duckY + targetSize) {
         targetScore++;
-        targetSpeedMult += 0.2; 
+        
+        // Speed increases every 25 points
+        if (targetScore > 0 && targetScore % 25 === 0) {
+            targetSpeedMult += 1; 
+        }
         
         if (targetScore > targetHighScore) { 
             targetHighScore = targetScore; 
@@ -948,7 +956,7 @@ function updateTargetGame() {
         
         if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
             targetScore++;
-            targetSpeedMult += 0.2;
+            if (targetScore > 0 && targetScore % 25 === 0) { targetSpeedMult += 1; }
             if (targetScore > targetHighScore) { 
                 targetHighScore = targetScore; 
                 localStorage.setItem('matrixTargetHighScore', targetHighScore); 
@@ -980,6 +988,11 @@ let pacTouchStartX = 0;
 let pacTouchStartY = 0;
 
 pacCanvas.addEventListener('touchstart', (e) => {
+    if (!pacGameStarted) {
+        pacGameStarted = true;
+        return;
+    }
+    
     if(pacGameOver) {
         pacGameOver = false;
         pacScore = 0;
@@ -1008,8 +1021,8 @@ pacCanvas.addEventListener('touchstart', (e) => {
 }, {passive: false});
 
 pacCanvas.addEventListener('touchmove', (e) => {
-    if(pacGameOver) return;
-    e.preventDefault(); // Prevents mobile screen scrolling
+    if(pacGameOver || !pacGameStarted) return;
+    e.preventDefault(); 
     
     let touchEndX = e.touches[0].clientX;
     let touchEndY = e.touches[0].clientY;
@@ -1030,15 +1043,21 @@ pacCanvas.addEventListener('touchmove', (e) => {
     }
 }, {passive: false});
 
+// Smaller hitbox makes corner turning much easier
 function pacCollision(x, y) {
     let pts = [
-        {cx: x+3, cy: y+3}, {cx: x+17, cy: y+3},
-        {cx: x+3, cy: y+17}, {cx: x+17, cy: y+17}
+        {cx: x+6, cy: y+6}, {cx: x+14, cy: y+6},
+        {cx: x+6, cy: y+14}, {cx: x+14, cy: y+14}
     ];
     for(let p of pts) {
         let col = Math.floor(p.cx / 20);
         let row = Math.floor(p.cy / 20);
-        if(col<0 || col>19 || row<0 || row>9) return true;
+        
+        if(col < 0) col = 19;
+        if(col > 19) col = 0;
+        if(row < 0) row = 9;
+        if(row > 9) row = 0;
+        
         if(pacMap[row][col] === 1) return true;
     }
     return false;
@@ -1046,6 +1065,8 @@ function pacCollision(x, y) {
 
 window.addEventListener("keydown", e => {
     if(!pacGameActive || pacGameOver) return;
+    if(!pacGameStarted) { pacGameStarted = true; return; }
+    
     if(e.code === "ArrowUp") { pacDx=0; pacDy=-1; e.preventDefault(); }
     if(e.code === "ArrowDown") { pacDx=0; pacDy=1; e.preventDefault(); }
     if(e.code === "ArrowLeft") { pacDx=-1; pacDy=0; e.preventDefault(); }
@@ -1057,6 +1078,16 @@ function updatePacMan() {
 
     ctxPac.fillStyle = "black";
     ctxPac.fillRect(0, 0, 400, 200);
+
+    if (!pacGameStarted) {
+        ctxPac.fillStyle = "yellow";
+        ctxPac.font = "bold 18px Arial";
+        ctxPac.textAlign = "center";
+        ctxPac.fillText("Tap or Press Any Key to Start", 200, 100);
+        ctxPac.textAlign = "left";
+        requestAnimationFrame(updatePacMan);
+        return;
+    }
 
     if (pacGameOver) {
         ctxPac.fillStyle = "rgba(0,0,0,0.8)";
@@ -1097,6 +1128,7 @@ function updatePacMan() {
         }
     }
 
+    // Draw Map
     for(let r=0; r<10; r++) {
         for(let c=0; c<20; c++) {
             if(pacMap[r][c] === 1) {
@@ -1111,6 +1143,7 @@ function updatePacMan() {
         }
     }
 
+    // Ghost Logic & Details
     for(let g of ghosts) {
         let gNextX = g.x + (g.dx * ghostSpeed);
         let gNextY = g.y + (g.dy * ghostSpeed);
@@ -1128,8 +1161,24 @@ function updatePacMan() {
             g.x = gNextX; g.y = gNextY;
         }
 
+        // Draw Ghost Body
         ctxPac.fillStyle = g.color;
-        ctxPac.fillRect(g.x+2, g.y+2, 16, 16);
+        ctxPac.beginPath();
+        ctxPac.arc(g.x+10, g.y+10, 8, Math.PI, 0);
+        ctxPac.lineTo(g.x+18, g.y+18);
+        ctxPac.lineTo(g.x+14, g.y+15);
+        ctxPac.lineTo(g.x+10, g.y+18);
+        ctxPac.lineTo(g.x+6, g.y+15);
+        ctxPac.lineTo(g.x+2, g.y+18);
+        ctxPac.fill();
+
+        // Draw Ghost Eyes
+        ctxPac.fillStyle = "white";
+        ctxPac.beginPath(); ctxPac.arc(g.x+7, g.y+8, 2.5, 0, Math.PI*2); ctxPac.fill();
+        ctxPac.beginPath(); ctxPac.arc(g.x+13, g.y+8, 2.5, 0, Math.PI*2); ctxPac.fill();
+        ctxPac.fillStyle = "blue";
+        ctxPac.beginPath(); ctxPac.arc(g.x+7+g.dx, g.y+8+g.dy, 1, 0, Math.PI*2); ctxPac.fill();
+        ctxPac.beginPath(); ctxPac.arc(g.x+13+g.dx, g.y+8+g.dy, 1, 0, Math.PI*2); ctxPac.fill();
         
         if(!pacGodMode && Math.abs(g.x - pacX) < 15 && Math.abs(g.y - pacY) < 15) {
             pacGameOver = true;
@@ -1137,11 +1186,28 @@ function updatePacMan() {
         }
     }
 
+    // Pac-Man Animation Logic
+    pacFrame++;
+    let mouthOpen = (Math.floor(pacFrame / 10) % 2 === 0);
+    
+    ctxPac.save();
+    ctxPac.translate(pacX + 10, pacY + 10);
+    
+    if (pacDx === 1) ctxPac.rotate(0);
+    else if (pacDx === -1) ctxPac.rotate(Math.PI);
+    else if (pacDy === 1) ctxPac.rotate(Math.PI / 2);
+    else if (pacDy === -1) ctxPac.rotate(-Math.PI / 2);
+
     ctxPac.fillStyle = currentPacColor;
     ctxPac.beginPath();
-    ctxPac.arc(pacX + 10, pacY + 10, 8, 0.2 * Math.PI, 1.8 * Math.PI);
-    ctxPac.lineTo(pacX + 10, pacY + 10);
+    if (mouthOpen) {
+        ctxPac.arc(0, 0, 8, 0.2 * Math.PI, 1.8 * Math.PI);
+    } else {
+        ctxPac.arc(0, 0, 8, 0, 2 * Math.PI);
+    }
+    ctxPac.lineTo(0, 0);
     ctxPac.fill();
+    ctxPac.restore();
 
     ctxPac.fillStyle = "#fff";
     ctxPac.font = "14px Arial";
@@ -1193,6 +1259,7 @@ if (keyBuffer === "pacm") {
 
     pacCanvas.style.display = 'block';
     pacGameActive = true;
+    pacGameStarted = false;
     updatePacMan();
 }
 }
