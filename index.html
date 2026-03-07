@@ -188,20 +188,33 @@ touch-action: none;
 cursor: pointer; 
 }
 
+.controls-wrapper {
+display: flex;
+gap: 10px;
+justify-content: center;
+margin-top: 15px;
+}
+
 .jump-btn { 
 background-color: #111; 
 color: var(--neon-color); 
 border: 2px solid var(--neon-color); 
-padding: 15px 40px; 
+padding: 15px 30px; 
 font-size: 1.2em; 
 font-weight: bold; 
 border-radius: 5px; 
 cursor: pointer; 
-margin-top: 15px; 
 user-select: none; 
 transition: all 0.2s ease;
 text-transform: uppercase;
 letter-spacing: 2px;
+flex: 1;
+max-width: 200px;
+}
+
+.duck-btn {
+border-color: #00ccff;
+color: #00ccff;
 }
 
 .jump-btn:hover {
@@ -210,8 +223,10 @@ color: #000;
 box-shadow: 0 0 15px var(--neon-color);
 }
 
-@media (max-width: 600px) {
-  .jump-btn { width: 100%; box-sizing: border-box; }
+.duck-btn:hover {
+background-color: #00ccff;
+color: #000;
+box-shadow: 0 0 15px #00ccff;
 }
 
 #terminalOverlay { 
@@ -323,8 +338,8 @@ font-size: 0.9em;
     <canvas id="pacmanGame" width="400" height="200" style="display: none;"></canvas>
 </div>
 
-<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game or Button to <b>Start</b> ]</p>
-<p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> on your keyboard to load the Target Simulator ]</p>
+<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game or Press <b>Space/Down</b> to Play ]</p>
+<p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> or <b>pacm</b> on your keyboard to load hidden modules ]</p>
 
 <div id="publicDifficulty" style="display:none; margin-top: 15px;">
 <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -335,8 +350,9 @@ font-size: 0.9em;
 </select>
 </div>
 
-<div>
-    <button id="mobileJumpBtn" class="jump-btn">INITIALIZE JUMP</button>
+<div class="controls-wrapper" id="runnerControls">
+    <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+    <button id="mobileDuckBtn" class="jump-btn duck-btn">DUCK</button>
 </div>
 </section>
 
@@ -525,13 +541,15 @@ let currentGravity = 0.8;
 let currentJumpPower = 12;
 let currentBaseSpeed = 5;
 let runnerGodMode = false;
-let isJumping = false, velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
+let isJumping = false;
+let isDucking = false;
+let velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 let currentRunnerCrash = "";
 
-// Dynamic Obstacle Array (Initial spawn way off-screen)
+// Dynamic Obstacle Array
 const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; // Green, Cyan, Pink
-let runnerObstacles = [{x: 600, passed: false, color: hazardColors[0], height: 20}];
+let runnerObstacles = [];
 let runnerTrails = [];
 
 // Target Game Vars
@@ -555,42 +573,28 @@ const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#
 let currentDuckColor = rainbowColors[0];
 
 // Pac-Man Game Vars
+let pacState = 'MENU'; // MENU, PLAYING, GAMEOVER
 let pacGameActive = false;
-let pacGameOver = false;
-let pacGameStarted = false;
 let pacScore = 0;
 let pacGodMode = false;
 let pacWallHack = false;
 let pacMultiplier = 1;
-let pacSpeed = 2; // Must divide evenly into 20 for grid alignment
+let pacSpeed = 2; 
 let ghostSpeed = 1;
 let pacFrame = 0;
 let pacEatEffects = [];
+let scaredTimer = 0;
 
-// Aligned exact grid start coordinates
 let pacX = 20, pacY = 20;
 let pacDx = 0, pacDy = 0;
 
 const pacCharacterColors = ['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FF4500'];
 let currentPacColor = '#FFFF00';
+let currentMazeColor = 'blue';
+const mazeColors = ['blue', 'purple', 'green', 'red'];
 
-let ghosts = [
-    {x: 180, y: 80, dx: 1, dy: 0, color: 'red'},
-    {x: 180, y: 80, dx: -1, dy: 0, color: 'cyan'}
-];
-
-let pacMap = [
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-    [1,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1],
-    [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
-    [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-    [1,1,1,0,1,1,1,0,1,2,1,0,1,1,1,0,1,1,1,1],
-    [1,0,0,0,0,0,0,0,1,2,1,0,0,0,0,0,0,0,0,1],
-    [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
-    [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,1],
-    [1,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,0,1],
-    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-];
+let ghosts = [];
+let pacMap = [];
 
 // Global Nuke Var
 let nukeModeActive = false;
@@ -708,7 +712,7 @@ setTimeout(() => {
 }, 800);
 });
 
-// --- Draggable Menu Logic (Mouse & Touch) ---
+// --- Draggable Menu Logic ---
 const menu = document.getElementById("modMenu");
 const header = document.getElementById("modMenuHeader");
 let isDragging = false, offsetX, offsetY;
@@ -748,21 +752,43 @@ document.addEventListener("touchend", stopDrag);
 // --- Runner Game Logic ---
 function jump() {
 if (targetGameActive || pacGameActive) return; 
-if (!gameStarted) { gameStarted = true; }
-if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
-if (gameOver) { 
-    runnerObstacles = [{x: 600, passed: false, color: hazardColors[0], height: 20}]; 
-    playerY = 150; 
-    score = 0; 
-    gameOver = false; 
-    velocity = 0; 
-    runnerTrails = []; 
+if (!gameStarted) { gameStarted = true; runnerObstacles = []; score = 0; }
+if (!isJumping && !gameOver && !isDucking) { isJumping = true; velocity = -currentJumpPower; }
+if (gameOver) { runnerObstacles = []; playerY = 150; score = 0; gameOver = false; velocity = 0; runnerTrails = []; }
+}
+
+function duck(state) {
+if (targetGameActive || pacGameActive || gameOver || !gameStarted) return;
+if (!isJumping) {
+    isDucking = state;
 }
 }
 
-window.addEventListener("keydown", e => { if((e.code === "Space" || e.code === "ArrowUp")) { e.preventDefault(); jump(); } });
-canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
+window.addEventListener("keydown", e => { 
+    if (targetGameActive || pacGameActive) return;
+    if((e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW")) { e.preventDefault(); jump(); } 
+    if((e.code === "ArrowDown" || e.code === "KeyS")) { e.preventDefault(); duck(true); }
+});
+
+window.addEventListener("keyup", e => { 
+    if (targetGameActive || pacGameActive) return;
+    if((e.code === "ArrowDown" || e.code === "KeyS")) { e.preventDefault(); duck(false); }
+});
+
+// Mobile Controls
 document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
+document.getElementById("mobileDuckBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); duck(true); });
+document.getElementById("mobileDuckBtn").addEventListener("pointerup", (e) => { e.preventDefault(); duck(false); });
+document.getElementById("mobileDuckBtn").addEventListener("pointerleave", (e) => { e.preventDefault(); duck(false); });
+
+// Canvas swipe down to duck
+let runnerTouchY = 0;
+canvas.addEventListener("touchstart", (e) => { runnerTouchY = e.touches[0].clientY; }, {passive: true});
+canvas.addEventListener("touchmove", (e) => { 
+    if(e.touches[0].clientY - runnerTouchY > 30) { duck(true); }
+}, {passive: true});
+canvas.addEventListener("touchend", (e) => { duck(false); jump(); });
+canvas.addEventListener("mousedown", (e) => { jump(); });
 
 function updateRunner() {
 if (targetGameActive || pacGameActive) return; 
@@ -772,40 +798,49 @@ ctx.strokeStyle = gridColor;
 for(let i=0; i<=400; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); }
 for(let i=0; i<=200; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); }
 
+let runnerH = isDucking ? 10 : 20;
+let runnerDrawY = isDucking ? 160 : playerY;
+
 if (gameStarted && !gameOver) {
     velocity += currentGravity;
     playerY += velocity;
     if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
 
-    // Speed increases exactly every 15 points
     let speedLevel = Math.floor(score / 15);
     currentSpeed = currentBaseSpeed + (speedLevel * 1.5); 
     
-    // Minimum safe gap dynamically shrinks but never blocks jumps
-    let minGap = 250 + (currentSpeed * 10); 
+    // Minimum safe gap expands slightly to ensure jumping is always possible
+    let minGap = 200 + (currentSpeed * 10); 
 
     let lastObs = runnerObstacles[runnerObstacles.length - 1];
     
-    // Spawn new distinct blocks
+    // Spawn unique hazards
     if (!lastObs || lastObs.x < (400 - minGap)) {
         let randColor = hazardColors[Math.floor(Math.random() * hazardColors.length)];
-        let randHeight = Math.random() > 0.5 ? 20 : 35; // Random item heights
-        runnerObstacles.push({x: 400, passed: false, color: randColor, height: randHeight});
+        let type = Math.random() > 0.4 ? 'ground' : 'air'; // 60% ground, 40% air
+        let w = type === 'ground' ? (Math.random() * 20 + 15) : (Math.random() * 30 + 30); // Air blocks are longer
+        runnerObstacles.push({x: 400, passed: false, color: randColor, type: type, width: w});
     }
 
-    runnerTrails.push({x: 20, y: playerY + 10, alpha: 1, color: currentSpeed > 15 ? rainbowColors[Math.floor(score/10)%rainbowColors.length] : neonColor });
+    runnerTrails.push({x: 20, y: runnerDrawY + (runnerH/2), alpha: 1, color: currentSpeed > 15 ? rainbowColors[Math.floor(score/10)%rainbowColors.length] : neonColor });
     
     for (let i = 0; i < runnerObstacles.length; i++) {
         let obs = runnerObstacles[i];
         obs.x -= currentSpeed;
         
-        if (!obs.passed && obs.x < 20) {
+        if (!obs.passed && obs.x + obs.width < 20) {
             obs.passed = true;
             score++;
         }
 
-        // Collision logic taking varying heights into account
-        if (!runnerGodMode && obs.x < 40 && obs.x + 20 > 20 && playerY > (170 - obs.height - 20)) {
+        // Collision logic based on Hazard Type
+        let hit = false;
+        if (obs.x < 40 && obs.x + obs.width > 20) {
+            if (obs.type === 'ground' && playerY > 130) hit = true;
+            if (obs.type === 'air' && (!isDucking && playerY < 150)) hit = true;
+        }
+
+        if (!runnerGodMode && hit) {
             gameOver = true;
             currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
             triggerShake();
@@ -813,7 +848,7 @@ if (gameStarted && !gameOver) {
         }
     }
     
-    runnerObstacles = runnerObstacles.filter(o => o.x > -50);
+    runnerObstacles = runnerObstacles.filter(o => o.x + o.width > -10);
 }
 
 // Draw Runner trails
@@ -831,16 +866,19 @@ ctx.globalAlpha = 1;
 ctx.fillStyle = currentSpeed > 20 ? '#ff0000' : neonColor;
 if (runnerGodMode) ctx.fillStyle = "#fff";
 if (gameOver) ctx.fillStyle = '#666'; 
-ctx.fillRect(20, playerY, 20, 20);
+ctx.fillRect(20, runnerDrawY, 20, runnerH);
 
 // Draw unique items
 if (gameStarted) { 
     runnerObstacles.forEach(obs => {
         ctx.fillStyle = obs.color;
-        ctx.fillRect(obs.x, 170 - obs.height, 20, obs.height);
-        // Visual tech details on blocks
+        let obsY = obs.type === 'ground' ? 150 : 110;
+        let obsH = obs.type === 'ground' ? 20 : 25;
+        ctx.fillRect(obs.x, obsY, obs.width, obsH);
+        
+        // Hazard details
         ctx.fillStyle = "#fff";
-        ctx.fillRect(obs.x + 4, 170 - obs.height + 4, 12, 4);
+        ctx.fillRect(obs.x + 2, obsY + 2, obs.width - 4, 4);
     }); 
 }
 
@@ -851,8 +889,11 @@ ctx.font = "14px Arial";
 ctx.fillText("Score: " + score, 10, 20);
 ctx.fillText("High Score: " + highScore, 10, 40);
 
-if (!gameStarted) { ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; }
-else if (gameOver) { 
+if (!gameStarted) { 
+    ctx.textAlign = "center"; 
+    ctx.fillText("Tap to Start", 200, 100); 
+    ctx.textAlign = "left"; 
+} else if (gameOver) { 
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(0, 0, 400, 200);
     ctx.fillStyle = "#ff0000";
@@ -1021,51 +1062,55 @@ function updateTargetGame() {
 }
 
 // --- Secret Pac-Man Game Logic ---
+function resetPacMap() {
+    // 1=Wall, 0=Dot, 2=Empty, 3=Power Pellet
+    pacMap = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,3,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,3,1],
+        [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
+        [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
+        [1,1,1,0,1,1,1,0,1,2,1,0,1,1,1,0,1,1,1,1],
+        [1,0,0,0,0,0,0,0,1,2,1,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
+        [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,1],
+        [1,3,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,3,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+}
+
+function initPacGame() {
+    pacScore = 0;
+    pacX = 20; pacY = 20; pacDx = 0; pacDy = 0;
+    scaredTimer = 0;
+    currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)];
+    currentMazeColor = mazeColors[Math.floor(Math.random() * mazeColors.length)];
+    resetPacMap();
+    
+    // Ghost Types: Chaser (Red), Random (Pink/Cyan)
+    ghosts = [
+        {x: 180, y: 80, dx: 1, dy: 0, color: 'red', type: 'chaser'},
+        {x: 180, y: 80, dx: -1, dy: 0, color: '#ffb8ff', type: 'random'}, // Pink
+        {x: 180, y: 80, dx: 1, dy: 0, color: 'cyan', type: 'random'}
+    ];
+}
+
 let pacTouchStartX = 0;
 let pacTouchStartY = 0;
 
-pacCanvas.addEventListener('touchstart', (e) => {
-    if (!pacGameStarted) {
-        pacGameStarted = true;
+pacCanvas.addEventListener('pointerdown', (e) => {
+    if (pacState === 'MENU' || pacState === 'GAMEOVER') {
+        pacState = 'PLAYING';
+        initPacGame();
         return;
     }
-    
-    if(pacGameOver) {
-        pacGameOver = false;
-        pacScore = 0;
-        pacX = 20; pacY = 20; pacDx = 0; pacDy = 0;
-        currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)];
-        pacMap = [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,0,1],
-            [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
-            [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-            [1,1,1,0,1,1,1,0,1,2,1,0,1,1,1,0,1,1,1,1],
-            [1,0,0,0,0,0,0,0,1,2,1,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
-            [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,1],
-            [1,0,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ];
-        ghosts = [
-            {x: 180, y: 80, dx: 1, dy: 0, color: 'red'},
-            {x: 180, y: 80, dx: -1, dy: 0, color: 'cyan'}
-        ];
-    } else {
-        pacTouchStartX = e.touches[0].clientX;
-        pacTouchStartY = e.touches[0].clientY;
-    }
-}, {passive: false});
+    pacTouchStartX = e.clientX;
+    pacTouchStartY = e.clientY;
+});
 
-pacCanvas.addEventListener('touchmove', (e) => {
-    if(pacGameOver || !pacGameStarted) return;
-    e.preventDefault(); 
-    
-    let touchEndX = e.touches[0].clientX;
-    let touchEndY = e.touches[0].clientY;
-    
-    let dx = touchEndX - pacTouchStartX;
-    let dy = touchEndY - pacTouchStartY;
+pacCanvas.addEventListener('pointermove', (e) => {
+    if(pacState !== 'PLAYING') return;
+    let dx = e.clientX - pacTouchStartX;
+    let dy = e.clientY - pacTouchStartY;
     
     if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
         if (Math.abs(dx) > Math.abs(dy)) {
@@ -1075,15 +1120,16 @@ pacCanvas.addEventListener('touchmove', (e) => {
             if (dy > 0) { pacDx = 0; pacDy = 1; }
             else { pacDx = 0; pacDy = -1; }
         }
-        pacTouchStartX = touchEndX;
-        pacTouchStartY = touchEndY;
+        pacTouchStartX = e.clientX;
+        pacTouchStartY = e.clientY;
     }
-}, {passive: false});
+});
 
+// Fixed 20x20 alignment hitbox
 function pacCollision(x, y) {
     let pts = [
-        {cx: x+3, cy: y+3}, {cx: x+17, cy: y+3},
-        {cx: x+3, cy: y+17}, {cx: x+17, cy: y+17}
+        {cx: x+4, cy: y+4}, {cx: x+16, cy: y+4},
+        {cx: x+4, cy: y+16}, {cx: x+16, cy: y+16}
     ];
     for(let p of pts) {
         let col = Math.floor(p.cx / 20);
@@ -1100,13 +1146,20 @@ function pacCollision(x, y) {
 }
 
 window.addEventListener("keydown", e => {
-    if(!pacGameActive || pacGameOver) return;
-    if(!pacGameStarted) { pacGameStarted = true; return; }
+    if(!pacGameActive) return;
+    if(pacState === 'MENU' || pacState === 'GAMEOVER') {
+        if(e.code === "Space" || e.code === "Enter") {
+            e.preventDefault();
+            pacState = 'PLAYING';
+            initPacGame();
+        }
+        return;
+    }
     
-    if(e.code === "ArrowUp") { pacDx=0; pacDy=-1; e.preventDefault(); }
-    if(e.code === "ArrowDown") { pacDx=0; pacDy=1; e.preventDefault(); }
-    if(e.code === "ArrowLeft") { pacDx=-1; pacDy=0; e.preventDefault(); }
-    if(e.code === "ArrowRight") { pacDx=1; pacDy=0; e.preventDefault(); }
+    if(e.code === "ArrowUp" || e.code === "KeyW") { pacDx=0; pacDy=-1; e.preventDefault(); }
+    if(e.code === "ArrowDown" || e.code === "KeyS") { pacDx=0; pacDy=1; e.preventDefault(); }
+    if(e.code === "ArrowLeft" || e.code === "KeyA") { pacDx=-1; pacDy=0; e.preventDefault(); }
+    if(e.code === "ArrowRight" || e.code === "KeyD") { pacDx=1; pacDy=0; e.preventDefault(); }
 });
 
 function updatePacMan() {
@@ -1115,23 +1168,27 @@ function updatePacMan() {
     ctxPac.fillStyle = "black";
     ctxPac.fillRect(0, 0, 400, 200);
 
-    // Unmissable Start Overlay
-    if (!pacGameStarted) {
-        ctxPac.fillStyle = "rgba(0,0,0,0.7)";
-        ctxPac.fillRect(0, 0, 400, 200);
+    if (pacState === 'MENU') {
         ctxPac.fillStyle = "yellow";
-        ctxPac.font = "bold 20px Arial";
+        ctxPac.font = "bold 32px Arial";
         ctxPac.textAlign = "center";
-        ctxPac.fillText("PAC-RUNNER", 200, 90);
+        ctxPac.fillText("PAC-RUNNER", 200, 80);
+        
         ctxPac.fillStyle = "white";
         ctxPac.font = "14px Arial";
-        ctxPac.fillText("Tap screen or press any key to begin.", 200, 120);
+        ctxPac.fillText("Tap screen or press Space to start", 200, 120);
+        
+        // Mini animation
+        ctxPac.beginPath(); ctxPac.arc(170, 150, 10, 0.2*Math.PI, 1.8*Math.PI); ctxPac.lineTo(170,150); ctxPac.fillStyle="yellow"; ctxPac.fill();
+        ctxPac.beginPath(); ctxPac.arc(200, 150, 10, Math.PI, 0); ctxPac.lineTo(210,160); ctxPac.lineTo(190,160); ctxPac.fillStyle="red"; ctxPac.fill();
+        ctxPac.beginPath(); ctxPac.arc(230, 150, 10, Math.PI, 0); ctxPac.lineTo(240,160); ctxPac.lineTo(220,160); ctxPac.fillStyle="cyan"; ctxPac.fill();
+
         ctxPac.textAlign = "left";
         requestAnimationFrame(updatePacMan);
         return;
     }
 
-    if (pacGameOver) {
+    if (pacState === 'GAMEOVER') {
         ctxPac.fillStyle = "rgba(0,0,0,0.8)";
         ctxPac.fillRect(0, 0, 400, 200);
         ctxPac.fillStyle = currentPacColor;
@@ -1141,11 +1198,13 @@ function updatePacMan() {
         ctxPac.fillStyle = "white";
         ctxPac.font = "14px Arial";
         ctxPac.fillText("Score: " + pacScore, 200, 120);
-        ctxPac.fillText("Tap to Retry", 200, 150);
+        ctxPac.fillText("Tap screen or press Space to Retry", 200, 150);
         ctxPac.textAlign = "left";
         requestAnimationFrame(updatePacMan);
         return;
     }
+
+    if (scaredTimer > 0) scaredTimer--;
 
     let nextX = pacX + (pacDx * pacSpeed);
     let nextY = pacY + (pacDy * pacSpeed);
@@ -1155,11 +1214,13 @@ function updatePacMan() {
         pacY = nextY;
     }
 
+    // Screen wrapping
     if (pacX < -15) pacX = 400;
     if (pacX > 400) pacX = -15;
     if (pacY < -15) pacY = 200;
     if (pacY > 200) pacY = -15;
 
+    // Grid center point for eating logic
     let gridC = Math.floor((pacX+10)/20);
     let gridR = Math.floor((pacY+10)/20);
     
@@ -1167,13 +1228,19 @@ function updatePacMan() {
         if(pacMap[gridR][gridC] === 0) {
             pacMap[gridR][gridC] = 2; 
             pacScore += (10 * pacMultiplier);
-            pacEatEffects.push({x: gridC*20+10, y: gridR*20+10, timer: 30, text: rainbowColors[Math.floor(pacScore/100)%6] == '#FFFF41' ? "YUM!" : "Copious!"});
+            pacEatEffects.push({x: gridC*20+10, y: gridR*20+10, timer: 20, text: "YUM", color: "white"});
+        } else if (pacMap[gridR][gridC] === 3) {
+            pacMap[gridR][gridC] = 2; 
+            pacScore += (50 * pacMultiplier);
+            scaredTimer = 600; // 10 seconds of power
+            pacEatEffects.push({x: gridC*20+10, y: gridR*20+10, timer: 40, text: "POWER!", color: "yellow"});
         }
     }
 
+    // Draw Eat Text Effects
     for(let i=pacEatEffects.length-1; i>=0; i--){
         let e = pacEatEffects[i];
-        ctxPac.fillStyle = e.text === "Copious!" ? neonColor : rainbowColors[Math.floor(pacScore/50)%6];
+        ctxPac.fillStyle = e.color;
         ctxPac.globalAlpha = e.timer/30;
         ctxPac.font = "bold 10px Arial";
         ctxPac.fillText(e.text, e.x-10, e.y-5);
@@ -1183,30 +1250,54 @@ function updatePacMan() {
     }
     ctxPac.globalAlpha = 1;
 
+    // Draw Map
     for(let r=0; r<10; r++) {
         for(let c=0; c<20; c++) {
             if(pacMap[r][c] === 1) {
-                ctxPac.fillStyle = "blue";
+                ctxPac.fillStyle = currentMazeColor;
                 ctxPac.fillRect(c*20, r*20, 20, 20);
+                // Center black block to make walls look hollow
+                ctxPac.fillStyle = "black";
+                ctxPac.fillRect(c*20+2, r*20+2, 16, 16);
             } else if(pacMap[r][c] === 0) {
                 ctxPac.fillStyle = "white";
                 ctxPac.beginPath();
                 ctxPac.arc(c*20 + 10, r*20 + 10, 3, 0, Math.PI*2);
                 ctxPac.fill();
+            } else if(pacMap[r][c] === 3) {
+                ctxPac.fillStyle = (Math.floor(Date.now() / 200) % 2 === 0) ? "white" : "yellow";
+                ctxPac.beginPath();
+                ctxPac.arc(c*20 + 10, r*20 + 10, 6, 0, Math.PI*2);
+                ctxPac.fill();
             }
         }
     }
 
+    // Ghost Logic & Intelligent AI
+    let actualGhostSpeed = scaredTimer > 0 ? ghostSpeed * 0.5 : ghostSpeed;
+
     for(let g of ghosts) {
-        let gNextX = g.x + (g.dx * ghostSpeed);
-        let gNextY = g.y + (g.dy * ghostSpeed);
+        let gNextX = g.x + (g.dx * actualGhostSpeed);
+        let gNextY = g.y + (g.dy * actualGhostSpeed);
         
         if(pacCollision(gNextX, gNextY)) {
             let dirs = [{dx:1,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:0,dy:-1}];
-            let validDirs = dirs.filter(d => !pacCollision(g.x + d.dx*ghostSpeed*5, g.y + d.dy*ghostSpeed*5));
+            let validDirs = dirs.filter(d => !pacCollision(g.x + d.dx*5, g.y + d.dy*5)); // check slightly ahead
+            
             if(validDirs.length > 0) {
-                let pick = validDirs[Math.floor(Math.random()*validDirs.length)];
-                g.dx = pick.dx; g.dy = pick.dy;
+                if (g.type === 'chaser' && scaredTimer === 0) {
+                    // Hunt Pacman
+                    validDirs.sort((a,b) => {
+                        let distA = Math.pow((g.x + a.dx*20) - pacX, 2) + Math.pow((g.y + a.dy*20) - pacY, 2);
+                        let distB = Math.pow((g.x + b.dx*20) - pacX, 2) + Math.pow((g.y + b.dy*20) - pacY, 2);
+                        return distA - distB;
+                    });
+                    g.dx = validDirs[0].dx; g.dy = validDirs[0].dy;
+                } else {
+                    // Random or Scared
+                    let pick = validDirs[Math.floor(Math.random()*validDirs.length)];
+                    g.dx = pick.dx; g.dy = pick.dy;
+                }
             } else {
                 g.dx *= -1; g.dy *= -1; 
             }
@@ -1214,7 +1305,11 @@ function updatePacMan() {
             g.x = gNextX; g.y = gNextY;
         }
 
-        ctxPac.fillStyle = g.color;
+        let isScared = scaredTimer > 0;
+        let flashWhite = isScared && scaredTimer < 120 && Math.floor(scaredTimer/10)%2===0;
+        
+        ctxPac.fillStyle = isScared ? (flashWhite ? "white" : "#0000ff") : g.color;
+
         ctxPac.beginPath();
         ctxPac.arc(g.x+10, g.y+10, 8, Math.PI, 0);
         ctxPac.lineTo(g.x+18, g.y+18);
@@ -1224,19 +1319,36 @@ function updatePacMan() {
         ctxPac.lineTo(g.x+2, g.y+18);
         ctxPac.fill();
 
-        ctxPac.fillStyle = "white";
-        ctxPac.beginPath(); ctxPac.arc(g.x+7, g.y+8, 2.5, 0, Math.PI*2); ctxPac.fill();
-        ctxPac.beginPath(); ctxPac.arc(g.x+13, g.y+8, 2.5, 0, Math.PI*2); ctxPac.fill();
-        ctxPac.fillStyle = "blue";
-        ctxPac.beginPath(); ctxPac.arc(g.x+7+g.dx, g.y+8+g.dy, 1, 0, Math.PI*2); ctxPac.fill();
-        ctxPac.beginPath(); ctxPac.arc(g.x+13+g.dx, g.y+8+g.dy, 1, 0, Math.PI*2); ctxPac.fill();
+        // Eyes looking in movement direction
+        let eyeOffsetX = isScared ? 0 : g.dx * 2;
+        let eyeOffsetY = isScared ? 0 : g.dy * 2;
+
+        ctxPac.fillStyle = isScared ? (flashWhite ? "red" : "white") : "white";
+        ctxPac.beginPath(); ctxPac.arc(g.x+7 + eyeOffsetX, g.y+8 + eyeOffsetY, 2.5, 0, Math.PI*2); ctxPac.fill();
+        ctxPac.beginPath(); ctxPac.arc(g.x+13 + eyeOffsetX, g.y+8 + eyeOffsetY, 2.5, 0, Math.PI*2); ctxPac.fill();
         
+        if (!isScared) {
+            ctxPac.fillStyle = "blue";
+            ctxPac.beginPath(); ctxPac.arc(g.x+7 + eyeOffsetX*1.5, g.y+8 + eyeOffsetY*1.5, 1, 0, Math.PI*2); ctxPac.fill();
+            ctxPac.beginPath(); ctxPac.arc(g.x+13 + eyeOffsetX*1.5, g.y+8 + eyeOffsetY*1.5, 1, 0, Math.PI*2); ctxPac.fill();
+        }
+
+        // Collision with Pacman
         if(!pacGodMode && Math.abs(g.x - pacX) < 15 && Math.abs(g.y - pacY) < 15) {
-            pacGameOver = true;
-            triggerShake();
+            if (isScared) {
+                // Eat ghost
+                pacScore += (200 * pacMultiplier);
+                pacEatEffects.push({x: g.x+10, y: g.y, timer: 30, text: "200", color: "cyan"});
+                g.x = 180; g.y = 80; // Send to center box
+            } else {
+                // Die
+                pacState = 'GAMEOVER';
+                triggerShake();
+            }
         }
     }
 
+    // Pac-Man Animation
     pacFrame++;
     let mouthOpen = (Math.floor(pacFrame / 10) % 2 === 0);
 
@@ -1279,7 +1391,7 @@ if (keyBuffer === "duck") {
     document.getElementById('pacmanGame').style.display = 'none';
     pacGameActive = false;
 
-    document.getElementById('mobileJumpBtn').style.display = 'none';
+    document.getElementById('runnerControls').style.display = 'none';
     document.getElementById('gamePrompt').style.display = 'none';
     document.getElementById('secretText').style.display = 'none';
     document.getElementById('publicDifficulty').style.display = 'block';
@@ -1297,7 +1409,7 @@ if (keyBuffer === "pacm") {
     document.getElementById('targetGame').style.display = 'none';
     targetGameActive = false;
 
-    document.getElementById('mobileJumpBtn').style.display = 'none';
+    document.getElementById('runnerControls').style.display = 'none';
     document.getElementById('gamePrompt').style.display = 'none';
     document.getElementById('secretText').style.display = 'none';
     document.getElementById('publicDifficulty').style.display = 'none';
@@ -1305,11 +1417,9 @@ if (keyBuffer === "pacm") {
     document.getElementById('gameTitle').innerText = "Pac-Runner";
     document.getElementById('gameTitle').style.color = "yellow";
 
-    currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)];
-
     pacCanvas.style.display = 'block';
     pacGameActive = true;
-    pacGameStarted = false;
+    pacState = 'MENU';
     updatePacMan();
 }
 }
