@@ -165,8 +165,8 @@ overflow-y: auto;
 #modMenu { 
 display: none; 
 position: fixed; 
-top: 50%; left: 50%; 
-transform: translate(-50%, -50%); 
+top: 20%; left: 50%; 
+margin-left: -170px;
 background: #000; 
 border: 3px solid #ff0000; 
 padding: 20px; 
@@ -203,7 +203,7 @@ border-radius: 10px;
 
 <section>
 <h2><span class="pulse-indicator">●</span> Tech Tip of the Day</h2>
-<p>Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.</p>
+<p id="techTipText">Loading tip...</p>
 </section>
 
 <section>
@@ -225,7 +225,7 @@ border-radius: 10px;
 
 <section>
 <h2>Request Service</h2>
-<form class="contact-form" action="YOUR_FORMSPREE_LINK_HERE" method="POST">
+<form class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
 <input type="text" name="name" placeholder="Your Name" required>
 <select name="service" required>
 <option value="">Select a Service...</option>
@@ -254,9 +254,8 @@ border-radius: 10px;
 </div>
 
 <div id="modMenu">
-        <h3>SYSTEM OVERRIDE</h3>
         <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
-            SYSTEM OVERRIDE
+            SYSTEM OVERRIDE (DRAG ME)
         </h3>
 <div class="mod-row">
 <label>Gravity (<span id="gravVal">0.8</span>)</label>
@@ -271,11 +270,21 @@ border-radius: 10px;
 <input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
 </div>
 <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
-        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'">Close Menu</button>
-        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 5px; margin-top: 10px; border: none; cursor: pointer;">Close Menu</button>
+        <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
 </div>
 
 <script>
+// --- Dynamic Tech Tips ---
+const techTips = [
+    "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
+    "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
+    "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
+    "Applying fresh <b>thermal paste</b> (cooling compound) every few years prevents processor throttling.",
+    "Run <b>AdGuard Home</b> at the router level to block trackers for every device on your network."
+];
+document.getElementById("techTipText").innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
+
+// --- Game Variables & Colors ---
 const canvas = document.getElementById("jumpGame");
 const ctx = canvas.getContext("2d");
 const style = getComputedStyle(document.body);
@@ -288,6 +297,7 @@ let currentJumpPower = 12;
 let currentBaseSpeed = 5;
 let nukeModeActive = false;
 
+// --- Mod Menu Sliders ---
 document.getElementById('modGravity').addEventListener('input', (e) => {
 currentGravity = parseFloat(e.target.value);
 document.getElementById('gravVal').innerText = currentGravity;
@@ -303,42 +313,50 @@ document.getElementById('speedVal').innerText = currentBaseSpeed;
 
 document.getElementById('nukeToggle').addEventListener('click', (e) => {
 nukeModeActive = !nukeModeActive;
-e.target.classList.toggle('active');
+if (nukeModeActive) {
+    e.target.style.background = "#fff";
+    e.target.style.color = "#ff0000";
+    e.target.innerText = "NUKE MODE ARMED (CLICK PAGE)";
+} else {
+    e.target.style.background = "#ff0000";
+    e.target.style.color = "#fff";
+    e.target.innerText = "NUKE PAGE ;)";
+}
 });
 
 document.addEventListener('click', (e) => {
-if (!nukeModeActive || e.target.closest('#modMenu')) return;
+if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML') return;
 e.target.classList.add('nuked-element');
 setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 400);
 });
 
-        // Draggable Menu Logic
-        const menu = document.getElementById("modMenu");
-        const header = document.getElementById("modMenuHeader");
-        let isDragging = false, offsetX, offsetY;
+// --- Draggable Menu Logic ---
+const menu = document.getElementById("modMenu");
+const header = document.getElementById("modMenuHeader");
+let isDragging = false, offsetX, offsetY;
 
-        header.addEventListener("mousedown", (e) => {
-            isDragging = true;
-            const rect = menu.getBoundingClientRect();
-            offsetX = e.clientX - rect.left;
-            offsetY = e.clientY - rect.top;
-            menu.style.transform = "none";
-            menu.style.cursor = "grabbing";
-        });
+header.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    const rect = menu.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    menu.style.margin = "0"; // Strip center margins to prevent jumping
+    menu.style.cursor = "grabbing";
+});
 
-        document.addEventListener("mousemove", (e) => {
-            if (!isDragging) return;
-            menu.style.left = `${e.clientX - offsetX}px`;
-            menu.style.top = `${e.clientY - offsetY}px`;
-        });
+document.addEventListener("mousemove", (e) => {
+    if (!isDragging) return;
+    menu.style.left = `${e.clientX - offsetX}px`;
+    menu.style.top = `${e.clientY - offsetY}px`;
+});
 
-        document.addEventListener("mouseup", () => {
-            isDragging = false;
-            menu.style.cursor = "default";
-        });
+document.addEventListener("mouseup", () => {
+    isDragging = false;
+    menu.style.cursor = "default";
+});
 
-        // Game Logic
-let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, speed = 5;
+// --- Game Logic ---
+let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 
 function jump() {
@@ -360,9 +378,11 @@ for(let i=0; i<=200; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400,
 if (gameStarted && !gameOver) {
 velocity += currentGravity;
 playerY += velocity;
-if (playerY >= 150) { playerY = 150; isJumping = false; }
-speed = currentBaseSpeed + (score * 0.25);
-obstacleX -= speed;
+if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
+
+currentSpeed = currentBaseSpeed + (score * 0.25);
+obstacleX -= currentSpeed;
+
 if (obstacleX < -20) { obstacleX = 400; score++; }
 if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
 gameOver = true;
@@ -386,6 +406,7 @@ requestAnimationFrame(update);
 }
 update();
 
+// --- Terminal & Mod Menu Triggers ---
 let keyBuffer = "";
 document.addEventListener('keydown', (e) => {
 if(e.key.length === 1) {
@@ -405,13 +426,13 @@ else clearInterval(interval);
 }, 600);
 }
 
-        // Tech Joke Logic
-        const jokes = [
-            "I would tell you a UDP joke, but you might not get it.",
-            "There are 10 types of people: those who understand binary, and those who don't.",
-            "Why do programmers prefer dark mode? Because light attracts bugs.",
-            "My IP address is local, but my mindset is global."
-        ];
+// --- Footer Jokes ---
+const jokes = [
+    "I would tell you a UDP joke, but you might not get it.",
+    "There are 10 types of people: those who understand binary, and those who don't.",
+    "Why do programmers prefer dark mode? Because light attracts bugs.",
+    "My IP address is local, but my mindset is global."
+];
 
 document.addEventListener("DOMContentLoaded", () => {
 const footer = document.querySelector("footer");
