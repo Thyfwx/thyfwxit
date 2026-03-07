@@ -436,11 +436,29 @@ font-size: 0.9em;
 <input type="checkbox" id="modPacWallHack" style="transform: scale(1.5);">
 </div>
 
+<button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET PROGRESS</button>
 <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
         <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
 </div>
 
 <script>
+// --- Reset Settings on Page Load ---
+window.onload = () => {
+    document.getElementById('modGravity').value = 0.8;
+    document.getElementById('modJump').value = 12;
+    document.getElementById('modSpeed').value = 5;
+    document.getElementById('modGodMode').checked = false;
+    document.getElementById('modDuckSpeed').value = 3;
+    document.getElementById('modTargetSize').value = 30;
+    document.getElementById('modDifficulty').value = 6;
+    document.getElementById('modAimbot').checked = false;
+    document.getElementById('modPacSpeed').value = 2;
+    document.getElementById('modGhostSpeed').value = 1;
+    document.getElementById('modPacMult').value = 1;
+    document.getElementById('modPacGodMode').checked = false;
+    document.getElementById('modPacWallHack').checked = false;
+};
+
 // --- Form Validation Script ---
 document.getElementById('secureContactForm').addEventListener('submit', function(e) {
     const email = document.getElementById('formEmail').value;
@@ -507,9 +525,12 @@ let currentGravity = 0.8;
 let currentJumpPower = 12;
 let currentBaseSpeed = 5;
 let runnerGodMode = false;
-let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
+let isJumping = false, velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 let currentRunnerCrash = "";
+
+// Endless Obstacle Array
+let runnerObstacles = [{x: 400, passed: false}];
 
 // Target Game Vars
 let targetGameActive = false;
@@ -573,6 +594,15 @@ function triggerShake() {
     wrapper.classList.add('shake-effect');
     setTimeout(() => { wrapper.classList.remove('shake-effect'); }, 400);
 }
+
+// --- Data Wipe Button ---
+document.getElementById('resetProgressBtn').addEventListener('click', () => {
+    localStorage.removeItem('cyberRunnerHighScore');
+    localStorage.removeItem('matrixTargetHighScore');
+    highScore = 0;
+    targetHighScore = 0;
+    alert("SYSTEM PURGED: All local high scores have been wiped.");
+});
 
 // --- Dual Difficulty Sync ---
 const pubDiff = document.getElementById('publicDiffSelect');
@@ -714,7 +744,7 @@ function jump() {
 if (targetGameActive || pacGameActive) return; 
 if (!gameStarted) { gameStarted = true; }
 if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
-if (gameOver) { obstacleX = 400; playerY = 150; score = 0; gameOver = false; velocity = 0; }
+if (gameOver) { runnerObstacles = [{x: 400, passed: false}]; playerY = 150; score = 0; gameOver = false; velocity = 0; }
 }
 
 window.addEventListener("keydown", e => { if((e.code === "Space" || e.code === "ArrowUp")) { e.preventDefault(); jump(); } });
@@ -730,26 +760,48 @@ for(let i=0; i<=400; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 2
 for(let i=0; i<=200; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); }
 
 if (gameStarted && !gameOver) {
-velocity += currentGravity;
-playerY += velocity;
-if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
+    velocity += currentGravity;
+    playerY += velocity;
+    if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
 
-currentSpeed = currentBaseSpeed + (score * 0.25);
-obstacleX -= currentSpeed;
+    currentSpeed = currentBaseSpeed + (score * 0.4); // Multiplier makes it insanely fast
+    
+    let lastObs = runnerObstacles[runnerObstacles.length - 1];
+    let minGap = 150 + (currentSpeed * 12); // Gap expands dynamically so blocks don't overlap
 
-if (obstacleX < -20) { obstacleX = 400; score++; }
-if (!runnerGodMode && obstacleX < 40 && obstacleX > 0 && playerY > 130) {
-    gameOver = true;
-    currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
-    triggerShake();
-    if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
-}
+    if (lastObs && lastObs.x < (400 - minGap)) {
+        runnerObstacles.push({x: 400, passed: false});
+    }
+
+    for (let i = 0; i < runnerObstacles.length; i++) {
+        let obs = runnerObstacles[i];
+        obs.x -= currentSpeed;
+        
+        if (!obs.passed && obs.x < 20) {
+            obs.passed = true;
+            score++;
+        }
+
+        if (!runnerGodMode && obs.x < 40 && obs.x + 20 > 20 && playerY > 130) {
+            gameOver = true;
+            currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
+            triggerShake();
+            if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
+        }
+    }
+    
+    runnerObstacles = runnerObstacles.filter(o => o.x > -50);
 }
 
 ctx.fillStyle = neonColor;
 if (runnerGodMode) { ctx.fillStyle = "#fff"; }
 ctx.fillRect(20, playerY, 20, 20);
-if (gameStarted) { ctx.fillStyle = enemyColor; ctx.fillRect(obstacleX, 150, 20, 20); }
+
+if (gameStarted) { 
+    ctx.fillStyle = enemyColor; 
+    runnerObstacles.forEach(obs => ctx.fillRect(obs.x, 150, 20, 20)); 
+}
+
 ctx.fillStyle = "#444";
 ctx.fillRect(0, 170, 400, 30);
 ctx.fillStyle = "#fff";
@@ -924,29 +976,10 @@ function updateTargetGame() {
 }
 
 // --- Secret Pac-Man Game Logic ---
-function pacCollision(x, y) {
-    let pts = [
-        {cx: x+3, cy: y+3}, {cx: x+17, cy: y+3},
-        {cx: x+3, cy: y+17}, {cx: x+17, cy: y+17}
-    ];
-    for(let p of pts) {
-        let col = Math.floor(p.cx / 20);
-        let row = Math.floor(p.cy / 20);
-        if(col<0 || col>19 || row<0 || row>9) return true;
-        if(pacMap[row][col] === 1) return true;
-    }
-    return false;
-}
+let pacTouchStartX = 0;
+let pacTouchStartY = 0;
 
-window.addEventListener("keydown", e => {
-    if(!pacGameActive || pacGameOver) return;
-    if(e.code === "ArrowUp") { pacDx=0; pacDy=-1; e.preventDefault(); }
-    if(e.code === "ArrowDown") { pacDx=0; pacDy=1; e.preventDefault(); }
-    if(e.code === "ArrowLeft") { pacDx=-1; pacDy=0; e.preventDefault(); }
-    if(e.code === "ArrowRight") { pacDx=1; pacDy=0; e.preventDefault(); }
-});
-
-pacCanvas.addEventListener('pointerdown', () => {
+pacCanvas.addEventListener('touchstart', (e) => {
     if(pacGameOver) {
         pacGameOver = false;
         pacScore = 0;
@@ -968,7 +1001,55 @@ pacCanvas.addEventListener('pointerdown', () => {
             {x: 190, y: 90, dx: 1, dy: 0, color: 'red'},
             {x: 190, y: 90, dx: -1, dy: 0, color: 'cyan'}
         ];
+    } else {
+        pacTouchStartX = e.touches[0].clientX;
+        pacTouchStartY = e.touches[0].clientY;
     }
+}, {passive: false});
+
+pacCanvas.addEventListener('touchmove', (e) => {
+    if(pacGameOver) return;
+    e.preventDefault(); // Prevents mobile screen scrolling
+    
+    let touchEndX = e.touches[0].clientX;
+    let touchEndY = e.touches[0].clientY;
+    
+    let dx = touchEndX - pacTouchStartX;
+    let dy = touchEndY - pacTouchStartY;
+    
+    if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0) { pacDx = 1; pacDy = 0; }
+            else { pacDx = -1; pacDy = 0; }
+        } else {
+            if (dy > 0) { pacDx = 0; pacDy = 1; }
+            else { pacDx = 0; pacDy = -1; }
+        }
+        pacTouchStartX = touchEndX;
+        pacTouchStartY = touchEndY;
+    }
+}, {passive: false});
+
+function pacCollision(x, y) {
+    let pts = [
+        {cx: x+3, cy: y+3}, {cx: x+17, cy: y+3},
+        {cx: x+3, cy: y+17}, {cx: x+17, cy: y+17}
+    ];
+    for(let p of pts) {
+        let col = Math.floor(p.cx / 20);
+        let row = Math.floor(p.cy / 20);
+        if(col<0 || col>19 || row<0 || row>9) return true;
+        if(pacMap[row][col] === 1) return true;
+    }
+    return false;
+}
+
+window.addEventListener("keydown", e => {
+    if(!pacGameActive || pacGameOver) return;
+    if(e.code === "ArrowUp") { pacDx=0; pacDy=-1; e.preventDefault(); }
+    if(e.code === "ArrowDown") { pacDx=0; pacDy=1; e.preventDefault(); }
+    if(e.code === "ArrowLeft") { pacDx=-1; pacDy=0; e.preventDefault(); }
+    if(e.code === "ArrowRight") { pacDx=1; pacDy=0; e.preventDefault(); }
 });
 
 function updatePacMan() {
