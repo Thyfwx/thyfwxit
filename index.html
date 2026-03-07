@@ -177,6 +177,23 @@ width: 300px;
 border-radius: 10px; 
 }
 
+.mod-section-title {
+color: var(--neon-color);
+margin-top: 15px;
+margin-bottom: 10px;
+border-bottom: 1px solid #444;
+font-size: 0.9em;
+text-transform: uppercase;
+}
+
+.mod-row {
+display: flex;
+justify-content: space-between;
+align-items: center;
+margin-bottom: 5px;
+font-size: 0.9em;
+}
+
 .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
 .nuked-element { transform: scale(0) rotate(45deg); opacity: 0; transition: all 0.4s ease-out; pointer-events: none; }
 </style>
@@ -238,9 +255,10 @@ border-radius: 10px;
 </form>
 </section>
 
-<section class="game-container">
-<h2>Cyber Runner Game</h2>
+<section class="game-container" id="gameArea">
+<h2 id="gameTitle">Cyber Runner Game</h2>
 <canvas id="jumpGame" width="400" height="200"></canvas>
+<canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
 <p style="font-size: 0.9em;">[ Tap Game or Button to <b>Start</b> ]</p>
 <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
 </section>
@@ -257,6 +275,8 @@ border-radius: 10px;
         <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
             SYSTEM OVERRIDE (DRAG ME)
         </h3>
+        
+<div class="mod-section-title">Runner Mods</div>
 <div class="mod-row">
 <label>Gravity (<span id="gravVal">0.8</span>)</label>
 <input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
@@ -269,6 +289,17 @@ border-radius: 10px;
 <label>Base Speed (<span id="speedVal">5</span>)</label>
 <input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
 </div>
+
+<div class="mod-section-title">Target Mods</div>
+<div class="mod-row">
+<label>Target Speed (<span id="duckSpeedVal">3</span>)</label>
+<input type="range" id="modDuckSpeed" min="1" max="10" step="1" value="3">
+</div>
+<div class="mod-row">
+<label>Aimbot (Auto-Shoot)</label>
+<input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
+</div>
+
 <button id="nukeToggle" class="nuke-btn">NUKE PAGE ;)</button>
         <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
 </div>
@@ -287,17 +318,32 @@ document.getElementById("techTipText").innerHTML = techTips[Math.floor(Math.rand
 // --- Game Variables & Colors ---
 const canvas = document.getElementById("jumpGame");
 const ctx = canvas.getContext("2d");
+const targetCanvas = document.getElementById("targetGame");
+const ctxTarget = targetCanvas.getContext("2d");
+
 const style = getComputedStyle(document.body);
 const neonColor = style.getPropertyValue('--neon-color').trim();
 const gridColor = style.getPropertyValue('--grid-color').trim();
 const enemyColor = style.getPropertyValue('--enemy-color').trim();
 
+// Runner Game Vars
 let currentGravity = 0.8;
 let currentJumpPower = 12;
 let currentBaseSpeed = 5;
+let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
+let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
+
+// Target Game Vars
+let targetGameActive = false;
+let targetScore = 0;
+let targetSpeedMult = 3;
+let aimbotEnabled = false;
+let duckX = -50, duckY = 50, duckActive = false;
+
+// Global Nuke Var
 let nukeModeActive = false;
 
-// --- Mod Menu Sliders ---
+// --- Mod Menu Sliders & Checkboxes ---
 document.getElementById('modGravity').addEventListener('input', (e) => {
 currentGravity = parseFloat(e.target.value);
 document.getElementById('gravVal').innerText = currentGravity;
@@ -309,6 +355,13 @@ document.getElementById('jumpVal').innerText = currentJumpPower;
 document.getElementById('modSpeed').addEventListener('input', (e) => {
 currentBaseSpeed = parseInt(e.target.value);
 document.getElementById('speedVal').innerText = currentBaseSpeed;
+});
+document.getElementById('modDuckSpeed').addEventListener('input', (e) => {
+targetSpeedMult = parseInt(e.target.value);
+document.getElementById('duckSpeedVal').innerText = targetSpeedMult;
+});
+document.getElementById('modAimbot').addEventListener('change', (e) => {
+aimbotEnabled = e.target.checked;
 });
 
 document.getElementById('nukeToggle').addEventListener('click', (e) => {
@@ -325,7 +378,7 @@ if (nukeModeActive) {
 });
 
 document.addEventListener('click', (e) => {
-if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML') return;
+if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'CANVAS') return;
 e.target.classList.add('nuked-element');
 setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 400);
 });
@@ -340,7 +393,7 @@ header.addEventListener("mousedown", (e) => {
     const rect = menu.getBoundingClientRect();
     offsetX = e.clientX - rect.left;
     offsetY = e.clientY - rect.top;
-    menu.style.margin = "0"; // Strip center margins to prevent jumping
+    menu.style.margin = "0"; 
     menu.style.cursor = "grabbing";
 });
 
@@ -355,11 +408,9 @@ document.addEventListener("mouseup", () => {
     menu.style.cursor = "default";
 });
 
-// --- Game Logic ---
-let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
-let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
-
+// --- Runner Game Logic ---
 function jump() {
+if (targetGameActive) return; 
 if (!gameStarted) { gameStarted = true; }
 if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
 if (gameOver) { obstacleX = 400; playerY = 150; score = 0; gameOver = false; velocity = 0; }
@@ -369,7 +420,9 @@ window.addEventListener("keydown", e => { if((e.code === "Space" || e.code === "
 canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
 document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
 
-function update() {
+function updateRunner() {
+if (targetGameActive) return; 
+
 ctx.clearRect(0, 0, 400, 200);
 ctx.strokeStyle = gridColor;
 for(let i=0; i<=400; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); }
@@ -402,17 +455,87 @@ ctx.fillText("High Score: " + highScore, 10, 40);
 
 if (!gameStarted) { ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; }
 else if (gameOver) { ctx.textAlign = "center"; ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100); ctx.textAlign = "left"; }
-requestAnimationFrame(update);
+requestAnimationFrame(updateRunner);
 }
-update();
+requestAnimationFrame(updateRunner);
 
-// --- Terminal & Mod Menu Triggers ---
+// --- Secret Target Game Logic ---
+function spawnDuck() {
+    duckY = Math.floor(Math.random() * 120) + 20;
+    duckX = -30;
+    duckActive = true;
+}
+
+targetCanvas.addEventListener('pointerdown', (e) => {
+    if (!targetGameActive) return;
+    const rect = targetCanvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    // Check if click hits the 30x30 target box
+    if (duckActive && clickX >= duckX && clickX <= duckX + 30 && clickY >= duckY && clickY <= duckY + 30) {
+        targetScore++;
+        duckActive = false;
+        ctxTarget.fillStyle = "white"; // Flash effect
+        ctxTarget.fillRect(0,0,400,200);
+    }
+});
+
+function updateTargetGame() {
+    if (!targetGameActive) return;
+    
+    ctxTarget.clearRect(0, 0, 400, 200);
+    ctxTarget.strokeStyle = gridColor;
+    for(let i=0; i<=400; i+=20) { ctxTarget.beginPath(); ctxTarget.moveTo(i, 0); ctxTarget.lineTo(i, 200); ctxTarget.stroke(); }
+    for(let i=0; i<=200; i+=20) { ctxTarget.beginPath(); ctxTarget.moveTo(0, i); ctxTarget.lineTo(400, i); ctxTarget.stroke(); }
+
+    if (duckActive) {
+        duckX += targetSpeedMult;
+        
+        // Draw Target
+        ctxTarget.fillStyle = enemyColor;
+        ctxTarget.fillRect(duckX, duckY, 30, 30);
+        ctxTarget.strokeStyle = "#fff";
+        ctxTarget.strokeRect(duckX+5, duckY+5, 20, 20);
+        
+        if (duckX > 400) { duckActive = false; }
+        
+        // Aimbot Injection
+        if (aimbotEnabled && duckX > 20 && duckX < 380) {
+            targetScore++;
+            duckActive = false;
+            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; // Flash effect
+            ctxTarget.fillRect(0,0,400,200);
+        }
+    } else {
+        if (Math.random() < 0.03) spawnDuck();
+    }
+
+    ctxTarget.fillStyle = "#fff";
+    ctxTarget.font = "14px Arial";
+    ctxTarget.fillText("Targets Eliminated: " + targetScore, 10, 20);
+    
+    requestAnimationFrame(updateTargetGame);
+}
+
+// --- Terminal & Secret Triggers ---
 let keyBuffer = "";
 document.addEventListener('keydown', (e) => {
 if(e.key.length === 1) {
 keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-4);
+
 if (keyBuffer === "sudo") { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
 if (keyBuffer === "hack") { document.getElementById('modMenu').style.display = 'block'; }
+if (keyBuffer === "duck") { 
+    // Unlock Secret Target Game
+    document.getElementById('jumpGame').style.display = 'none';
+    document.getElementById('mobileJumpBtn').style.display = 'none';
+    document.getElementById('gameTitle').innerText = "Matrix Target Simulator";
+    document.getElementById('gameTitle').style.color = "red";
+    targetCanvas.style.display = 'block';
+    targetGameActive = true;
+    updateTargetGame();
+}
 }
 });
 
