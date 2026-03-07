@@ -529,8 +529,9 @@ let isJumping = false, velocity = 0, playerY = 150, score = 0, gameOver = false,
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 let currentRunnerCrash = "";
 
-// Endless Obstacle Array
-let runnerObstacles = [{x: 400, passed: false}];
+// Dynamic Obstacle Array (Initial spawn way off-screen)
+const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; // Green, Cyan, Pink
+let runnerObstacles = [{x: 600, passed: false, color: hazardColors[0], height: 20}];
 let runnerTrails = [];
 
 // Target Game Vars
@@ -561,20 +562,21 @@ let pacScore = 0;
 let pacGodMode = false;
 let pacWallHack = false;
 let pacMultiplier = 1;
-let pacSpeed = 2;
+let pacSpeed = 2; // Must divide evenly into 20 for grid alignment
 let ghostSpeed = 1;
 let pacFrame = 0;
 let pacEatEffects = [];
 
-let pacX = 30, pacY = 30;
+// Aligned exact grid start coordinates
+let pacX = 20, pacY = 20;
 let pacDx = 0, pacDy = 0;
 
 const pacCharacterColors = ['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FF4500'];
 let currentPacColor = '#FFFF00';
 
 let ghosts = [
-    {x: 190, y: 90, dx: 1, dy: 0, color: 'red'},
-    {x: 190, y: 90, dx: -1, dy: 0, color: 'cyan'}
+    {x: 180, y: 80, dx: 1, dy: 0, color: 'red'},
+    {x: 180, y: 80, dx: -1, dy: 0, color: 'cyan'}
 ];
 
 let pacMap = [
@@ -748,7 +750,14 @@ function jump() {
 if (targetGameActive || pacGameActive) return; 
 if (!gameStarted) { gameStarted = true; }
 if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
-if (gameOver) { runnerObstacles = [{x: 400, passed: false}]; playerY = 150; score = 0; gameOver = false; velocity = 0; runnerTrails = []; }
+if (gameOver) { 
+    runnerObstacles = [{x: 600, passed: false, color: hazardColors[0], height: 20}]; 
+    playerY = 150; 
+    score = 0; 
+    gameOver = false; 
+    velocity = 0; 
+    runnerTrails = []; 
+}
 }
 
 window.addEventListener("keydown", e => { if((e.code === "Space" || e.code === "ArrowUp")) { e.preventDefault(); jump(); } });
@@ -768,20 +777,22 @@ if (gameStarted && !gameOver) {
     playerY += velocity;
     if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
 
-    // Speed increases every 15 points
+    // Speed increases exactly every 15 points
     let speedLevel = Math.floor(score / 15);
     currentSpeed = currentBaseSpeed + (speedLevel * 1.5); 
     
-    // Constant stream with relentless gap reduction
-    let relentlessGap = 150 - (currentSpeed * 0.5); 
-    if (relentlessGap < 80) relentlessGap = 80; // Minimum unjumpable gap
+    // Minimum safe gap dynamically shrinks but never blocks jumps
+    let minGap = 250 + (currentSpeed * 10); 
 
     let lastObs = runnerObstacles[runnerObstacles.length - 1];
-    if (!lastObs || lastObs.x < (400 - relentlessGap)) {
-        runnerObstacles.push({x: 400, passed: false});
+    
+    // Spawn new distinct blocks
+    if (!lastObs || lastObs.x < (400 - minGap)) {
+        let randColor = hazardColors[Math.floor(Math.random() * hazardColors.length)];
+        let randHeight = Math.random() > 0.5 ? 20 : 35; // Random item heights
+        runnerObstacles.push({x: 400, passed: false, color: randColor, height: randHeight});
     }
 
-    // copiious visual detail for high velocities
     runnerTrails.push({x: 20, y: playerY + 10, alpha: 1, color: currentSpeed > 15 ? rainbowColors[Math.floor(score/10)%rainbowColors.length] : neonColor });
     
     for (let i = 0; i < runnerObstacles.length; i++) {
@@ -793,7 +804,8 @@ if (gameStarted && !gameOver) {
             score++;
         }
 
-        if (!runnerGodMode && obs.x < 40 && obs.x + 20 > 20 && playerY > 130) {
+        // Collision logic taking varying heights into account
+        if (!runnerGodMode && obs.x < 40 && obs.x + 20 > 20 && playerY > (170 - obs.height - 20)) {
             gameOver = true;
             currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
             triggerShake();
@@ -804,7 +816,7 @@ if (gameStarted && !gameOver) {
     runnerObstacles = runnerObstacles.filter(o => o.x > -50);
 }
 
-// Draw Runner and relentless trails
+// Draw Runner trails
 for(let i=runnerTrails.length - 1; i>=0; i--){
     let t = runnerTrails[i];
     ctx.globalAlpha = t.alpha;
@@ -816,14 +828,20 @@ for(let i=runnerTrails.length - 1; i>=0; i--){
 }
 ctx.globalAlpha = 1;
 
-ctx.fillStyle = relentlessColorChange = currentSpeed > 20 ? '#ff0000' : neonColor;
+ctx.fillStyle = currentSpeed > 20 ? '#ff0000' : neonColor;
 if (runnerGodMode) ctx.fillStyle = "#fff";
 if (gameOver) ctx.fillStyle = '#666'; 
 ctx.fillRect(20, playerY, 20, 20);
 
+// Draw unique items
 if (gameStarted) { 
-    ctx.fillStyle = enemyColor; 
-    runnerObstacles.forEach(obs => ctx.fillRect(obs.x, 150, 20, 20)); 
+    runnerObstacles.forEach(obs => {
+        ctx.fillStyle = obs.color;
+        ctx.fillRect(obs.x, 170 - obs.height, 20, obs.height);
+        // Visual tech details on blocks
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(obs.x + 4, 170 - obs.height + 4, 12, 4);
+    }); 
 }
 
 ctx.fillStyle = "#444";
@@ -887,7 +905,6 @@ targetCanvas.addEventListener('pointerdown', (e) => {
     if (duckActive && clickX >= duckX && clickX <= duckX + targetSize && clickY >= duckY && clickY <= duckY + targetSize) {
         targetScore++;
         
-        // relentless speed increase every 25 points
         if (targetScore > 0 && targetScore % 25 === 0) {
             targetSpeedMult += 1; 
         }
@@ -1016,7 +1033,7 @@ pacCanvas.addEventListener('touchstart', (e) => {
     if(pacGameOver) {
         pacGameOver = false;
         pacScore = 0;
-        pacX = 30; pacY = 30; pacDx = 0; pacDy = 0;
+        pacX = 20; pacY = 20; pacDx = 0; pacDy = 0;
         currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)];
         pacMap = [
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
@@ -1031,8 +1048,8 @@ pacCanvas.addEventListener('touchstart', (e) => {
             [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
         ];
         ghosts = [
-            {x: 190, y: 90, dx: 1, dy: 0, color: 'red'},
-            {x: 190, y: 90, dx: -1, dy: 0, color: 'cyan'}
+            {x: 180, y: 80, dx: 1, dy: 0, color: 'red'},
+            {x: 180, y: 80, dx: -1, dy: 0, color: 'cyan'}
         ];
     } else {
         pacTouchStartX = e.touches[0].clientX;
@@ -1063,11 +1080,10 @@ pacCanvas.addEventListener('touchmove', (e) => {
     }
 }, {passive: false});
 
-// Smaller hitbox makes continuous turning effortless
 function pacCollision(x, y) {
     let pts = [
-        {cx: x+6, cy: y+6}, {cx: x+14, cy: y+6},
-        {cx: x+6, cy: y+14}, {cx: x+14, cy: y+14}
+        {cx: x+3, cy: y+3}, {cx: x+17, cy: y+3},
+        {cx: x+3, cy: y+17}, {cx: x+17, cy: y+17}
     ];
     for(let p of pts) {
         let col = Math.floor(p.cx / 20);
@@ -1099,11 +1115,17 @@ function updatePacMan() {
     ctxPac.fillStyle = "black";
     ctxPac.fillRect(0, 0, 400, 200);
 
+    // Unmissable Start Overlay
     if (!pacGameStarted) {
+        ctxPac.fillStyle = "rgba(0,0,0,0.7)";
+        ctxPac.fillRect(0, 0, 400, 200);
         ctxPac.fillStyle = "yellow";
-        ctxPac.font = "bold 18px Arial";
+        ctxPac.font = "bold 20px Arial";
         ctxPac.textAlign = "center";
-        ctxPac.fillText("Copious Copious Tap or Press Any Key to Start", 200, 100);
+        ctxPac.fillText("PAC-RUNNER", 200, 90);
+        ctxPac.fillStyle = "white";
+        ctxPac.font = "14px Arial";
+        ctxPac.fillText("Tap screen or press any key to begin.", 200, 120);
         ctxPac.textAlign = "left";
         requestAnimationFrame(updatePacMan);
         return;
@@ -1149,10 +1171,9 @@ function updatePacMan() {
         }
     }
 
-    // Draw relentless visual eating text
     for(let i=pacEatEffects.length-1; i>=0; i--){
         let e = pacEatEffects[i];
-        ctxPac.fillStyle = t_Color = e.text === "Copious!" ? neonColor : rainbowColors[Math.floor(pacScore/50)%6];
+        ctxPac.fillStyle = e.text === "Copious!" ? neonColor : rainbowColors[Math.floor(pacScore/50)%6];
         ctxPac.globalAlpha = e.timer/30;
         ctxPac.font = "bold 10px Arial";
         ctxPac.fillText(e.text, e.x-10, e.y-5);
@@ -1162,7 +1183,6 @@ function updatePacMan() {
     }
     ctxPac.globalAlpha = 1;
 
-    // Draw Map
     for(let r=0; r<10; r++) {
         for(let c=0; c<20; c++) {
             if(pacMap[r][c] === 1) {
@@ -1177,7 +1197,6 @@ function updatePacMan() {
         }
     }
 
-    // Ghost Logic & Details
     for(let g of ghosts) {
         let gNextX = g.x + (g.dx * ghostSpeed);
         let gNextY = g.y + (g.dy * ghostSpeed);
@@ -1195,11 +1214,7 @@ function updatePacMan() {
             g.x = gNextX; g.y = gNextY;
         }
 
-        // relentless visual particle trail for ghosts
-        runnerTrails.push({x: g.x+10, y: g.y+10, alpha: 0.8, color: g.color });
-
-        // Draw Ghost Body with relentless Copious detail
-        ctxPac.fillStyle = relentlessColorDetail = Math.floor(score/5) % 2 === 0 ? 'white' : g.color;
+        ctxPac.fillStyle = g.color;
         ctxPac.beginPath();
         ctxPac.arc(g.x+10, g.y+10, 8, Math.PI, 0);
         ctxPac.lineTo(g.x+18, g.y+18);
@@ -1209,7 +1224,6 @@ function updatePacMan() {
         ctxPac.lineTo(g.x+2, g.y+18);
         ctxPac.fill();
 
-        // Draw relentless Looking Ghost Eyes
         ctxPac.fillStyle = "white";
         ctxPac.beginPath(); ctxPac.arc(g.x+7, g.y+8, 2.5, 0, Math.PI*2); ctxPac.fill();
         ctxPac.beginPath(); ctxPac.arc(g.x+13, g.y+8, 2.5, 0, Math.PI*2); ctxPac.fill();
@@ -1223,11 +1237,8 @@ function updatePacMan() {
         }
     }
 
-    // Pac-Man Animation & Particle trail
     pacFrame++;
     let mouthOpen = (Math.floor(pacFrame / 10) % 2 === 0);
-    // Relentless Copious particle trail
-    runnerTrails.push({x: pacX+10, y: pacY+10, alpha: 0.5, color: copious_t_Color = currentPacColor === '#FFFF00' ? rainbowColors[Math.floor(pacScore/5)%6] : currentPacColor });
 
     ctxPac.save();
     ctxPac.translate(pacX + 10, pacY + 10);
