@@ -29,6 +29,8 @@ header {
 border-bottom: 2px solid var(--neon-color); 
 margin-bottom: 40px; 
 text-align: center; 
+user-select: none;
+cursor: pointer;
 }
 
 h1, h2 { color: var(--neon-color); margin-bottom: 20px; }
@@ -195,12 +197,18 @@ font-size: 0.9em;
 }
 
 .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+
 .nuked-element { transform: scale(0) rotate(45deg); opacity: 0; transition: all 0.4s ease-out; pointer-events: none; }
+
+@keyframes nukeParticle {
+0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
+}
 </style>
 </head>
 <body>
 
-<header>
+<header id="mainHeader">
 <h1>Systems Specialist & Network Infrastructure</h1>
 </header>
 
@@ -208,8 +216,8 @@ font-size: 0.9em;
 <h2>Project Showcase</h2>
 <div class="project-grid">
 <div class="project-card">
-<h3><b>TrueNAS Build</b></h3>
-<p>Built a secure, high-capacity storage server using ZFS for data protection.</p>
+<h3><b>Proxmox Virtualization</b></h3>
+<p>Built a secure, high-capacity server cluster managing multiple virtual machines and containers.</p>
 </div>
 <div class="project-card">
 <h3><b>MacBook Rescue</b></h3>
@@ -240,27 +248,33 @@ font-size: 0.9em;
 </ul>
 </section>
 
-<section>
-<h2>Request Service</h2>
-<form class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
-<input type="text" name="name" placeholder="Your Name" required>
-<select name="service" required>
-<option value="">Select a Service...</option>
-<option value="pc">PC Repair</option>
-<option value="mobile">Mobile Repair</option>
-<option value="homelab">Home Lab Setup</option>
-</select>
-<textarea name="message" rows="4" placeholder="Describe the issue..." required></textarea>
-<button type="submit">Send Message</button>
-</form>
-</section>
-
 <section class="game-container" id="gameArea">
 <h2 id="gameTitle">Cyber Runner Game</h2>
 <canvas id="jumpGame" width="400" height="200"></canvas>
 <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
-<p style="font-size: 0.9em;">[ Tap Game or Button to <b>Start</b> ]</p>
+<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game or Button to <b>Start</b> ]</p>
 <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+</section>
+
+<section>
+<h2>Request Service</h2>
+<form class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
+<input type="text" name="name" placeholder="Your Name" required>
+<input type="email" name="email" placeholder="Your Email Address" required>
+<input type="tel" name="phone" placeholder="Phone Number (Optional)">
+<select name="service" required>
+<option value="">Select a Service...</option>
+<option value="pc">PC Repair (Windows)</option>
+<option value="mac">MacBook / Apple Repair</option>
+<option value="mobile">Mobile Device Repair</option>
+<option value="homelab">Home Lab / Server Setup</option>
+<option value="network">Network Security / VPN</option>
+</select>
+<input type="text" name="device_model" placeholder="Device Model (e.g., iPhone 13, Custom PC)" required>
+<textarea name="message" rows="5" placeholder="Describe the issue in detail..." required></textarea>
+<input type="text" name="_gotcha" style="display:none">
+<button type="submit">Send Message</button>
+</form>
 </section>
 
 <footer>
@@ -273,7 +287,7 @@ font-size: 0.9em;
 
 <div id="modMenu">
         <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
-            SYSTEM OVERRIDE (DRAG ME)
+            SYSTEM OVERRIDE
         </h3>
         
 <div class="mod-section-title">Runner Mods</div>
@@ -296,6 +310,18 @@ font-size: 0.9em;
 <input type="range" id="modDuckSpeed" min="1" max="10" step="1" value="3">
 </div>
 <div class="mod-row">
+<label>Target Size (<span id="targetSizeVal">30</span>)</label>
+<input type="range" id="modTargetSize" min="10" max="60" step="5" value="30">
+</div>
+<div class="mod-row">
+<label>Difficulty</label>
+<select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
+    <option value="8">Easy (8 Misses)</option>
+    <option value="6" selected>Normal (6 Misses)</option>
+    <option value="3">Hard (3 Misses)</option>
+</select>
+</div>
+<div class="mod-row">
 <label>Aimbot (Auto-Shoot)</label>
 <input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
 </div>
@@ -314,6 +340,17 @@ const techTips = [
     "Run <b>AdGuard Home</b> at the router level to block trackers for every device on your network."
 ];
 document.getElementById("techTipText").innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
+
+// --- Mobile Mod Menu Secret ---
+let headerTapCount = 0;
+document.getElementById('mainHeader').addEventListener('pointerdown', () => {
+    headerTapCount++;
+    if (headerTapCount >= 5) {
+        document.getElementById('modMenu').style.display = 'block';
+        headerTapCount = 0;
+    }
+    setTimeout(() => { headerTapCount = 0; }, 1500);
+});
 
 // --- Game Variables & Colors ---
 const canvas = document.getElementById("jumpGame");
@@ -336,9 +373,18 @@ let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 // Target Game Vars
 let targetGameActive = false;
 let targetScore = 0;
+let targetHighScore = localStorage.getItem('matrixTargetHighScore') || 0;
 let targetSpeedMult = 3;
+let targetSize = 30;
 let aimbotEnabled = false;
 let duckX = -50, duckY = 50, duckActive = false;
+let maxLives = 6;
+let targetLives = 6;
+let targetGameOver = false;
+
+// Rainbow Colors
+const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
+let currentDuckColor = rainbowColors[0];
 
 // Global Nuke Var
 let nukeModeActive = false;
@@ -360,6 +406,14 @@ document.getElementById('modDuckSpeed').addEventListener('input', (e) => {
 targetSpeedMult = parseInt(e.target.value);
 document.getElementById('duckSpeedVal').innerText = targetSpeedMult;
 });
+document.getElementById('modTargetSize').addEventListener('input', (e) => {
+targetSize = parseInt(e.target.value);
+document.getElementById('targetSizeVal').innerText = targetSize;
+});
+document.getElementById('modDifficulty').addEventListener('change', (e) => {
+maxLives = parseInt(e.target.value);
+if(!targetGameOver) { targetLives = maxLives; }
+});
 document.getElementById('modAimbot').addEventListener('change', (e) => {
 aimbotEnabled = e.target.checked;
 });
@@ -379,34 +433,65 @@ if (nukeModeActive) {
 
 document.addEventListener('click', (e) => {
 if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'CANVAS') return;
+
+// Generate visual particles
+const mark = document.createElement('div');
+const symbols = ['💥', '🔥', '⚡', '💀', '💢'];
+mark.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+mark.style.position = 'absolute';
+mark.style.left = e.pageX + 'px';
+mark.style.top = e.pageY + 'px';
+mark.style.fontSize = '2rem';
+mark.style.pointerEvents = 'none';
+mark.style.animation = 'nukeParticle 0.8s forwards';
+document.body.appendChild(mark);
+
+// Remove the element
 e.target.classList.add('nuked-element');
-setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 400);
+setTimeout(() => { 
+    if(e.target.parentNode) e.target.parentNode.removeChild(e.target); 
+    if(mark.parentNode) mark.parentNode.removeChild(mark);
+}, 800);
 });
 
-// --- Draggable Menu Logic ---
+// --- Draggable Menu Logic (Mouse & Touch) ---
 const menu = document.getElementById("modMenu");
 const header = document.getElementById("modMenuHeader");
 let isDragging = false, offsetX, offsetY;
 
-header.addEventListener("mousedown", (e) => {
+function startDrag(e) {
     isDragging = true;
     const rect = menu.getBoundingClientRect();
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    offsetX = clientX - rect.left;
+    offsetY = clientY - rect.top;
     menu.style.margin = "0"; 
     menu.style.cursor = "grabbing";
-});
+}
 
-document.addEventListener("mousemove", (e) => {
+function drag(e) {
     if (!isDragging) return;
-    menu.style.left = `${e.clientX - offsetX}px`;
-    menu.style.top = `${e.clientY - offsetY}px`;
-});
+    e.preventDefault(); 
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    menu.style.left = `${clientX - offsetX}px`;
+    menu.style.top = `${clientY - offsetY}px`;
+}
 
-document.addEventListener("mouseup", () => {
+function stopDrag() {
     isDragging = false;
     menu.style.cursor = "default";
-});
+}
+
+header.addEventListener("mousedown", startDrag);
+header.addEventListener("touchstart", startDrag, { passive: false });
+
+document.addEventListener("mousemove", drag);
+document.addEventListener("touchmove", drag, { passive: false });
+
+document.addEventListener("mouseup", stopDrag);
+document.addEventListener("touchend", stopDrag);
 
 // --- Runner Game Logic ---
 function jump() {
@@ -461,22 +546,35 @@ requestAnimationFrame(updateRunner);
 
 // --- Secret Target Game Logic ---
 function spawnDuck() {
-    duckY = Math.floor(Math.random() * 120) + 20;
-    duckX = -30;
+    duckY = Math.floor(Math.random() * (130 - targetSize));
+    duckX = -targetSize;
+    currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
     duckActive = true;
 }
 
 targetCanvas.addEventListener('pointerdown', (e) => {
     if (!targetGameActive) return;
+    
+    if (targetGameOver) {
+        targetGameOver = false;
+        targetLives = maxLives;
+        targetScore = 0;
+        duckActive = false;
+        return;
+    }
+
     const rect = targetCanvas.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
     
-    // Check if click hits the 30x30 target box
-    if (duckActive && clickX >= duckX && clickX <= duckX + 30 && clickY >= duckY && clickY <= duckY + 30) {
+    if (duckActive && clickX >= duckX && clickX <= duckX + targetSize && clickY >= duckY && clickY <= duckY + targetSize) {
         targetScore++;
+        if (targetScore > targetHighScore) { 
+            targetHighScore = targetScore; 
+            localStorage.setItem('matrixTargetHighScore', targetHighScore); 
+        }
         duckActive = false;
-        ctxTarget.fillStyle = "white"; // Flash effect
+        ctxTarget.fillStyle = "white"; 
         ctxTarget.fillRect(0,0,400,200);
     }
 });
@@ -485,26 +583,81 @@ function updateTargetGame() {
     if (!targetGameActive) return;
     
     ctxTarget.clearRect(0, 0, 400, 200);
-    ctxTarget.strokeStyle = gridColor;
-    for(let i=0; i<=400; i+=20) { ctxTarget.beginPath(); ctxTarget.moveTo(i, 0); ctxTarget.lineTo(i, 200); ctxTarget.stroke(); }
-    for(let i=0; i<=200; i+=20) { ctxTarget.beginPath(); ctxTarget.moveTo(0, i); ctxTarget.lineTo(400, i); ctxTarget.stroke(); }
+    
+    // Background Sky Gradient
+    let gradient = ctxTarget.createLinearGradient(0, 0, 0, 100);
+    gradient.addColorStop(0, "#000033");
+    gradient.addColorStop(1, "#FF4500");
+    ctxTarget.fillStyle = gradient;
+    ctxTarget.fillRect(0, 0, 400, 100);
 
+    // Sun
+    ctxTarget.fillStyle = "#FFD700";
+    ctxTarget.beginPath();
+    ctxTarget.arc(200, 100, 30, 0, Math.PI * 2);
+    ctxTarget.fill();
+
+    // Lake
+    ctxTarget.fillStyle = "#008080";
+    ctxTarget.fillRect(0, 100, 400, 50);
+
+    // Grass
+    ctxTarget.fillStyle = "#006400";
+    ctxTarget.fillRect(0, 150, 400, 50);
+
+    // Pine Tree 1
+    ctxTarget.fillStyle = "#5c4033";
+    ctxTarget.fillRect(40, 130, 10, 30);
+    ctxTarget.fillStyle = "#228B22";
+    ctxTarget.beginPath(); ctxTarget.moveTo(45, 90); ctxTarget.lineTo(20, 140); ctxTarget.lineTo(70, 140); ctxTarget.fill();
+
+    // Pine Tree 2
+    ctxTarget.fillStyle = "#5c4033";
+    ctxTarget.fillRect(340, 120, 12, 40);
+    ctxTarget.fillStyle = "#228B22";
+    ctxTarget.beginPath(); ctxTarget.moveTo(346, 70); ctxTarget.lineTo(310, 130); ctxTarget.lineTo(382, 130); ctxTarget.fill();
+
+    if (targetGameOver) {
+        ctxTarget.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctxTarget.fillRect(0, 0, 400, 200);
+        ctxTarget.fillStyle = "#ff0000";
+        ctxTarget.font = "bold 20px Arial";
+        ctxTarget.textAlign = "center";
+        ctxTarget.fillText("SYSTEM FAILURE", 200, 90);
+        ctxTarget.fillStyle = "#fff";
+        ctxTarget.font = "14px Arial";
+        ctxTarget.fillText("Tap to Reboot", 200, 120);
+        ctxTarget.textAlign = "left";
+        requestAnimationFrame(updateTargetGame);
+        return;
+    }
+
+    // Target Logic
     if (duckActive) {
         duckX += targetSpeedMult;
         
-        // Draw Target
-        ctxTarget.fillStyle = enemyColor;
-        ctxTarget.fillRect(duckX, duckY, 30, 30);
+        ctxTarget.fillStyle = currentDuckColor;
+        ctxTarget.fillRect(duckX, duckY, targetSize, targetSize);
         ctxTarget.strokeStyle = "#fff";
-        ctxTarget.strokeRect(duckX+5, duckY+5, 20, 20);
+        ctxTarget.strokeRect(duckX + (targetSize*0.1), duckY + (targetSize*0.1), targetSize*0.8, targetSize*0.8);
         
-        if (duckX > 400) { duckActive = false; }
+        if (duckX > 400) { 
+            duckActive = false; 
+            targetScore = 0; 
+            targetLives--;
+            if (targetLives <= 0) {
+                targetGameOver = true;
+            }
+        }
         
-        // Aimbot Injection
         if (aimbotEnabled && duckX > 20 && duckX < 380) {
             targetScore++;
+            if (targetScore > targetHighScore) { 
+                targetHighScore = targetScore; 
+                localStorage.setItem('matrixTargetHighScore', targetHighScore); 
+            }
             duckActive = false;
-            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; // Flash effect
+            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
             ctxTarget.fillRect(0,0,400,200);
         }
     } else {
@@ -513,7 +666,9 @@ function updateTargetGame() {
 
     ctxTarget.fillStyle = "#fff";
     ctxTarget.font = "14px Arial";
-    ctxTarget.fillText("Targets Eliminated: " + targetScore, 10, 20);
+    ctxTarget.fillText("Streak: " + targetScore, 10, 20);
+    ctxTarget.fillText("High Score: " + targetHighScore, 10, 40);
+    ctxTarget.fillText("Lives: " + targetLives, 330, 20);
     
     requestAnimationFrame(updateTargetGame);
 }
@@ -527,13 +682,14 @@ keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-4);
 if (keyBuffer === "sudo") { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
 if (keyBuffer === "hack") { document.getElementById('modMenu').style.display = 'block'; }
 if (keyBuffer === "duck") { 
-    // Unlock Secret Target Game
     document.getElementById('jumpGame').style.display = 'none';
     document.getElementById('mobileJumpBtn').style.display = 'none';
+    document.getElementById('gamePrompt').style.display = 'none';
     document.getElementById('gameTitle').innerText = "Matrix Target Simulator";
     document.getElementById('gameTitle').style.color = "red";
     targetCanvas.style.display = 'block';
     targetGameActive = true;
+    targetLives = maxLives;
     updateTargetGame();
 }
 }
