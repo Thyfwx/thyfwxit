@@ -15,6 +15,15 @@
 --enemy-color: red;
 }
 
+::selection {
+background: var(--neon-color);
+color: #000;
+}
+::-moz-selection {
+background: var(--neon-color);
+color: #000;
+}
+
 body { 
 font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 line-height: 1.8; 
@@ -167,7 +176,7 @@ overflow-y: auto;
 #modMenu { 
 display: none; 
 position: fixed; 
-top: 20%; left: 50%; 
+top: 10%; left: 50%; 
 margin-left: -170px;
 background: #000; 
 border: 3px solid #ff0000; 
@@ -177,6 +186,8 @@ box-shadow: 0 0 20px #ff0000;
 color: #fff; 
 width: 300px; 
 border-radius: 10px; 
+max-height: 80vh;
+overflow-y: auto;
 }
 
 .mod-section-title {
@@ -253,14 +264,25 @@ font-size: 0.9em;
 <canvas id="jumpGame" width="400" height="200"></canvas>
 <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
 <p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game or Button to <b>Start</b> ]</p>
+<p style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> on your keyboard to load the Target Simulator ]</p>
+
+<div id="publicDifficulty" style="display:none; margin-top: 15px;">
+<label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
+<select id="publicDiffSelect" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px;">
+    <option value="8">Easy (8 Misses)</option>
+    <option value="6" selected>Normal (6 Misses)</option>
+    <option value="3">Hard (3 Misses)</option>
+</select>
+</div>
+
 <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
 </section>
 
 <section>
 <h2>Request Service</h2>
-<form class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
-<input type="text" name="name" placeholder="Your Name" required>
-<input type="email" name="email" placeholder="Your Email Address" required>
+<form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
+<input type="text" name="name" id="formName" placeholder="Your Name" required>
+<input type="email" name="email" id="formEmail" placeholder="Your Email Address" required>
 <input type="tel" name="phone" placeholder="Phone Number (Optional)">
 <select name="service" required>
 <option value="">Select a Service...</option>
@@ -270,8 +292,8 @@ font-size: 0.9em;
 <option value="homelab">Home Lab / Server Setup</option>
 <option value="network">Network Security / VPN</option>
 </select>
-<input type="text" name="device_model" placeholder="Device Model (e.g., iPhone 13, Custom PC)" required>
-<textarea name="message" rows="5" placeholder="Describe the issue in detail..." required></textarea>
+<input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" required>
+<textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." required></textarea>
 <input type="text" name="_gotcha" style="display:none">
 <button type="submit">Send Message</button>
 </form>
@@ -293,25 +315,29 @@ font-size: 0.9em;
 <div class="mod-section-title">Runner Mods</div>
 <div class="mod-row">
 <label>Gravity (<span id="gravVal">0.8</span>)</label>
-<input type="range" id="modGravity" min="0.1" max="2.0" step="0.1" value="0.8">
+<input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.8">
 </div>
 <div class="mod-row">
 <label>Jump Power (<span id="jumpVal">12</span>)</label>
-<input type="range" id="modJump" min="5" max="25" step="1" value="12">
+<input type="range" id="modJump" min="5" max="250" step="1" value="12">
 </div>
 <div class="mod-row">
 <label>Base Speed (<span id="speedVal">5</span>)</label>
-<input type="range" id="modSpeed" min="1" max="20" step="1" value="5">
+<input type="range" id="modSpeed" min="1" max="200" step="1" value="5">
+</div>
+<div class="mod-row">
+<label>God Mode (Invincible)</label>
+<input type="checkbox" id="modGodMode" style="transform: scale(1.5);">
 </div>
 
 <div class="mod-section-title">Target Mods</div>
 <div class="mod-row">
 <label>Target Speed (<span id="duckSpeedVal">3</span>)</label>
-<input type="range" id="modDuckSpeed" min="1" max="10" step="1" value="3">
+<input type="range" id="modDuckSpeed" min="1" max="100" step="1" value="3">
 </div>
 <div class="mod-row">
 <label>Target Size (<span id="targetSizeVal">30</span>)</label>
-<input type="range" id="modTargetSize" min="10" max="60" step="5" value="30">
+<input type="range" id="modTargetSize" min="10" max="600" step="5" value="30">
 </div>
 <div class="mod-row">
 <label>Difficulty</label>
@@ -320,6 +346,10 @@ font-size: 0.9em;
     <option value="6" selected>Normal (6 Misses)</option>
     <option value="3">Hard (3 Misses)</option>
 </select>
+</div>
+<div class="mod-row">
+<label>Clay Pigeon (Gravity)</label>
+<input type="checkbox" id="modDuckGravity" style="transform: scale(1.5);">
 </div>
 <div class="mod-row">
 <label>Aimbot (Auto-Shoot)</label>
@@ -331,6 +361,27 @@ font-size: 0.9em;
 </div>
 
 <script>
+// --- Form Validation Script ---
+document.getElementById('secureContactForm').addEventListener('submit', function(e) {
+    const email = document.getElementById('formEmail').value;
+    const model = document.getElementById('formModel').value.trim();
+    const message = document.getElementById('formMessage').value.trim();
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(email)) {
+        e.preventDefault();
+        alert("ERROR: Please enter a valid email address.");
+        return;
+    }
+    
+    if (model.length < 2 || message.length < 5) {
+        e.preventDefault();
+        alert("ERROR: Please provide a valid Device Model and a detailed issue description.");
+        return;
+    }
+});
+
 // --- Dynamic Tech Tips ---
 const techTips = [
     "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
@@ -363,12 +414,16 @@ const neonColor = style.getPropertyValue('--neon-color').trim();
 const gridColor = style.getPropertyValue('--grid-color').trim();
 const enemyColor = style.getPropertyValue('--enemy-color').trim();
 
+const crashMessages = ["KERNEL PANIC", "SEGFAULT DETECTED", "FATAL EXCEPTION", "SYSTEM HALTED", "MEMORY CORRUPTION"];
+
 // Runner Game Vars
 let currentGravity = 0.8;
 let currentJumpPower = 12;
 let currentBaseSpeed = 5;
+let runnerGodMode = false;
 let isJumping = false, velocity = 0, playerY = 150, obstacleX = 400, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
+let currentRunnerCrash = "";
 
 // Target Game Vars
 let targetGameActive = false;
@@ -377,10 +432,13 @@ let targetHighScore = localStorage.getItem('matrixTargetHighScore') || 0;
 let targetSpeedMult = 3;
 let targetSize = 30;
 let aimbotEnabled = false;
+let duckGravityEnabled = false;
 let duckX = -50, duckY = 50, duckActive = false;
+let duckVelY = 0;
 let maxLives = 6;
 let targetLives = 6;
 let targetGameOver = false;
+let currentTargetCrash = "";
 
 // Rainbow Colors
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
@@ -388,6 +446,22 @@ let currentDuckColor = rainbowColors[0];
 
 // Global Nuke Var
 let nukeModeActive = false;
+
+// --- Dual Difficulty Sync ---
+const pubDiff = document.getElementById('publicDiffSelect');
+const modDiff = document.getElementById('modDifficulty');
+
+pubDiff.addEventListener('change', (e) => {
+    modDiff.value = e.target.value;
+    maxLives = parseInt(e.target.value);
+    if(!targetGameOver) { targetLives = maxLives; }
+});
+
+modDiff.addEventListener('change', (e) => {
+    pubDiff.value = e.target.value;
+    maxLives = parseInt(e.target.value);
+    if(!targetGameOver) { targetLives = maxLives; }
+});
 
 // --- Mod Menu Sliders & Checkboxes ---
 document.getElementById('modGravity').addEventListener('input', (e) => {
@@ -402,6 +476,10 @@ document.getElementById('modSpeed').addEventListener('input', (e) => {
 currentBaseSpeed = parseInt(e.target.value);
 document.getElementById('speedVal').innerText = currentBaseSpeed;
 });
+document.getElementById('modGodMode').addEventListener('change', (e) => {
+runnerGodMode = e.target.checked;
+});
+
 document.getElementById('modDuckSpeed').addEventListener('input', (e) => {
 targetSpeedMult = parseInt(e.target.value);
 document.getElementById('duckSpeedVal').innerText = targetSpeedMult;
@@ -410,9 +488,8 @@ document.getElementById('modTargetSize').addEventListener('input', (e) => {
 targetSize = parseInt(e.target.value);
 document.getElementById('targetSizeVal').innerText = targetSize;
 });
-document.getElementById('modDifficulty').addEventListener('change', (e) => {
-maxLives = parseInt(e.target.value);
-if(!targetGameOver) { targetLives = maxLives; }
+document.getElementById('modDuckGravity').addEventListener('change', (e) => {
+duckGravityEnabled = e.target.checked;
 });
 document.getElementById('modAimbot').addEventListener('change', (e) => {
 aimbotEnabled = e.target.checked;
@@ -434,7 +511,6 @@ if (nukeModeActive) {
 document.addEventListener('click', (e) => {
 if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'CANVAS') return;
 
-// Generate visual particles
 const mark = document.createElement('div');
 const symbols = ['💥', '🔥', '⚡', '💀', '💢'];
 mark.innerText = symbols[Math.floor(Math.random() * symbols.length)];
@@ -446,7 +522,6 @@ mark.style.pointerEvents = 'none';
 mark.style.animation = 'nukeParticle 0.8s forwards';
 document.body.appendChild(mark);
 
-// Remove the element
 e.target.classList.add('nuked-element');
 setTimeout(() => { 
     if(e.target.parentNode) e.target.parentNode.removeChild(e.target); 
@@ -522,13 +597,15 @@ currentSpeed = currentBaseSpeed + (score * 0.25);
 obstacleX -= currentSpeed;
 
 if (obstacleX < -20) { obstacleX = 400; score++; }
-if (obstacleX < 40 && obstacleX > 0 && playerY > 130) {
-gameOver = true;
-if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
+if (!runnerGodMode && obstacleX < 40 && obstacleX > 0 && playerY > 130) {
+    gameOver = true;
+    currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
+    if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
 }
 }
 
 ctx.fillStyle = neonColor;
+if (runnerGodMode) { ctx.fillStyle = "#fff"; }
 ctx.fillRect(20, playerY, 20, 20);
 if (gameStarted) { ctx.fillStyle = enemyColor; ctx.fillRect(obstacleX, 150, 20, 20); }
 ctx.fillStyle = "#444";
@@ -539,7 +616,19 @@ ctx.fillText("Score: " + score, 10, 20);
 ctx.fillText("High Score: " + highScore, 10, 40);
 
 if (!gameStarted) { ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; }
-else if (gameOver) { ctx.textAlign = "center"; ctx.fillText("System Failure. Tap JUMP to reboot.", 200, 100); ctx.textAlign = "left"; }
+else if (gameOver) { 
+    ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+    ctx.fillRect(0, 0, 400, 200);
+    ctx.fillStyle = "#ff0000";
+    ctx.font = "bold 18px Arial";
+    ctx.textAlign = "center"; 
+    ctx.fillText(currentRunnerCrash, 200, 80); 
+    ctx.fillStyle = "#fff";
+    ctx.font = "14px Arial";
+    ctx.fillText("Final Score: " + score, 200, 110);
+    ctx.fillText("Tap JUMP to reboot.", 200, 140);
+    ctx.textAlign = "left"; 
+}
 requestAnimationFrame(updateRunner);
 }
 requestAnimationFrame(updateRunner);
@@ -548,6 +637,7 @@ requestAnimationFrame(updateRunner);
 function spawnDuck() {
     duckY = Math.floor(Math.random() * (130 - targetSize));
     duckX = -targetSize;
+    duckVelY = duckGravityEnabled ? -5 : 0; 
     currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
     duckActive = true;
 }
@@ -618,15 +708,16 @@ function updateTargetGame() {
     ctxTarget.beginPath(); ctxTarget.moveTo(346, 70); ctxTarget.lineTo(310, 130); ctxTarget.lineTo(382, 130); ctxTarget.fill();
 
     if (targetGameOver) {
-        ctxTarget.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctxTarget.fillStyle = "rgba(0, 0, 0, 0.8)";
         ctxTarget.fillRect(0, 0, 400, 200);
         ctxTarget.fillStyle = "#ff0000";
         ctxTarget.font = "bold 20px Arial";
         ctxTarget.textAlign = "center";
-        ctxTarget.fillText("SYSTEM FAILURE", 200, 90);
+        ctxTarget.fillText(currentTargetCrash, 200, 80);
         ctxTarget.fillStyle = "#fff";
         ctxTarget.font = "14px Arial";
-        ctxTarget.fillText("Tap to Reboot", 200, 120);
+        ctxTarget.fillText("Final Score: " + targetScore, 200, 110);
+        ctxTarget.fillText("Tap to Reboot", 200, 140);
         ctxTarget.textAlign = "left";
         requestAnimationFrame(updateTargetGame);
         return;
@@ -636,21 +727,26 @@ function updateTargetGame() {
     if (duckActive) {
         duckX += targetSpeedMult;
         
+        if (duckGravityEnabled) {
+            duckVelY += 0.2; 
+            duckY += duckVelY;
+        }
+        
         ctxTarget.fillStyle = currentDuckColor;
         ctxTarget.fillRect(duckX, duckY, targetSize, targetSize);
         ctxTarget.strokeStyle = "#fff";
         ctxTarget.strokeRect(duckX + (targetSize*0.1), duckY + (targetSize*0.1), targetSize*0.8, targetSize*0.8);
         
-        if (duckX > 400) { 
+        if (duckX > 400 || duckY > 200) { 
             duckActive = false; 
-            targetScore = 0; 
             targetLives--;
             if (targetLives <= 0) {
                 targetGameOver = true;
+                currentTargetCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
             }
         }
         
-        if (aimbotEnabled && duckX > 20 && duckX < 380) {
+        if (aimbotEnabled && duckX > 20 && duckX < 380 && duckY < 200) {
             targetScore++;
             if (targetScore > targetHighScore) { 
                 targetHighScore = targetScore; 
@@ -666,7 +762,7 @@ function updateTargetGame() {
 
     ctxTarget.fillStyle = "#fff";
     ctxTarget.font = "14px Arial";
-    ctxTarget.fillText("Streak: " + targetScore, 10, 20);
+    ctxTarget.fillText("Score: " + targetScore, 10, 20);
     ctxTarget.fillText("High Score: " + targetHighScore, 10, 40);
     ctxTarget.fillText("Lives: " + targetLives, 330, 20);
     
@@ -685,6 +781,7 @@ if (keyBuffer === "duck") {
     document.getElementById('jumpGame').style.display = 'none';
     document.getElementById('mobileJumpBtn').style.display = 'none';
     document.getElementById('gamePrompt').style.display = 'none';
+    document.getElementById('publicDifficulty').style.display = 'block';
     document.getElementById('gameTitle').innerText = "Matrix Target Simulator";
     document.getElementById('gameTitle').style.color = "red";
     targetCanvas.style.display = 'block';
