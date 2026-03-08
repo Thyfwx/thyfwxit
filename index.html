@@ -370,7 +370,7 @@ font-size: 0.9em;
 </div>
 
 <p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game to <b>Jump</b> ]</p>
-<p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> on your keyboard to load hidden modules ]</p>
+<p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Tap Header 5x for System Override ]</p>
 
 <div id="publicDifficulty" style="display:none; margin-top: 15px;">
 <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -419,6 +419,11 @@ font-size: 0.9em;
         <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
             SYSTEM OVERRIDE
         </h3>
+
+<div class="mod-section-title">System Modules</div>
+<button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="switchGame('runner')">BOOT CYBER RUNNER</button>
+<button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="switchGame('target')">BOOT TARGET SIM</button>
+<button class="nuke-btn" style="background: #222; color: yellow; border: 1px solid yellow; margin-top: 5px;" onclick="switchGame('pacman')">BOOT PAC-RUNNER</button>
         
 <div class="mod-section-title">Runner Mods</div>
 <div class="mod-row">
@@ -430,8 +435,8 @@ font-size: 0.9em;
 <input type="range" id="modJump" min="5" max="250" step="1" value="12">
 </div>
 <div class="mod-row">
-<label>Base Speed (<span id="speedVal">5</span>)</label>
-<input type="range" id="modSpeed" min="1" max="200" step="1" value="5">
+<label>Base Speed (<span id="speedVal">3.5</span>)</label>
+<input type="range" id="modSpeed" min="1" max="200" step="1" value="3.5">
 </div>
 <div class="mod-row">
 <label>God Mode (Invincible)</label>
@@ -492,6 +497,7 @@ font-size: 0.9em;
 let runnerAnimId;
 let targetAnimId;
 let pacAnimId;
+let keyBuffer = "";
 
 // --- Live Status Fetch Logic ---
 async function fetchUptimeStatus() {
@@ -525,7 +531,7 @@ window.onload = () => {
 
     document.getElementById('modGravity').value = 0.8;
     document.getElementById('modJump').value = 12;
-    document.getElementById('modSpeed').value = 5;
+    document.getElementById('modSpeed').value = 3.5;
     document.getElementById('modGodMode').checked = false;
     document.getElementById('modDuckSpeed').value = 3;
     document.getElementById('modTargetSize').value = 30;
@@ -630,11 +636,11 @@ const crashMessages = ["KERNEL PANIC", "SEGFAULT DETECTED", "FATAL EXCEPTION", "
 // Runner Game Vars
 let currentGravity = 0.8;
 let currentJumpPower = 12;
-let currentBaseSpeed = 5;
+let currentBaseSpeed = 3.5;
 let runnerGodMode = false;
 let isJumping = false;
 let isDucking = false;
-let velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = false, currentSpeed = 5;
+let velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = false, currentSpeed = 3.5;
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 let currentRunnerCrash = "";
 
@@ -739,7 +745,7 @@ currentJumpPower = parseInt(e.target.value);
 document.getElementById('jumpVal').innerText = currentJumpPower;
 });
 document.getElementById('modSpeed').addEventListener('input', (e) => {
-currentBaseSpeed = parseInt(e.target.value);
+currentBaseSpeed = parseFloat(e.target.value);
 document.getElementById('speedVal').innerText = currentBaseSpeed;
 });
 document.getElementById('modGodMode').addEventListener('change', (e) => {
@@ -879,7 +885,6 @@ function switchGame(mode) {
         document.getElementById('gamePrompt').style.display = 'block';
         document.getElementById('gamePrompt').innerHTML = "[ Tap Game to <b>Jump</b> ]";
         document.getElementById('secretText').style.display = 'block';
-        document.getElementById('secretText').innerHTML = "[ Secret: Type <b>duck</b> on your keyboard to load hidden modules ]";
         document.getElementById('gameTitle').innerText = "Cyber Runner Game";
         document.getElementById('gameTitle').style.color = "var(--neon-color)";
         
@@ -891,7 +896,7 @@ function switchGame(mode) {
         runnerTrails = [];
         score = 0;
         
-        updateRunner();
+        runnerAnimId = requestAnimationFrame(updateRunner);
     } else if (mode === 'target') {
         targetGameActive = true;
         targetLives = maxLives;
@@ -902,22 +907,20 @@ function switchGame(mode) {
         document.getElementById('targetGame').style.display = 'block';
         document.getElementById('publicDifficulty').style.display = 'block';
         document.getElementById('secretText').style.display = 'block';
-        document.getElementById('secretText').innerHTML = "[ Secret: Type <b>runn</b> to reboot base system ]";
         document.getElementById('gameTitle').innerText = "Matrix Target Simulator";
         document.getElementById('gameTitle').style.color = "red";
         
-        updateTargetGame();
+        targetAnimId = requestAnimationFrame(updateTargetGame);
     } else if (mode === 'pacman') {
         pacGameActive = true;
         pacState = 'MENU';
         
         document.getElementById('pacmanGame').style.display = 'block';
         document.getElementById('secretText').style.display = 'block';
-        document.getElementById('secretText').innerHTML = "[ Secret: Type <b>runn</b> to reboot base system ]";
         document.getElementById('gameTitle').innerText = "Pac-Runner";
         document.getElementById('gameTitle').style.color = "yellow";
         
-        updatePacMan();
+        pacAnimId = requestAnimationFrame(updatePacMan);
     }
 }
 
@@ -936,21 +939,24 @@ if (!isJumping) {
 }
 }
 
-// Consolidated Input Router
+// --- Universal Input Router ---
 window.addEventListener("keydown", e => { 
+    // Ignore input if typing in contact form
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
+    // Secret Key Tracker
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
         keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
 
         if (keyBuffer.endsWith("sudo")) { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
         if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'block'; }
         if (keyBuffer.endsWith("duck")) { switchGame('target'); }
-        if (keyBuffer.endsWith("pacm") || keyBuffer === "pacman") { switchGame('pacman'); }
+        if (keyBuffer.endsWith("pacman") || keyBuffer.endsWith("pacm")) { switchGame('pacman'); }
         if (keyBuffer.endsWith("runn")) { switchGame('runner'); }
     }
 
+    // Game Specific Controls
     if (pacGameActive) {
         if(pacState === 'MENU' || pacState === 'GAMEOVER') {
             if(e.code === "Space" || e.code === "Enter") {
@@ -1021,9 +1027,9 @@ function updateRunner() {
         if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
 
         let speedLevel = Math.floor(score / 15);
-        currentSpeed = currentBaseSpeed + (speedLevel * 1.5); 
+        currentSpeed = currentBaseSpeed + (speedLevel * 1.0); 
         
-        let minGap = 250 + (currentSpeed * 10); 
+        let minGap = 350 + (currentSpeed * 20); 
 
         let lastObs = runnerObstacles[runnerObstacles.length - 1];
         
@@ -1322,8 +1328,8 @@ function initPacGame() {
     resetPacMap();
     
     ghosts = [
-        {x: 180, y: 180, dx: 1, dy: 0, color: 'red', type: 'chaser'},
-        {x: 200, y: 180, dx: -1, dy: 0, color: '#ffb8ff', type: 'random'}, 
+        {x: 180, y: 140, dx: 1, dy: 0, color: 'red', type: 'chaser'},
+        {x: 200, y: 140, dx: -1, dy: 0, color: '#ffb8ff', type: 'random'}, 
         {x: 180, y: 220, dx: 1, dy: 0, color: 'cyan', type: 'random'},
         {x: 200, y: 220, dx: 0, dy: -1, color: 'orange', type: 'random'}
     ];
@@ -1615,7 +1621,7 @@ function updatePacMan() {
         
         if (!isScared) {
             ctxPac.fillStyle = "blue";
-            ctxPac.beginPath(); ctxPac.arc(g.x+7 + eyeOffsetX*1.5, g.y+8 + eyeOffsetY*1.5, 1, 0, Math.PI*2); ctxPac.fill();
+            ctxPac.beginPath(); ctxPac.arc(g.x+7 + eyeOffsetX*1.5, g.y+8 + eyeOffsetX*1.5, 1, 0, Math.PI*2); ctxPac.fill();
             ctxPac.beginPath(); ctxPac.arc(g.x+13 + eyeOffsetX*1.5, g.y+8 + eyeOffsetY*1.5, 1, 0, Math.PI*2); ctxPac.fill();
         }
 
