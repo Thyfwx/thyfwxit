@@ -110,6 +110,23 @@ margin-right: 10px;
 100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
 }
 
+/* Uptime Kuma Status Iframe */
+.status-wrapper {
+width: 100%;
+height: 400px;
+border: 2px solid var(--neon-color);
+border-radius: 5px;
+overflow: hidden;
+background: #000;
+margin-top: 15px;
+}
+
+.kuma-iframe {
+width: 100%;
+height: 100%;
+border: none;
+}
+
 /* Contact Form */
 .contact-form {
 display: flex;
@@ -212,21 +229,10 @@ flex: 1;
 max-width: 200px;
 }
 
-.duck-btn {
-border-color: #00ccff;
-color: #00ccff;
-}
-
 .jump-btn:hover {
 background-color: var(--neon-color);
 color: #000;
 box-shadow: 0 0 15px var(--neon-color);
-}
-
-.duck-btn:hover {
-background-color: #00ccff;
-color: #000;
-box-shadow: 0 0 15px #00ccff;
 }
 
 #terminalOverlay { 
@@ -276,7 +282,7 @@ margin-bottom: 5px;
 font-size: 0.9em;
 }
 
-.nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; }
+.nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; transition: all 0.2s; }
 
 .nuked-element { transform: scale(0) rotate(45deg); opacity: 0; transition: all 0.4s ease-out; pointer-events: none; }
 
@@ -328,6 +334,14 @@ font-size: 0.9em;
 </ul>
 </section>
 
+<section id="systemStatus">
+<h2>Live Infrastructure Status</h2>
+<p>Monitoring critical node uptime across local and remote environments.</p>
+<div class="status-wrapper">
+    <iframe src="https://uptime.thyfwxit.com/status/status" class="kuma-iframe" title="Uptime Kuma Status"></iframe>
+</div>
+</section>
+
 <section class="game-container" id="gameArea">
 <h2 id="gameTitle">Cyber Runner Game</h2>
 
@@ -335,11 +349,11 @@ font-size: 0.9em;
     <div class="crt-overlay"></div>
     <canvas id="jumpGame" width="400" height="200"></canvas>
     <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
-    <canvas id="pacmanGame" width="400" height="200" style="display: none;"></canvas>
+    <canvas id="pacmanGame" width="400" height="400" style="display: none;"></canvas>
 </div>
 
-<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game or Press <b>Space/Down</b> to Play ]</p>
-<p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> or <b>pacm</b> on your keyboard to load hidden modules ]</p>
+<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game to <b>Jump</b> | Swipe Down to <b>Duck</b> ]</p>
+<p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> on your keyboard to load hidden modules ]</p>
 
 <div id="publicDifficulty" style="display:none; margin-top: 15px;">
 <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -351,8 +365,7 @@ font-size: 0.9em;
 </div>
 
 <div class="controls-wrapper" id="runnerControls">
-    <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
-    <button id="mobileDuckBtn" class="jump-btn duck-btn">DUCK</button>
+    <button id="mobileJumpBtn" class="jump-btn">INITIALIZE SYSTEM</button>
 </div>
 </section>
 
@@ -547,8 +560,7 @@ let velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = fals
 let highScore = localStorage.getItem('cyberRunnerHighScore') || 0;
 let currentRunnerCrash = "";
 
-// Dynamic Obstacle Array
-const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; // Green, Cyan, Pink
+const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; 
 let runnerObstacles = [];
 let runnerTrails = [];
 
@@ -573,9 +585,10 @@ const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#
 let currentDuckColor = rainbowColors[0];
 
 // Pac-Man Game Vars
-let pacState = 'MENU'; // MENU, PLAYING, GAMEOVER
+let pacState = 'MENU'; 
 let pacGameActive = false;
 let pacScore = 0;
+let pacHighScore = localStorage.getItem('pacRunnerHighScore') || 0;
 let pacGodMode = false;
 let pacWallHack = false;
 let pacMultiplier = 1;
@@ -584,6 +597,12 @@ let ghostSpeed = 1;
 let pacFrame = 0;
 let pacEatEffects = [];
 let scaredTimer = 0;
+
+let totalDots = 0;
+let dotsEaten = 0;
+let victoryMode = false;
+let victoryTimer = 0;
+let fruits = [];
 
 let pacX = 20, pacY = 20;
 let pacDx = 0, pacDy = 0;
@@ -609,8 +628,10 @@ function triggerShake() {
 document.getElementById('resetProgressBtn').addEventListener('click', () => {
     localStorage.removeItem('cyberRunnerHighScore');
     localStorage.removeItem('matrixTargetHighScore');
+    localStorage.removeItem('pacRunnerHighScore');
     highScore = 0;
     targetHighScore = 0;
+    pacHighScore = 0;
     alert("SYSTEM PURGED: All local high scores have been wiped.");
 });
 
@@ -679,37 +700,45 @@ pacGodMode = e.target.checked;
 });
 
 document.getElementById('nukeToggle').addEventListener('click', (e) => {
-nukeModeActive = !nukeModeActive;
-if (nukeModeActive) {
-    e.target.style.background = "#fff";
-    e.target.style.color = "#ff0000";
-    e.target.innerText = "NUKE MODE ARMED (CLICK PAGE)";
-} else {
-    e.target.style.background = "#ff0000";
-    e.target.style.color = "#fff";
-    e.target.innerText = "NUKE PAGE ;)";
-}
+nukeModeActive = true;
+e.target.style.background = "#fff";
+e.target.style.color = "#ff0000";
+e.target.innerText = "SYSTEM NUKED - CLICK TO DESTROY";
+e.target.style.pointerEvents = "none";
 });
 
 document.addEventListener('click', (e) => {
 if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'CANVAS') return;
 
-const mark = document.createElement('div');
-const symbols = ['💥', '🔥', '⚡', '💀', '💢'];
-mark.innerText = symbols[Math.floor(Math.random() * symbols.length)];
-mark.style.position = 'absolute';
-mark.style.left = e.pageX + 'px';
-mark.style.top = e.pageY + 'px';
-mark.style.fontSize = '2rem';
-mark.style.pointerEvents = 'none';
-mark.style.animation = 'nukeParticle 0.8s forwards';
-document.body.appendChild(mark);
+const rect = e.target.getBoundingClientRect();
 
-e.target.classList.add('nuked-element');
-setTimeout(() => { 
-    if(e.target.parentNode) e.target.parentNode.removeChild(e.target); 
-    if(mark.parentNode) mark.parentNode.removeChild(mark);
-}, 800);
+for(let i=0; i<15; i++) {
+    const pixel = document.createElement('div');
+    pixel.style.position = 'fixed';
+    pixel.style.left = e.clientX + 'px';
+    pixel.style.top = e.clientY + 'px';
+    pixel.style.width = (Math.random() * 6 + 4) + 'px';
+    pixel.style.height = pixel.style.width;
+    pixel.style.background = `hsl(${Math.random()*360}, 100%, 50%)`; 
+    pixel.style.pointerEvents = 'none';
+    pixel.style.zIndex = 10001;
+    
+    const vx = (Math.random() - 0.5) * 200;
+    const vy = (Math.random() - 0.5) * 200;
+    
+    pixel.animate([
+        { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+        { transform: `translate(${vx}px, ${vy}px) scale(0)`, opacity: 0 }
+    ], { duration: 600, easing: 'ease-out' });
+    
+    document.body.appendChild(pixel);
+    setTimeout(() => pixel.remove(), 600);
+}
+
+e.target.style.transition = 'all 0.2s';
+e.target.style.transform = 'scale(0)';
+e.target.style.opacity = '0';
+setTimeout(() => { if(e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 200);
 });
 
 // --- Draggable Menu Logic ---
@@ -777,17 +806,26 @@ window.addEventListener("keyup", e => {
 
 // Mobile Controls
 document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
-document.getElementById("mobileDuckBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); duck(true); });
-document.getElementById("mobileDuckBtn").addEventListener("pointerup", (e) => { e.preventDefault(); duck(false); });
-document.getElementById("mobileDuckBtn").addEventListener("pointerleave", (e) => { e.preventDefault(); duck(false); });
 
-// Canvas swipe down to duck
 let runnerTouchY = 0;
-canvas.addEventListener("touchstart", (e) => { runnerTouchY = e.touches[0].clientY; }, {passive: true});
-canvas.addEventListener("touchmove", (e) => { 
-    if(e.touches[0].clientY - runnerTouchY > 30) { duck(true); }
+let isSwiping = false;
+
+canvas.addEventListener("touchstart", (e) => { 
+    runnerTouchY = e.touches[0].clientY; 
+    isSwiping = false;
 }, {passive: true});
-canvas.addEventListener("touchend", (e) => { duck(false); jump(); });
+
+canvas.addEventListener("touchmove", (e) => { 
+    if(e.touches[0].clientY - runnerTouchY > 30) { 
+        duck(true); 
+        isSwiping = true;
+    }
+}, {passive: true});
+
+canvas.addEventListener("touchend", (e) => { 
+    duck(false); 
+    if (!isSwiping) { jump(); }
+});
 canvas.addEventListener("mousedown", (e) => { jump(); });
 
 function updateRunner() {
@@ -809,16 +847,14 @@ if (gameStarted && !gameOver) {
     let speedLevel = Math.floor(score / 15);
     currentSpeed = currentBaseSpeed + (speedLevel * 1.5); 
     
-    // Minimum safe gap expands slightly to ensure jumping is always possible
-    let minGap = 200 + (currentSpeed * 10); 
+    let minGap = 250 + (currentSpeed * 10); 
 
     let lastObs = runnerObstacles[runnerObstacles.length - 1];
     
-    // Spawn unique hazards
     if (!lastObs || lastObs.x < (400 - minGap)) {
         let randColor = hazardColors[Math.floor(Math.random() * hazardColors.length)];
-        let type = Math.random() > 0.4 ? 'ground' : 'air'; // 60% ground, 40% air
-        let w = type === 'ground' ? (Math.random() * 20 + 15) : (Math.random() * 30 + 30); // Air blocks are longer
+        let type = Math.random() > 0.4 ? 'ground' : 'air'; 
+        let w = type === 'ground' ? (Math.random() * 20 + 15) : (Math.random() * 30 + 30); 
         runnerObstacles.push({x: 400, passed: false, color: randColor, type: type, width: w});
     }
 
@@ -833,7 +869,6 @@ if (gameStarted && !gameOver) {
             score++;
         }
 
-        // Collision logic based on Hazard Type
         let hit = false;
         if (obs.x < 40 && obs.x + obs.width > 20) {
             if (obs.type === 'ground' && playerY > 130) hit = true;
@@ -851,7 +886,6 @@ if (gameStarted && !gameOver) {
     runnerObstacles = runnerObstacles.filter(o => o.x + o.width > -10);
 }
 
-// Draw Runner trails
 for(let i=runnerTrails.length - 1; i>=0; i--){
     let t = runnerTrails[i];
     ctx.globalAlpha = t.alpha;
@@ -868,7 +902,6 @@ if (runnerGodMode) ctx.fillStyle = "#fff";
 if (gameOver) ctx.fillStyle = '#666'; 
 ctx.fillRect(20, runnerDrawY, 20, runnerH);
 
-// Draw unique items
 if (gameStarted) { 
     runnerObstacles.forEach(obs => {
         ctx.fillStyle = obs.color;
@@ -876,7 +909,6 @@ if (gameStarted) {
         let obsH = obs.type === 'ground' ? 20 : 25;
         ctx.fillRect(obs.x, obsY, obs.width, obsH);
         
-        // Hazard details
         ctx.fillStyle = "#fff";
         ctx.fillRect(obs.x + 2, obsY + 2, obs.width - 4, 4);
     }); 
@@ -943,7 +975,8 @@ targetCanvas.addEventListener('pointerdown', (e) => {
     const clickX = (e.clientX - rect.left) * scaleX;
     const clickY = (e.clientY - rect.top) * scaleY;
     
-    if (duckActive && clickX >= duckX && clickX <= duckX + targetSize && clickY >= duckY && clickY <= duckY + targetSize) {
+    let buffer = 25; 
+    if (duckActive && clickX >= duckX - buffer && clickX <= duckX + targetSize + buffer && clickY >= duckY - buffer && clickY <= duckY + targetSize + buffer) {
         targetScore++;
         
         if (targetScore > 0 && targetScore % 25 === 0) {
@@ -1063,34 +1096,59 @@ function updateTargetGame() {
 
 // --- Secret Pac-Man Game Logic ---
 function resetPacMap() {
-    // 1=Wall, 0=Dot, 2=Empty, 3=Power Pellet
+    // 1=Wall, 0=Dot, 2=Empty, 3=Power Pellet, 4=Gate, 5=Ghost House
     pacMap = [
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        [1,3,0,0,0,0,1,0,0,1,0,0,1,0,0,0,0,0,3,1],
-        [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
-        [1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1],
-        [1,1,1,0,1,1,1,0,1,2,1,0,1,1,1,0,1,1,1,1],
-        [1,0,0,0,0,0,0,0,1,2,1,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,1,1,1,0,1],
-        [1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,1,0,0,1],
-        [1,3,0,0,1,0,0,0,1,1,1,0,0,0,1,0,0,0,3,1],
+        [1,3,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,1],
+        [1,0,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+        [1,0,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1],
+        [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
+        [1,1,1,1,1,0,1,0,1,4,4,1,0,1,0,1,1,1,1,1],
+        [2,2,2,2,1,0,0,0,1,5,5,1,0,0,0,1,2,2,2,2],
+        [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1],
+        [2,2,2,2,2,0,1,0,0,0,0,0,0,1,0,2,2,2,2,2],
+        [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1],
+        [2,2,2,2,1,0,0,0,1,2,2,1,0,0,0,1,2,2,2,2],
+        [1,1,1,1,1,0,1,0,1,2,2,1,0,1,0,1,1,1,1,1],
+        [1,0,0,0,0,0,1,0,1,1,1,1,0,1,0,0,0,0,0,1],
+        [1,0,1,1,1,0,1,0,0,0,0,0,0,1,0,1,1,1,0,1],
+        [1,3,0,0,1,0,1,1,1,1,1,1,1,1,0,1,0,0,3,1],
+        [1,1,1,0,1,0,0,0,0,1,1,0,0,0,0,1,0,1,1,1],
+        [1,0,0,0,0,0,1,1,0,1,1,0,1,1,0,0,0,0,0,1],
+        [1,0,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,0,1],
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
     ];
+    
+    totalDots = 0;
+    for(let r=0; r<20; r++) {
+        for(let c=0; c<20; c++) {
+            if(pacMap[r][c] === 0 || pacMap[r][c] === 3) totalDots++;
+        }
+    }
 }
+
+const randomGhostColor = () => {
+    const colors = ['red', '#ffb8ff', 'cyan', 'orange', 'lime'];
+    return colors[Math.floor(Math.random() * colors.length)];
+};
 
 function initPacGame() {
     pacScore = 0;
+    dotsEaten = 0;
+    victoryMode = false;
+    fruits = [];
     pacX = 20; pacY = 20; pacDx = 0; pacDy = 0;
     scaredTimer = 0;
     currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)];
     currentMazeColor = mazeColors[Math.floor(Math.random() * mazeColors.length)];
     resetPacMap();
     
-    // Ghost Types: Chaser (Red), Random (Pink/Cyan)
     ghosts = [
-        {x: 180, y: 80, dx: 1, dy: 0, color: 'red', type: 'chaser'},
-        {x: 180, y: 80, dx: -1, dy: 0, color: '#ffb8ff', type: 'random'}, // Pink
-        {x: 180, y: 80, dx: 1, dy: 0, color: 'cyan', type: 'random'}
+        {x: 180, y: 140, dx: 1, dy: 0, color: 'red', type: 'chaser'},
+        {x: 200, y: 140, dx: -1, dy: 0, color: '#ffb8ff', type: 'random'}, 
+        {x: 180, y: 140, dx: 1, dy: 0, color: 'cyan', type: 'random'},
+        {x: 200, y: 140, dx: 0, dy: -1, color: 'orange', type: 'random'}
     ];
 }
 
@@ -1125,11 +1183,10 @@ pacCanvas.addEventListener('pointermove', (e) => {
     }
 });
 
-// Fixed 20x20 alignment hitbox
-function pacCollision(x, y) {
+function pacCollision(x, y, isGhost = false) {
     let pts = [
-        {cx: x+4, cy: y+4}, {cx: x+16, cy: y+4},
-        {cx: x+4, cy: y+16}, {cx: x+16, cy: y+16}
+        {cx: x+6, cy: y+6}, {cx: x+14, cy: y+6},
+        {cx: x+6, cy: y+14}, {cx: x+14, cy: y+14}
     ];
     for(let p of pts) {
         let col = Math.floor(p.cx / 20);
@@ -1137,12 +1194,51 @@ function pacCollision(x, y) {
         
         if(col < 0) col = 19;
         if(col > 19) col = 0;
-        if(row < 0) row = 9;
-        if(row > 9) row = 0;
+        if(row < 0) row = 19;
+        if(row > 19) row = 0;
         
         if(pacMap[row][col] === 1) return true;
+        if(pacMap[row][col] === 4 && !isGhost) return true; 
     }
     return false;
+}
+
+function spawnFruit() {
+    let emptyTiles = [];
+    for(let r=0; r<20; r++) {
+        for(let c=0; c<20; c++) {
+            if(pacMap[r][c] === 2 || pacMap[r][c] === 0) emptyTiles.push({r,c});
+        }
+    }
+    if(emptyTiles.length > 0) {
+        let tile = emptyTiles[Math.floor(Math.random()*emptyTiles.length)];
+        let types = ['cherry', 'apple', 'melon'];
+        fruits.push({
+            x: tile.c * 20,
+            y: tile.r * 20,
+            type: types[Math.floor(Math.random()*types.length)],
+            timer: 300 
+        });
+    }
+}
+
+function drawFruit(ctx, f) {
+    ctx.save();
+    ctx.translate(f.x + 10, f.y + 10);
+    if(f.type === 'cherry') {
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(-4, 4, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(4, 4, 4, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = "green"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-4, 4); ctx.lineTo(0, -6); ctx.lineTo(4, 4); ctx.stroke();
+    } else if(f.type === 'apple') {
+        ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(0, 2, 6, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "brown"; ctx.fillRect(-1, -6, 2, 4);
+        ctx.fillStyle = "green"; ctx.beginPath(); ctx.arc(3, -5, 3, 0, Math.PI*2); ctx.fill();
+    } else if(f.type === 'melon') {
+        ctx.fillStyle = "green"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI); ctx.fill();
+        ctx.fillStyle = "pink"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI); ctx.fill();
+    }
+    ctx.restore();
 }
 
 window.addEventListener("keydown", e => {
@@ -1165,24 +1261,18 @@ window.addEventListener("keydown", e => {
 function updatePacMan() {
     if (!pacGameActive) return;
 
+    ctxPac.clearRect(0, 0, 400, 400);
     ctxPac.fillStyle = "black";
-    ctxPac.fillRect(0, 0, 400, 200);
+    ctxPac.fillRect(0, 0, 400, 400);
 
     if (pacState === 'MENU') {
         ctxPac.fillStyle = "yellow";
         ctxPac.font = "bold 32px Arial";
         ctxPac.textAlign = "center";
-        ctxPac.fillText("PAC-RUNNER", 200, 80);
-        
+        ctxPac.fillText("PAC-RUNNER", 200, 160);
         ctxPac.fillStyle = "white";
-        ctxPac.font = "14px Arial";
-        ctxPac.fillText("Tap screen or press Space to start", 200, 120);
-        
-        // Mini animation
-        ctxPac.beginPath(); ctxPac.arc(170, 150, 10, 0.2*Math.PI, 1.8*Math.PI); ctxPac.lineTo(170,150); ctxPac.fillStyle="yellow"; ctxPac.fill();
-        ctxPac.beginPath(); ctxPac.arc(200, 150, 10, Math.PI, 0); ctxPac.lineTo(210,160); ctxPac.lineTo(190,160); ctxPac.fillStyle="red"; ctxPac.fill();
-        ctxPac.beginPath(); ctxPac.arc(230, 150, 10, Math.PI, 0); ctxPac.lineTo(240,160); ctxPac.lineTo(220,160); ctxPac.fillStyle="cyan"; ctxPac.fill();
-
+        ctxPac.font = "16px Arial";
+        ctxPac.fillText("Press Space or Tap to Start", 200, 200);
         ctxPac.textAlign = "left";
         requestAnimationFrame(updatePacMan);
         return;
@@ -1190,15 +1280,16 @@ function updatePacMan() {
 
     if (pacState === 'GAMEOVER') {
         ctxPac.fillStyle = "rgba(0,0,0,0.8)";
-        ctxPac.fillRect(0, 0, 400, 200);
+        ctxPac.fillRect(0, 0, 400, 400);
         ctxPac.fillStyle = currentPacColor;
-        ctxPac.font = "bold 20px Arial";
+        ctxPac.font = "bold 28px Arial";
         ctxPac.textAlign = "center";
-        ctxPac.fillText("GAME OVER", 200, 90);
+        ctxPac.fillText("GAME OVER", 200, 160);
         ctxPac.fillStyle = "white";
-        ctxPac.font = "14px Arial";
-        ctxPac.fillText("Score: " + pacScore, 200, 120);
-        ctxPac.fillText("Tap screen or press Space to Retry", 200, 150);
+        ctxPac.font = "16px Arial";
+        ctxPac.fillText("Score: " + pacScore, 200, 200);
+        ctxPac.fillText("High Score: " + pacHighScore, 200, 230);
+        ctxPac.fillText("Tap or Press Space to Retry", 200, 270);
         ctxPac.textAlign = "left";
         requestAnimationFrame(updatePacMan);
         return;
@@ -1209,56 +1300,72 @@ function updatePacMan() {
     let nextX = pacX + (pacDx * pacSpeed);
     let nextY = pacY + (pacDy * pacSpeed);
     
-    if(!pacCollision(nextX, nextY) || pacWallHack) {
+    if(!pacCollision(nextX, nextY, false) || pacWallHack) {
         pacX = nextX;
         pacY = nextY;
     }
 
-    // Screen wrapping
     if (pacX < -15) pacX = 400;
     if (pacX > 400) pacX = -15;
-    if (pacY < -15) pacY = 200;
-    if (pacY > 200) pacY = -15;
+    if (pacY < -15) pacY = 400;
+    if (pacY > 400) pacY = -15;
 
-    // Grid center point for eating logic
     let gridC = Math.floor((pacX+10)/20);
     let gridR = Math.floor((pacY+10)/20);
     
-    if(gridR >= 0 && gridR < 10 && gridC >= 0 && gridC < 20) {
+    if(gridR >= 0 && gridR < 20 && gridC >= 0 && gridC < 20) {
         if(pacMap[gridR][gridC] === 0) {
             pacMap[gridR][gridC] = 2; 
             pacScore += (10 * pacMultiplier);
-            pacEatEffects.push({x: gridC*20+10, y: gridR*20+10, timer: 20, text: "YUM", color: "white"});
+            dotsEaten++;
+            pacEatEffects.push({x: gridC*20+10, y: gridR*20+10, timer: 20, text: "10", color: "white"});
         } else if (pacMap[gridR][gridC] === 3) {
             pacMap[gridR][gridC] = 2; 
             pacScore += (50 * pacMultiplier);
-            scaredTimer = 600; // 10 seconds of power
+            dotsEaten++;
+            scaredTimer = 600; 
             pacEatEffects.push({x: gridC*20+10, y: gridR*20+10, timer: 40, text: "POWER!", color: "yellow"});
         }
     }
 
-    // Draw Eat Text Effects
-    for(let i=pacEatEffects.length-1; i>=0; i--){
-        let e = pacEatEffects[i];
-        ctxPac.fillStyle = e.color;
-        ctxPac.globalAlpha = e.timer/30;
-        ctxPac.font = "bold 10px Arial";
-        ctxPac.fillText(e.text, e.x-10, e.y-5);
-        e.y -= 0.5;
-        e.timer--;
-        if(e.timer <= 0) pacEatEffects.splice(i, 1);
+    if (dotsEaten >= totalDots && !victoryMode) {
+        victoryMode = true;
+        victoryTimer = 1800; // 30 seconds at 60fps
     }
-    ctxPac.globalAlpha = 1;
+
+    if (victoryMode) {
+        victoryTimer--;
+        if (Math.random() < 0.02) spawnFruit();
+        if (victoryTimer <= 0) {
+            initPacGame(); 
+        }
+    }
+
+    for (let i = fruits.length - 1; i >= 0; i--) {
+        let f = fruits[i];
+        f.timer--;
+        drawFruit(ctxPac, f);
+        
+        if (Math.abs(f.x - pacX) < 15 && Math.abs(f.y - pacY) < 15) {
+            pacScore += (500 * pacMultiplier);
+            pacEatEffects.push({x: f.x+10, y: f.y, timer: 40, text: "500", color: "pink"});
+            fruits.splice(i, 1);
+        } else if (f.timer <= 0) {
+            fruits.splice(i, 1);
+        }
+    }
 
     // Draw Map
-    for(let r=0; r<10; r++) {
+    for(let r=0; r<20; r++) {
         for(let c=0; c<20; c++) {
             if(pacMap[r][c] === 1) {
-                ctxPac.fillStyle = currentMazeColor;
+                ctxPac.fillStyle = victoryMode && (Math.floor(Date.now() / 200) % 2 === 0) ? "white" : currentMazeColor;
                 ctxPac.fillRect(c*20, r*20, 20, 20);
-                // Center black block to make walls look hollow
                 ctxPac.fillStyle = "black";
                 ctxPac.fillRect(c*20+2, r*20+2, 16, 16);
+            } else if(pacMap[r][c] === 4) {
+                ctxPac.fillStyle = "pink";
+                ctxPac.fillRect(c*20, r*20+8, 20, 4);
             } else if(pacMap[r][c] === 0) {
                 ctxPac.fillStyle = "white";
                 ctxPac.beginPath();
@@ -1267,26 +1374,38 @@ function updatePacMan() {
             } else if(pacMap[r][c] === 3) {
                 ctxPac.fillStyle = (Math.floor(Date.now() / 200) % 2 === 0) ? "white" : "yellow";
                 ctxPac.beginPath();
-                ctxPac.arc(c*20 + 10, r*20 + 10, 6, 0, Math.PI*2);
+                ctxPac.arc(c*20 + 10, r*20 + 10, 7, 0, Math.PI*2);
                 ctxPac.fill();
             }
         }
     }
 
-    // Ghost Logic & Intelligent AI
+    for(let i=pacEatEffects.length-1; i>=0; i--){
+        let e = pacEatEffects[i];
+        ctxPac.fillStyle = e.color;
+        ctxPac.globalAlpha = e.timer/30;
+        ctxPac.font = "bold 12px Arial";
+        ctxPac.fillText(e.text, e.x-10, e.y-5);
+        e.y -= 0.5;
+        e.timer--;
+        if(e.timer <= 0) pacEatEffects.splice(i, 1);
+    }
+    ctxPac.globalAlpha = 1;
+
     let actualGhostSpeed = scaredTimer > 0 ? ghostSpeed * 0.5 : ghostSpeed;
 
     for(let g of ghosts) {
         let gNextX = g.x + (g.dx * actualGhostSpeed);
         let gNextY = g.y + (g.dy * actualGhostSpeed);
         
-        if(pacCollision(gNextX, gNextY)) {
+        if(pacCollision(gNextX, gNextY, true)) {
             let dirs = [{dx:1,dy:0}, {dx:-1,dy:0}, {dx:0,dy:1}, {dx:0,dy:-1}];
-            let validDirs = dirs.filter(d => !pacCollision(g.x + d.dx*5, g.y + d.dy*5)); // check slightly ahead
+            let validDirs = dirs.filter(d => !pacCollision(g.x + d.dx*5, g.y + d.dy*5, true)); 
             
             if(validDirs.length > 0) {
-                if (g.type === 'chaser' && scaredTimer === 0) {
-                    // Hunt Pacman
+                let isPacmanOutOfBounds = pacX < 0 || pacX > 380 || pacY < 0 || pacY > 380;
+                
+                if (g.type === 'chaser' && scaredTimer === 0 && !isPacmanOutOfBounds) {
                     validDirs.sort((a,b) => {
                         let distA = Math.pow((g.x + a.dx*20) - pacX, 2) + Math.pow((g.y + a.dy*20) - pacY, 2);
                         let distB = Math.pow((g.x + b.dx*20) - pacX, 2) + Math.pow((g.y + b.dy*20) - pacY, 2);
@@ -1294,7 +1413,6 @@ function updatePacMan() {
                     });
                     g.dx = validDirs[0].dx; g.dy = validDirs[0].dy;
                 } else {
-                    // Random or Scared
                     let pick = validDirs[Math.floor(Math.random()*validDirs.length)];
                     g.dx = pick.dx; g.dy = pick.dy;
                 }
@@ -1319,7 +1437,6 @@ function updatePacMan() {
         ctxPac.lineTo(g.x+2, g.y+18);
         ctxPac.fill();
 
-        // Eyes looking in movement direction
         let eyeOffsetX = isScared ? 0 : g.dx * 2;
         let eyeOffsetY = isScared ? 0 : g.dy * 2;
 
@@ -1333,22 +1450,26 @@ function updatePacMan() {
             ctxPac.beginPath(); ctxPac.arc(g.x+13 + eyeOffsetX*1.5, g.y+8 + eyeOffsetY*1.5, 1, 0, Math.PI*2); ctxPac.fill();
         }
 
-        // Collision with Pacman
-        if(!pacGodMode && Math.abs(g.x - pacX) < 15 && Math.abs(g.y - pacY) < 15) {
+        if(Math.abs(g.x - pacX) < 15 && Math.abs(g.y - pacY) < 15) {
             if (isScared) {
-                // Eat ghost
                 pacScore += (200 * pacMultiplier);
                 pacEatEffects.push({x: g.x+10, y: g.y, timer: 30, text: "200", color: "cyan"});
-                g.x = 180; g.y = 80; // Send to center box
-            } else {
-                // Die
+                g.x = 180; g.y = 140; 
+                g.color = randomGhostColor();
+            } else if (!pacGodMode) {
+                if (pacScore > pacHighScore) { 
+                    pacHighScore = pacScore; 
+                    localStorage.setItem('pacRunnerHighScore', pacHighScore); 
+                }
                 pacState = 'GAMEOVER';
                 triggerShake();
+            } else {
+                ctxPac.fillStyle = "rgba(255, 255, 255, 0.5)";
+                ctxPac.fillRect(g.x, g.y, 20, 20);
             }
         }
     }
 
-    // Pac-Man Animation
     pacFrame++;
     let mouthOpen = (Math.floor(pacFrame / 10) % 2 === 0);
 
@@ -1374,6 +1495,14 @@ function updatePacMan() {
     ctxPac.fillStyle = "#fff";
     ctxPac.font = "14px Arial";
     ctxPac.fillText("Score: " + pacScore, 10, 18);
+    ctxPac.fillText("High Score: " + pacHighScore, 280, 18);
+
+    if (victoryMode) {
+        ctxPac.fillStyle = "yellow";
+        ctxPac.textAlign = "center";
+        ctxPac.fillText("FRENZY! " + Math.ceil(victoryTimer/60) + "s", 200, 18);
+        ctxPac.textAlign = "left";
+    }
 
     requestAnimationFrame(updatePacMan);
 }
