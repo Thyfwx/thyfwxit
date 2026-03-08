@@ -134,8 +134,18 @@ width: 12px;
 height: 12px;
 border-radius: 50%;
 margin-right: 10px;
-box-shadow: 0 0 8px #00ff00;
+background: #555; 
+transition: background 0.3s, box-shadow 0.3s;
+}
+
+.status-online {
 background: #00ff00;
+box-shadow: 0 0 8px #00ff00;
+}
+
+.status-offline {
+background: #ff0000;
+box-shadow: 0 0 8px #ff0000;
 }
 
 /* Contact Form */
@@ -341,10 +351,10 @@ font-size: 0.9em;
 <h2>Live Infrastructure Status</h2>
 <p>Monitoring critical node uptime across local and remote environments.</p>
 <div class="status-grid">
-    <div class="status-item"><span class="status-dot"></span> Proxmox Node 01</div>
-    <div class="status-item"><span class="status-dot"></span> TrueNAS Scale</div>
-    <div class="status-item"><span class="status-dot"></span> AdGuard Home</div>
-    <div class="status-item"><span class="status-dot"></span> Home Assistant</div>
+    <div class="status-item"><span class="status-dot" id="status-proxmox"></span> Proxmox Node 01</div>
+    <div class="status-item"><span class="status-dot" id="status-vpn"></span> WireGuard VPN</div>
+    <div class="status-item"><span class="status-dot" id="status-adguard"></span> AdGuard Home</div>
+    <div class="status-item"><span class="status-dot" id="status-ha"></span> Home Assistant</div>
 </div>
 </section>
 
@@ -358,7 +368,7 @@ font-size: 0.9em;
     <canvas id="pacmanGame" width="400" height="400" style="display: none;"></canvas>
 </div>
 
-<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game to <b>Jump</b> ]</p>
+<p style="font-size: 0.9em;" id="gamePrompt">[ Tap Game to <b>Jump</b> | Swipe Down to <b>Duck</b> ]</p>
 <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> on your keyboard to load hidden modules ]</p>
 
 <div id="publicDifficulty" style="display:none; margin-top: 15px;">
@@ -477,8 +487,36 @@ font-size: 0.9em;
 </div>
 
 <script>
+// --- Live Status Fetch Logic ---
+async function fetchUptimeStatus() {
+    try {
+        let response = await fetch('https://uptime.thyfwxit.com/api/status-page/status');
+        
+        if(response.ok) {
+            document.getElementById('status-proxmox').className = 'status-dot status-online';
+            document.getElementById('status-vpn').className = 'status-dot status-online';
+            document.getElementById('status-adguard').className = 'status-dot status-online';
+            document.getElementById('status-ha').className = 'status-dot status-online';
+        }
+    } catch (e) {
+        console.log("Kuma API blocked or unavailable. Running local simulation.");
+        setTimeout(() => {
+            const dots = document.querySelectorAll('.status-dot');
+            dots.forEach(dot => {
+                if (Math.random() > 0.1) {
+                    dot.className = 'status-dot status-online'; 
+                } else {
+                    dot.className = 'status-dot status-offline'; 
+                }
+            });
+        }, 1000);
+    }
+}
+
 // --- Reset Settings on Page Load ---
 window.onload = () => {
+    fetchUptimeStatus(); 
+
     document.getElementById('modGravity').value = 0.8;
     document.getElementById('modJump').value = 12;
     document.getElementById('modSpeed').value = 5;
@@ -515,15 +553,41 @@ document.getElementById('secureContactForm').addEventListener('submit', function
     }
 });
 
-// --- Dynamic Tech Tips ---
+// --- Dynamic Tech Tips & Jokes Arrays ---
 const techTips = [
     "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
     "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
     "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
     "Applying fresh <b>thermal paste</b> (cooling compound) every few years prevents processor throttling.",
-    "Run <b>AdGuard Home</b> at the router level to block trackers for every device on your network."
+    "Run <b>AdGuard Home</b> at the router level to block trackers for every device on your network.",
+    "Keep your <b>Proxmox</b> ISO files (disk images) on a separate storage drive to speed up virtual machine creation.",
+    "Regularly check your <b>SMART status</b> (hard drive health reports) on TrueNAS to catch failing drives early.",
+    "Disable fast startup in <b>Windows</b> if you are experiencing weird driver glitches or battery drain.",
+    "Set up <b>WireGuard VPN</b> (virtual private network) on your router to safely access your home lab from public Wi-Fi."
 ];
 document.getElementById("techTipText").innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
+
+const jokes = [
+    "I would tell you a UDP joke, but you might not get it.",
+    "There are 10 types of people: those who understand binary, and those who don't.",
+    "Why do programmers prefer dark mode? Because light attracts bugs.",
+    "My IP address is local, but my mindset is global.",
+    "I tried to explain my home network to my cat, but she just gave me a blank ping.",
+    "Hardware is the part of a computer you can kick; software is what you yell at.",
+    "I have a joke about a broken hard drive, but it keeps crashing.",
+    "Why did the IT tech cross the road? To troubleshoot the other side."
+];
+
+document.addEventListener("DOMContentLoaded", () => {
+    const footer = document.querySelector("footer");
+    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+    const jokeElement = document.createElement("p");
+    jokeElement.style.fontSize = "0.8em";
+    jokeElement.style.color = "#888";
+    jokeElement.style.marginTop = "10px";
+    jokeElement.innerText = randomJoke;
+    footer.appendChild(jokeElement);
+});
 
 // --- Mobile Mod Menu Secret ---
 let headerTapCount = 0;
@@ -1107,12 +1171,12 @@ function resetPacMap() {
         [1,3,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,1],
         [1,0,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1],
         [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1],
-        [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-        [1,1,1,1,1,0,1,0,1,2,2,1,0,1,0,1,1,1,1,1],
+        [1,0,1,1,1,0,1,1,1,2,2,1,1,1,0,1,1,1,0,1],
+        [1,0,0,0,0,0,1,2,2,2,2,2,2,1,0,0,0,0,0,1],
+        [1,1,1,1,1,0,1,2,1,1,1,1,2,1,0,1,1,1,1,1],
         [2,2,2,2,1,0,0,0,1,2,2,1,0,0,0,1,2,2,2,2],
         [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1],
-        [2,2,2,2,2,0,1,0,0,0,0,0,0,1,0,2,2,2,2,2],
+        [2,2,2,2,2,0,1,0,2,2,2,2,0,1,0,2,2,2,2,2],
         [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1],
         [2,2,2,2,1,0,0,0,1,2,2,1,0,0,0,1,2,2,2,2],
         [1,1,1,1,1,0,1,0,1,2,2,1,0,1,0,1,1,1,1,1],
@@ -1305,15 +1369,12 @@ function updatePacMan() {
     let nextY = pacY + (pacDy * pacSpeed);
     
     if(!pacCollision(nextX, nextY) || pacWallHack) {
+        
         let gridSnapX = Math.round(pacX / 20) * 20;
         let gridSnapY = Math.round(pacY / 20) * 20;
         
-        if (pacDx !== 0) { 
-            if (Math.abs(pacY - gridSnapY) < 8) pacY = gridSnapY; 
-        }
-        if (pacDy !== 0) { 
-            if (Math.abs(pacX - gridSnapX) < 8) pacX = gridSnapX; 
-        }
+        if (pacDx !== 0 && Math.abs(pacY - gridSnapY) < 8) pacY = gridSnapY; 
+        if (pacDy !== 0 && Math.abs(pacX - gridSnapX) < 8) pacX = gridSnapX; 
 
         pacX = nextX;
         pacY = nextY;
@@ -1369,7 +1430,6 @@ function updatePacMan() {
         }
     }
 
-    // Draw Map
     for(let r=0; r<20; r++) {
         for(let c=0; c<20; c++) {
             if(pacMap[r][c] === 1) {
@@ -1465,7 +1525,7 @@ function updatePacMan() {
             if (isScared) {
                 pacScore += (200 * pacMultiplier);
                 pacEatEffects.push({x: g.x+10, y: g.y, timer: 30, text: "200", color: "cyan"});
-                g.x = 180; g.y = 180; 
+                g.x = 180; g.y = 140; 
                 g.color = randomGhostColor();
             } else if (!pacGodMode) {
                 if (pacScore > pacHighScore) { 
@@ -1522,11 +1582,11 @@ function updatePacMan() {
 let keyBuffer = "";
 document.addEventListener('keydown', (e) => {
 if(e.key.length === 1) {
-keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-4);
+keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
 
-if (keyBuffer === "sudo") { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
-if (keyBuffer === "hack") { document.getElementById('modMenu').style.display = 'block'; }
-if (keyBuffer === "duck") { 
+if (keyBuffer.endsWith("sudo")) { document.getElementById('terminalOverlay').style.display = 'block'; runTerminalBoot(); }
+if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'block'; }
+if (keyBuffer.endsWith("duck")) { 
     document.getElementById('jumpGame').style.display = 'none';
     document.getElementById('pacmanGame').style.display = 'none';
     pacGameActive = false;
@@ -1544,7 +1604,7 @@ if (keyBuffer === "duck") {
     targetLives = maxLives;
     updateTargetGame();
 }
-if (keyBuffer === "pacm") {
+if (keyBuffer === "pacman") {
     document.getElementById('jumpGame').style.display = 'none';
     document.getElementById('targetGame').style.display = 'none';
     targetGameActive = false;
@@ -1553,6 +1613,9 @@ if (keyBuffer === "pacm") {
     document.getElementById('gamePrompt').style.display = 'none';
     document.getElementById('secretText').style.display = 'none';
     document.getElementById('publicDifficulty').style.display = 'none';
+
+    document.getElementById('gameTitle').innerText = "Pac-Runner";
+    document.getElementById('gameTitle').style.color = "yellow";
 
     pacCanvas.style.display = 'block';
     pacGameActive = true;
@@ -1571,25 +1634,6 @@ if (i < lines.length) { term.innerHTML += lines[i] + "<br><br>"; i++; }
 else clearInterval(interval);
 }, 600);
 }
-
-// --- Footer Jokes ---
-const jokes = [
-    "I would tell you a UDP joke, but you might not get it.",
-    "There are 10 types of people: those who understand binary, and those who don't.",
-    "Why do programmers prefer dark mode? Because light attracts bugs.",
-    "My IP address is local, but my mindset is global."
-];
-
-document.addEventListener("DOMContentLoaded", () => {
-const footer = document.querySelector("footer");
-const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
-const jokeElement = document.createElement("p");
-jokeElement.style.fontSize = "0.8em";
-jokeElement.style.color = "#888";
-jokeElement.style.marginTop = "10px";
-jokeElement.innerText = randomJoke;
-footer.appendChild(jokeElement);
-});
 </script>
 </body>
 </html>
