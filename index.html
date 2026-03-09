@@ -354,12 +354,6 @@ canvas {
     margin-top: 10px; 
     transition: all 0.2s; 
 }
-
-@keyframes nukeParticle {
-    0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
-    100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
-}
-
 </style>
 </head>
 <body>
@@ -409,7 +403,6 @@ canvas {
 
 <section class="game-container" id="gameArea">
     <h2 id="gameTitle">Cyber Runner Game</h2>
-
     <div class="game-screen-wrapper" id="gameScreenWrapper">
         <div class="crt-overlay"></div>
         <canvas id="jumpGame" width="400" height="200"></canvas>
@@ -417,10 +410,9 @@ canvas {
         <canvas id="pacmanGame" width="400" height="400" style="display: none;"></canvas>
         <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
     </div>
-
     <p style="font-size: 0.9em;" id="gamePrompt">[ Press <b>Space</b> or <b>Tap Game</b> to Jump ]</p>
     <p id="secretText" class="blink-cursor" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> for a secret game mode ;) ]</p>
-
+    
     <div id="publicDifficulty" style="display:none; margin-top: 15px;">
         <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
         <select id="publicDiffSelect" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px; outline:none;">
@@ -429,7 +421,7 @@ canvas {
             <option value="3">Hard (3 Misses)</option>
         </select>
     </div>
-
+    
     <div class="controls-wrapper" id="runnerControls">
         <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
     </div>
@@ -456,96 +448,46 @@ canvas {
     </form>
 </section>
 
-<footer>
-    <p><b>Xavier Scott :3</b></p>
-</footer>
+<footer><p><b>Xavier Scott :3</b></p></footer>
 
-<div id="terminalOverlay">
-    <div id="terminalText"></div>
-</div>
+<div id="terminalOverlay"><div id="terminalText"></div></div>
 
 <div id="modMenu">
-    <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
-        SYSTEM OVERRIDE
-    </h3>
-
+    <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">SYSTEM OVERRIDE</h3>
     <div class="mod-section-title">System Modules</div>
-    <button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="switchGame('runner')">BOOT CYBER RUNNER</button>
-    <button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="switchGame('target')">BOOT TARGET SIM</button>
-    <button class="nuke-btn" style="background: #222; color: yellow; border: 1px solid yellow; margin-top: 5px;" onclick="switchGame('pacman')">BOOT PAC-RUNNER</button>
-    <button class="nuke-btn" style="background: #222; color: cyan; border: 1px solid cyan; margin-top: 5px;" onclick="switchGame('tetris')">BOOT TETRIS</button>
-            
+    <button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
+    <button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
+    <button class="nuke-btn" style="background: #222; color: yellow; border: 1px solid yellow; margin-top: 5px;" onclick="window.switchGame('pacman')">BOOT PAC-RUNNER</button>
+    <button class="nuke-btn" style="background: #222; color: cyan; border: 1px solid cyan; margin-top: 5px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
+    
     <div class="mod-section-title">Runner Mods</div>
-    <div class="mod-row">
-        <label>Gravity (<span id="gravVal">0.6</span>)</label>
-        <input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.6">
-    </div>
-    <div class="mod-row">
-        <label>Jump Power (<span id="jumpVal">10</span>)</label>
-        <input type="range" id="modJump" min="5" max="250" step="1" value="10">
-    </div>
-    <div class="mod-row">
-        <label>Base Speed (<span id="speedVal">3.5</span>)</label>
-        <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5">
-    </div>
-    <div class="mod-row">
-        <label>God Mode (Invincible)</label>
-        <input type="checkbox" id="modGodMode" style="transform: scale(1.5);">
-    </div>
+    <div class="mod-row"><label>Gravity (<span id="gravVal">0.6</span>)</label><input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.6"></div>
+    <div class="mod-row"><label>Jump Power (<span id="jumpVal">10</span>)</label><input type="range" id="modJump" min="5" max="250" step="1" value="10"></div>
+    <div class="mod-row"><label>Base Speed (<span id="speedVal">3.5</span>)</label><input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5"></div>
+    <div class="mod-row"><label>God Mode</label><input type="checkbox" id="modGodMode" style="transform: scale(1.5);"></div>
 
     <div class="mod-section-title">Tetris Mods</div>
-    <div class="mod-row">
-        <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
-        <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
-    </div>
-    <div class="mod-row">
-        <label>God Mode (Never Lose)</label>
-        <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
-    </div>
+    <div class="mod-row"><label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label><input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5"></div>
+    <div class="mod-row"><label>God Mode</label><input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);"></div>
 
     <div class="mod-section-title">Target Mods</div>
-    <div class="mod-row">
-        <label>Target Speed (<span id="duckSpeedVal">3</span>)</label>
-        <input type="range" id="modDuckSpeed" min="1" max="100" step="1" value="3">
-    </div>
-    <div class="mod-row">
-        <label>Target Size (<span id="targetSizeVal">30</span>)</label>
-        <input type="range" id="modTargetSize" min="10" max="600" step="5" value="30">
-    </div>
-    <div class="mod-row">
-        <label>Difficulty</label>
+    <div class="mod-row"><label>Target Speed (<span id="duckSpeedVal">3</span>)</label><input type="range" id="modDuckSpeed" min="1" max="100" step="1" value="3"></div>
+    <div class="mod-row"><label>Target Size (<span id="targetSizeVal">30</span>)</label><input type="range" id="modTargetSize" min="10" max="600" step="5" value="30"></div>
+    <div class="mod-row"><label>Difficulty</label>
         <select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
             <option value="8">Easy (8 Misses)</option>
             <option value="6" selected>Normal (6 Misses)</option>
             <option value="3">Hard (3 Misses)</option>
         </select>
     </div>
-    <div class="mod-row">
-        <label>Aimbot (Auto-Shoot)</label>
-        <input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
-    </div>
+    <div class="mod-row"><label>Aimbot</label><input type="checkbox" id="modAimbot" style="transform: scale(1.5);"></div>
 
     <div class="mod-section-title">Pac-Man Mods</div>
-    <div class="mod-row">
-        <label>Pac-Man Speed (<span id="pacSpeedVal">2</span>)</label>
-        <input type="range" id="modPacSpeed" min="1" max="10" step="1" value="2">
-    </div>
-    <div class="mod-row">
-        <label>Ghost Speed (<span id="ghostSpeedVal">1</span>)</label>
-        <input type="range" id="modGhostSpeed" min="1" max="10" step="1" value="1">
-    </div>
-    <div class="mod-row">
-        <label>Dot Multiplier (<span id="pacMultVal">1</span>x)</label>
-        <input type="range" id="modPacMult" min="1" max="100" step="1" value="1">
-    </div>
-    <div class="mod-row">
-        <label>God Mode (Invincible)</label>
-        <input type="checkbox" id="modPacGodMode" style="transform: scale(1.5);">
-    </div>
-    <div class="mod-row">
-        <label>Wall Hack (No Clip)</label>
-        <input type="checkbox" id="modPacWallHack" style="transform: scale(1.5);">
-    </div>
+    <div class="mod-row"><label>Pac-Man Speed (<span id="pacSpeedVal">2</span>)</label><input type="range" id="modPacSpeed" min="1" max="10" step="1" value="2"></div>
+    <div class="mod-row"><label>Ghost Speed (<span id="ghostSpeedVal">1</span>)</label><input type="range" id="modGhostSpeed" min="1" max="10" step="1" value="1"></div>
+    <div class="mod-row"><label>Dot Multiplier (<span id="pacMultVal">1</span>x)</label><input type="range" id="modPacMult" min="1" max="100" step="1" value="1"></div>
+    <div class="mod-row"><label>God Mode</label><input type="checkbox" id="modPacGodMode" style="transform: scale(1.5);"></div>
+    <div class="mod-row"><label>Wall Hack</label><input type="checkbox" id="modPacWallHack" style="transform: scale(1.5);"></div>
 
     <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
     <button id="nukeToggle" class="nuke-btn">NUKE THIS PAGE ;)</button>
@@ -554,42 +496,143 @@ canvas {
 
 <script>
 // ==========================================================================
-// GLOBAL GAME HANDLERS & STATUS
+// 1. GLOBAL VARIABLES & STATE DECLARATIONS
 // ==========================================================================
+
+// Critical Game States (Declared first to prevent ReferenceErrors)
+let targetGameActive = false;
+let pacGameActive = false;
+let tetrisActive = false;
+let nukeModeActive = false;
+
 let runnerAnimId;
 let targetAnimId;
 let pacAnimId;
 let tetrisAnimId;
+
 let keyBuffer = "";
 let gameFrame = 0; 
 
-// Death cooldown trackers to prevent instant accidental restarts
+// Death cooldown trackers
 let runnerDeathTime = 0;
 let targetDeathTime = 0;
 let pacDeathTime = 0;
 let tetrisDeathTime = 0;
 
-// High Score Memory (Try/Catch prevents browser storage blocks from crashing the site)
+// High Score Memory (Try/Catch safely ignores ad-blocker security errors)
 let runnerHighScore = 0;
 let targetHighScore = 0;
 let pacHighScore = 0;
 let tetrisHighScore = 0;
 
-try { 
-    runnerHighScore = parseInt(localStorage.getItem('cyberRunnerHighScore')) || 0; 
-} catch(e) {}
-try { 
-    targetHighScore = parseInt(localStorage.getItem('matrixTargetHighScore')) || 0; 
-} catch(e) {}
-try { 
-    pacHighScore = parseInt(localStorage.getItem('pacRunnerHighScore')) || 0; 
-} catch(e) {}
-try { 
-    tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; 
-} catch(e) {}
+try { runnerHighScore = parseInt(localStorage.getItem('cyberRunnerHighScore')) || 0; } catch(e) {}
+try { targetHighScore = parseInt(localStorage.getItem('matrixTargetHighScore')) || 0; } catch(e) {}
+try { pacHighScore = parseInt(localStorage.getItem('pacRunnerHighScore')) || 0; } catch(e) {}
+try { tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; } catch(e) {}
+
+// Cyber Runner Variables
+let currentGravity = 0.6;
+let currentJumpPower = 10;
+let currentBaseSpeed = 3.5;
+let runnerGodMode = false;
+let isJumping = false;
+let isDucking = false;
+let velocity = 0;
+let playerY = 150;
+let score = 0;
+let gameOver = false;
+let gameStarted = false;
+let currentSpeed = 3.5;
+let currentRunnerCrash = "";
+const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; 
+let runnerObstacles = [];
+
+// Target Simulator Variables
+let targetScore = 0;
+let targetSpeedMult = 3;
+let targetSize = 30;
+let aimbotEnabled = false;
+let duckX = 0;
+let duckY = 0;
+let duckActive = false;
+let duckVelX = 0;
+let duckVelY = 0;
+let duckTimer = 0; 
+let maxLives = 6;
+let targetLives = 6;
+let targetGameOver = false;
+let currentTargetCrash = "";
+let targetFloatingScores = []; // Array for floating numbers
+const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
+let currentDuckColor = rainbowColors[0];
+
+// Pac-Man Variables
+let pacState = 'MENU';
+let pacScore = 0;
+let pacGodMode = false;
+let pacWallHack = false;
+let pacMultiplier = 1;
+let pacSpeed = 2;
+let ghostSpeed = 1;
+let pacFrame = 0;
+let pacEatEffects = [];
+let scaredTimer = 0;
+let totalDots = 0;
+let dotsEaten = 0;
+let victoryMode = false;
+let victoryTimer = 0;
+let fruits = [];
+let pacX = 20;
+let pacY = 20;
+let pacDx = 0;
+let pacDy = 0;
+let nextPacDx = 0;
+let nextPacDy = 0;
+let pacCrashMsg = "";
+const pacCharacterColors = ['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FF4500'];
+let currentPacColor = '#FFFF00';
+let currentMazeColor = 'blue'; 
+const mazeColors = ['blue', 'purple', 'green', 'red'];
+let ghosts = [];
+let pacMap = [];
+
+// Tetris Variables
+let tetrisGrid = [];
+let tetrisScore = 0;
+let tetrisGameOver = false;
+let currentPiece = null;
+let tetrisDropCounter = 0;
+let tetrisSpeedMod = 5;
+let tetrisGodMode = false;
+let tetrisCrashMsg = "";
+const T_COLORS = [null, '#00FFFF', '#0000FF', '#FFA500', '#FFFF00', '#00FF00', '#800080', '#FF0000'];
+const T_SHAPES = [ 
+    [], 
+    [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], 
+    [[2,0,0],[2,2,2],[0,0,0]], 
+    [[0,0,3],[3,3,3],[0,0,0]], 
+    [[4,4],[4,4]], 
+    [[0,5,5],[5,5,0],[0,0,0]], 
+    [[0,6,0],[6,6,6],[0,0,0]], 
+    [[7,7,0],[0,7,7],[0,0,0]] 
+];
+
+// Context Setup
+const canvas = document.getElementById("jumpGame"); 
+const ctx = canvas ? canvas.getContext("2d") : null;
+const targetCanvas = document.getElementById("targetGame"); 
+const ctxTarget = targetCanvas ? targetCanvas.getContext("2d") : null;
+const pacCanvas = document.getElementById("pacmanGame"); 
+const ctxPac = pacCanvas ? pacCanvas.getContext("2d") : null;
+const tetrisCanvas = document.getElementById("tetrisGame"); 
+const ctxTetris = tetrisCanvas ? tetrisCanvas.getContext("2d") : null;
+const style = getComputedStyle(document.body);
+const neonColor = style.getPropertyValue('--neon-color').trim() || '#ff00ff';
+const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
+const crashMessages = ["KERNEL PANIC", "SEGFAULT DETECTED", "FATAL EXCEPTION", "SYSTEM HALTED", "MEMORY CORRUPTION"];
 
 // ==========================================================================
-// UPTIME FETCH
+// 2. UPTIME KUMA FETCH
 // ==========================================================================
 async function fetchUptimeStatus() {
     try {
@@ -609,29 +652,24 @@ async function fetchUptimeStatus() {
 window.onload = () => {
     fetchUptimeStatus(); 
     
-    // Set initial mod menu values to match internal variables
-    document.getElementById('modGravity').value = 0.6;
-    document.getElementById('modJump').value = 10;
-    document.getElementById('modSpeed').value = 3.5;
-    document.getElementById('modGodMode').checked = false;
+    if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.6;
+    if(document.getElementById('modJump')) document.getElementById('modJump').value = 10;
+    if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
+    if(document.getElementById('modGodMode')) document.getElementById('modGodMode').checked = false;
+    if(document.getElementById('modTetrisSpeed')) document.getElementById('modTetrisSpeed').value = 5;
+    if(document.getElementById('modTetrisGodMode')) document.getElementById('modTetrisGodMode').checked = false;
+    if(document.getElementById('modDuckSpeed')) document.getElementById('modDuckSpeed').value = 3;
+    if(document.getElementById('modTargetSize')) document.getElementById('modTargetSize').value = 30;
+    if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
+    if(document.getElementById('modPacSpeed')) document.getElementById('modPacSpeed').value = 2;
+    if(document.getElementById('modGhostSpeed')) document.getElementById('modGhostSpeed').value = 1;
+    if(document.getElementById('modPacGodMode')) document.getElementById('modPacGodMode').checked = false;
     
-    document.getElementById('modTetrisSpeed').value = 5;
-    document.getElementById('modTetrisGodMode').checked = false;
-    
-    document.getElementById('modDuckSpeed').value = 3;
-    document.getElementById('modTargetSize').value = 30;
-    document.getElementById('modAimbot').checked = false;
-    
-    document.getElementById('modPacSpeed').value = 2;
-    document.getElementById('modGhostSpeed').value = 1;
-    document.getElementById('modPacGodMode').checked = false;
-    
-    // Auto-start Runner game
-    runnerAnimId = requestAnimationFrame(updateRunner);
+    if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
 };
 
 // ==========================================================================
-// DYNAMIC TEXT GENERATION
+// 3. DYNAMIC TEXT GENERATION
 // ==========================================================================
 const techTips = [
     "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
@@ -640,7 +678,10 @@ const techTips = [
     "Applying fresh <b>thermal paste</b> (cooling compound) every few years prevents processor throttling.",
     "Set up <b>WireGuard VPN</b> (virtual private network) on your router to safely access your home lab from public Wi-Fi."
 ];
-document.getElementById("techTipText").innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
+
+if (document.getElementById("techTipText")) {
+    document.getElementById("techTipText").innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
+}
 
 const jokes = [
     "I would tell you a UDP joke, but you might not get it.",
@@ -653,19 +694,21 @@ const jokes = [
 
 document.addEventListener("DOMContentLoaded", () => {
     const footer = document.querySelector("footer");
-    const jokeElement = document.createElement("p");
-    jokeElement.style.fontSize = "0.8em";
-    jokeElement.style.color = "#888";
-    jokeElement.style.marginTop = "10px";
-    jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)];
-    footer.appendChild(jokeElement);
+    if (footer) {
+        const jokeElement = document.createElement("p");
+        jokeElement.style.fontSize = "0.8em";
+        jokeElement.style.color = "#888";
+        jokeElement.style.marginTop = "10px";
+        jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)];
+        footer.appendChild(jokeElement);
+    }
 });
 
 // ==========================================================================
-// MOD MENU DRAG AND DROP PHYSICS
+// 4. MOD MENU DRAG AND DROP
 // ==========================================================================
 let headerTapCount = 0;
-document.getElementById('mainHeader').addEventListener('pointerdown', () => {
+document.getElementById('mainHeader')?.addEventListener('pointerdown', () => {
     headerTapCount++;
     if (headerTapCount >= 5) { 
         document.getElementById('modMenu').style.display = 'block'; 
@@ -680,13 +723,23 @@ let isDraggingMenu = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 
-dragHeader.addEventListener("mousedown", (e) => {
-    isDraggingMenu = true;
-    const rect = dragMenu.getBoundingClientRect();
-    dragOffsetX = e.clientX - rect.left; 
-    dragOffsetY = e.clientY - rect.top;
-    dragMenu.style.margin = "0"; 
-});
+if (dragHeader) {
+    dragHeader.addEventListener("mousedown", (e) => {
+        isDraggingMenu = true;
+        const rect = dragMenu.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left; 
+        dragOffsetY = e.clientY - rect.top;
+        dragMenu.style.margin = "0"; 
+    });
+
+    dragHeader.addEventListener("touchstart", (e) => {
+        isDraggingMenu = true;
+        const rect = dragMenu.getBoundingClientRect();
+        dragOffsetX = e.touches[0].clientX - rect.left; 
+        dragOffsetY = e.touches[0].clientY - rect.top;
+        dragMenu.style.margin = "0"; 
+    }, {passive: false});
+}
 
 document.addEventListener("mousemove", (e) => {
     if (!isDraggingMenu) return;
@@ -694,57 +747,19 @@ document.addEventListener("mousemove", (e) => {
     dragMenu.style.top = `${e.clientY - dragOffsetY}px`;
 });
 
-document.addEventListener("mouseup", () => { 
-    isDraggingMenu = false; 
-});
-
-dragHeader.addEventListener("touchstart", (e) => {
-    isDraggingMenu = true;
-    const rect = dragMenu.getBoundingClientRect();
-    dragOffsetX = e.touches[0].clientX - rect.left; 
-    dragOffsetY = e.touches[0].clientY - rect.top;
-    dragMenu.style.margin = "0"; 
-}, {passive: false});
-
 document.addEventListener("touchmove", (e) => {
     if (!isDraggingMenu) return;
     dragMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`; 
     dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`;
 }, {passive: false});
 
-document.addEventListener("touchend", () => { 
-    isDraggingMenu = false; 
-});
+document.addEventListener("mouseup", () => { isDraggingMenu = false; });
+document.addEventListener("touchend", () => { isDraggingMenu = false; });
 
 // ==========================================================================
-// CANVAS SETUP & GAME SWITCHING
+// 5. MASTER GAME SWITCHER
 // ==========================================================================
-const wrapper = document.getElementById("gameScreenWrapper");
-const canvas = document.getElementById("jumpGame"); 
-const ctx = canvas.getContext("2d");
-
-const targetCanvas = document.getElementById("targetGame"); 
-const ctxTarget = targetCanvas.getContext("2d");
-
-const pacCanvas = document.getElementById("pacmanGame"); 
-const ctxPac = pacCanvas.getContext("2d");
-
-const tetrisCanvas = document.getElementById("tetrisGame"); 
-const ctxTetris = tetrisCanvas.getContext("2d");
-
-const style = getComputedStyle(document.body);
-const neonColor = style.getPropertyValue('--neon-color').trim();
-const gridColor = style.getPropertyValue('--grid-color').trim();
-
-const crashMessages = [
-    "KERNEL PANIC", 
-    "SEGFAULT DETECTED", 
-    "FATAL EXCEPTION", 
-    "SYSTEM HALTED", 
-    "MEMORY CORRUPTION"
-];
-
-function switchGame(mode) {
+window.switchGame = function(mode) {
     targetGameActive = false; 
     pacGameActive = false; 
     tetrisActive = false;
@@ -753,7 +768,7 @@ function switchGame(mode) {
     cancelAnimationFrame(targetAnimId); 
     cancelAnimationFrame(pacAnimId); 
     cancelAnimationFrame(tetrisAnimId);
-    
+
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
     document.getElementById('pacmanGame').style.display = 'none'; 
@@ -784,6 +799,7 @@ function switchGame(mode) {
         targetScore = 0; 
         duckActive = false; 
         targetGameOver = false;
+        targetFloatingScores = [];
         
         document.getElementById('targetGame').style.display = 'block'; 
         document.getElementById('publicDifficulty').style.display = 'block'; 
@@ -818,75 +834,75 @@ function switchGame(mode) {
 }
 
 // ==========================================================================
-// MOD MENU LINKAGE
+// 6. MOD MENU LINKAGE
 // ==========================================================================
-document.getElementById('modGravity').addEventListener('input', (e) => { 
+document.getElementById('modGravity')?.addEventListener('input', (e) => { 
     currentGravity = parseFloat(e.target.value); 
     document.getElementById('gravVal').innerText = currentGravity; 
 });
-document.getElementById('modJump').addEventListener('input', (e) => { 
+document.getElementById('modJump')?.addEventListener('input', (e) => { 
     currentJumpPower = parseInt(e.target.value); 
     document.getElementById('jumpVal').innerText = currentJumpPower; 
 });
-document.getElementById('modSpeed').addEventListener('input', (e) => { 
+document.getElementById('modSpeed')?.addEventListener('input', (e) => { 
     currentBaseSpeed = parseFloat(e.target.value); 
     document.getElementById('speedVal').innerText = currentBaseSpeed; 
 });
-document.getElementById('modGodMode').addEventListener('change', (e) => { 
+document.getElementById('modGodMode')?.addEventListener('change', (e) => { 
     runnerGodMode = e.target.checked; 
 });
 
-document.getElementById('modDuckSpeed').addEventListener('input', (e) => { 
+document.getElementById('modDuckSpeed')?.addEventListener('input', (e) => { 
     targetSpeedMult = parseInt(e.target.value); 
     document.getElementById('duckSpeedVal').innerText = targetSpeedMult; 
 });
-document.getElementById('modTargetSize').addEventListener('input', (e) => { 
+document.getElementById('modTargetSize')?.addEventListener('input', (e) => { 
     targetSize = parseInt(e.target.value); 
     document.getElementById('targetSizeVal').innerText = targetSize; 
 });
-document.getElementById('modAimbot').addEventListener('change', (e) => { 
+document.getElementById('modAimbot')?.addEventListener('change', (e) => { 
     aimbotEnabled = e.target.checked; 
 });
 
-document.getElementById('modPacSpeed').addEventListener('input', (e) => { 
+document.getElementById('modPacSpeed')?.addEventListener('input', (e) => { 
     pacSpeed = parseInt(e.target.value); 
     document.getElementById('pacSpeedVal').innerText = pacSpeed; 
 });
-document.getElementById('modGhostSpeed').addEventListener('input', (e) => { 
+document.getElementById('modGhostSpeed')?.addEventListener('input', (e) => { 
     ghostSpeed = parseInt(e.target.value); 
     document.getElementById('ghostSpeedVal').innerText = ghostSpeed; 
 });
-document.getElementById('modPacMult').addEventListener('input', (e) => { 
+document.getElementById('modPacMult')?.addEventListener('input', (e) => { 
     pacMultiplier = parseInt(e.target.value); 
     document.getElementById('pacMultVal').innerText = pacMultiplier; 
 });
-document.getElementById('modPacGodMode').addEventListener('change', (e) => { 
+document.getElementById('modPacGodMode')?.addEventListener('change', (e) => { 
     pacGodMode = e.target.checked; 
 });
-document.getElementById('modPacWallHack').addEventListener('change', (e) => { 
+document.getElementById('modPacWallHack')?.addEventListener('change', (e) => { 
     pacWallHack = e.target.checked; 
 });
 
-document.getElementById('modTetrisSpeed').addEventListener('input', (e) => { 
+document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { 
     tetrisSpeedMod = parseInt(e.target.value); 
     document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; 
 });
-document.getElementById('modTetrisGodMode').addEventListener('change', (e) => { 
+document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { 
     tetrisGodMode = e.target.checked; 
 });
 
-document.getElementById('publicDiffSelect').addEventListener('change', (e) => { 
+document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
     document.getElementById('modDifficulty').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
     if (!targetGameOver) targetLives = maxLives; 
 });
-document.getElementById('modDifficulty').addEventListener('change', (e) => { 
+document.getElementById('modDifficulty')?.addEventListener('change', (e) => { 
     document.getElementById('publicDiffSelect').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
     if (!targetGameOver) targetLives = maxLives; 
 });
 
-document.getElementById('resetProgressBtn').addEventListener('click', () => {
+document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
     try { 
         localStorage.removeItem('cyberRunnerHighScore'); 
         localStorage.removeItem('matrixTargetHighScore'); 
@@ -902,74 +918,71 @@ document.getElementById('resetProgressBtn').addEventListener('click', () => {
     alert("SYSTEM PURGED: All local high scores have been wiped.");
 });
 
-document.getElementById('nukeToggle').addEventListener('click', (e) => {
-    let nukeModeActive = true; 
+document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
+    nukeModeActive = true; 
     e.target.style.background = "#fff"; 
     e.target.style.color = "#ff0000"; 
     e.target.innerText = "SYSTEM NUKED - CLICK TO DESTROY"; 
     e.target.style.pointerEvents = "none";
+});
+
+document.addEventListener('click', (e) => {
+    if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'CANVAS') return;
     
-    document.addEventListener('click', (event) => {
-        if (!nukeModeActive || event.target.closest('#modMenu') || event.target.tagName === 'HTML' || event.target.tagName === 'CANVAS') return;
+    for (let i = 0; i < 15; i++) {
+        const pixel = document.createElement('div');
+        pixel.style.position = 'fixed'; 
+        pixel.style.left = e.clientX + 'px'; 
+        pixel.style.top = e.clientY + 'px';
+        pixel.style.width = (Math.random() * 6 + 4) + 'px'; 
+        pixel.style.height = pixel.style.width;
+        pixel.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`; 
+        pixel.style.pointerEvents = 'none'; 
+        pixel.style.zIndex = 10001;
         
-        for (let i = 0; i < 15; i++) {
-            const pixel = document.createElement('div');
-            pixel.style.position = 'fixed'; 
-            pixel.style.left = event.clientX + 'px'; 
-            pixel.style.top = event.clientY + 'px';
-            pixel.style.width = (Math.random() * 6 + 4) + 'px'; 
-            pixel.style.height = pixel.style.width;
-            pixel.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`; 
-            pixel.style.pointerEvents = 'none'; 
-            pixel.style.zIndex = 10001;
-            
-            const vx = (Math.random() - 0.5) * 200;
-            const vy = (Math.random() - 0.5) * 200;
-            pixel.animate([
-                { transform: 'translate(0, 0) scale(1)', opacity: 1 }, 
-                { transform: `translate(${vx}px, ${vy}px) scale(0)`, opacity: 0 }
-            ], { duration: 600, easing: 'ease-out' });
-            
-            document.body.appendChild(pixel); 
-            setTimeout(() => pixel.remove(), 600);
-        }
-        event.target.style.transition = 'all 0.2s'; 
-        event.target.style.transform = 'scale(0)'; 
-        event.target.style.opacity = '0';
-        setTimeout(() => { if (event.target.parentNode) event.target.parentNode.removeChild(event.target); }, 200);
-    });
+        const vx = (Math.random() - 0.5) * 200;
+        const vy = (Math.random() - 0.5) * 200;
+        
+        pixel.animate([
+            { transform: 'translate(0, 0) scale(1)', opacity: 1 }, 
+            { transform: `translate(${vx}px, ${vy}px) scale(0)`, opacity: 0 }
+        ], { duration: 600, easing: 'ease-out' });
+        
+        document.body.appendChild(pixel); 
+        setTimeout(() => pixel.remove(), 600);
+    }
+    
+    e.target.style.transition = 'all 0.2s'; 
+    e.target.style.transform = 'scale(0)'; 
+    e.target.style.opacity = '0';
+    setTimeout(() => { if (e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 200);
 });
 
 // ==========================================================================
-// UNIVERSAL INPUT ROUTER (ABSOLUTE SCROLL LOCK)
+// 7. UNIVERSAL INPUT ROUTER (STRICT SCROLL LOCK)
 // ==========================================================================
 window.addEventListener("keydown", function(e) {
-    // If typing in the contact form, do not hijack keys
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-    }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
-    // STRICT SCROLL LOCK: Prevent space and arrows from moving the page
+    // Prevent space and arrows from scrolling the page
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") {
         e.preventDefault();
     }
 
-    // Cheat Code Buffer
     if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
         keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
         if (keyBuffer.endsWith("sudo")) { document.getElementById('terminalOverlay').style.display = 'block'; }
         if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'block'; }
-        if (keyBuffer.endsWith("duck")) { switchGame('target'); }
-        if (keyBuffer.endsWith("pacman") || keyBuffer.endsWith("pacm")) { switchGame('pacman'); }
-        if (keyBuffer.endsWith("tetr")) { switchGame('tetris'); }
-        if (keyBuffer.endsWith("runn")) { switchGame('runner'); }
+        if (keyBuffer.endsWith("duck")) { window.switchGame('target'); }
+        if (keyBuffer.endsWith("pacman") || keyBuffer.endsWith("pacm")) { window.switchGame('pacman'); }
+        if (keyBuffer.endsWith("tetr")) { window.switchGame('tetris'); }
+        if (keyBuffer.endsWith("runn")) { window.switchGame('runner'); }
     }
 
-    // Game Specific Controls
     if (pacGameActive) {
         if (pacState === 'MENU' || pacState === 'GAMEOVER') {
             if (e.code === "Space" || e.code === "Enter" || e.key === " ") { 
-                if (pacState === 'GAMEOVER' && Date.now() - pacDeathTime < 1000) return; // 1 second death lock
+                if (pacState === 'GAMEOVER' && Date.now() - pacDeathTime < 1000) return; // 1s Death Lock
                 pacState = 'PLAYING'; 
                 initPacGame(); 
             } 
@@ -983,7 +996,7 @@ window.addEventListener("keydown", function(e) {
     } else if (tetrisActive) {
         if (tetrisGameOver) { 
             if (e.code === "Space" || e.code === "Enter" || e.key === " ") {
-                if (Date.now() - tetrisDeathTime < 1000) return; // 1 second death lock
+                if (Date.now() - tetrisDeathTime < 1000) return; // 1s Death Lock
                 initTetris(); 
             }
             return; 
@@ -1004,14 +1017,16 @@ window.addEventListener("keydown", function(e) {
         
     } else if (targetGameActive) {
         if (targetGameOver && (e.code === "Space" || e.code === "Enter" || e.key === " ")) {
-            if (Date.now() - targetDeathTime < 1000) return; // 1 second death lock
+            if (Date.now() - targetDeathTime < 1000) return; // 1s Death Lock
             targetGameOver = false; 
             targetLives = maxLives; 
             targetScore = 0; 
             targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
             duckActive = false;
+            targetFloatingScores = [];
         }
     } else {
+        // Fallback to Runner controls
         if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
             jump(); 
         } 
@@ -1022,9 +1037,8 @@ window.addEventListener("keydown", function(e) {
 }, { passive: false });
 
 window.addEventListener("keyup", e => { 
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-    }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    
     if (!targetGameActive && !pacGameActive && !tetrisActive) {
         if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
             if (velocity < -4) velocity = -4; 
@@ -1035,79 +1049,75 @@ window.addEventListener("keyup", e => {
     }
 });
 
-// Canvas Tap-to-Start / Restart Listeners
-canvas.addEventListener("mousedown", (e) => { 
-    e.preventDefault(); 
-    jump(); 
-});
-
-targetCanvas.addEventListener("mousedown", (e) => { 
-    e.preventDefault();
-    if (targetGameOver) { 
-        if (Date.now() - targetDeathTime < 1000) return; 
-        targetGameOver = false; 
-        targetLives = maxLives; 
-        targetScore = 0; 
-        targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
-        duckActive = false; 
-    }
-});
-
-pacCanvas.addEventListener("mousedown", (e) => { 
-    e.preventDefault(); 
-    if (pacState === 'MENU' || pacState === 'GAMEOVER') { 
-        if (pacState === 'GAMEOVER' && Date.now() - pacDeathTime < 1000) return; 
-        pacState = 'PLAYING'; 
-        initPacGame(); 
-    } 
-});
-
-tetrisCanvas.addEventListener("mousedown", (e) => { 
-    e.preventDefault(); 
-    if (tetrisGameOver) { 
-        if (Date.now() - tetrisDeathTime < 1000) return; 
-        initTetris(); 
-    } else if (tetrisActive && !tetrisGameOver) { 
-        tRotate(); 
-    } 
-});
-
-// ==========================================================================
-// RUNNER GAME ENGINE (CHROME DINO LOGIC)
-// ==========================================================================
-function jump() {
-    if (targetGameActive || pacGameActive || tetrisActive) return; 
-    
-    if (!gameStarted) { 
-        gameStarted = true; 
-        runnerObstacles = []; 
-        score = 0; 
-        isJumping = false; 
-        isDucking = false; 
-        gameOver = false; 
-    } else if (gameOver) { 
-        if (Date.now() - runnerDeathTime < 1000) return; // 1 second lock
-        runnerObstacles = []; 
-        playerY = 150; 
-        score = 0; 
-        gameOver = false; 
-        velocity = 0; 
-        isJumping = false; 
-        isDucking = false; 
-    }
-    
-    if (!isJumping && !gameOver && !isDucking) { 
-        isJumping = true; 
-        velocity = -currentJumpPower; 
-    }
+// Canvas Tap-to-Start Listeners
+if (canvas) {
+    canvas.addEventListener("pointerdown", (e) => { 
+        e.preventDefault(); 
+        jump(); 
+    });
 }
 
-function duck(state) { 
-    if (targetGameActive || pacGameActive || tetrisActive || gameOver || !gameStarted) return; 
-    if (!isJumping) isDucking = state; 
+if (targetCanvas) {
+    targetCanvas.addEventListener("pointerdown", (e) => { 
+        e.preventDefault();
+        if (targetGameOver) { 
+            if (Date.now() - targetDeathTime < 1000) return; 
+            targetGameOver = false; 
+            targetLives = maxLives; 
+            targetScore = 0; 
+            targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
+            duckActive = false; 
+            targetFloatingScores = [];
+        } else if (duckActive) {
+            const rect = targetCanvas.getBoundingClientRect();
+            const scaleX = targetCanvas.width / rect.width;
+            const scaleY = targetCanvas.height / rect.height;
+            const clickX = (e.clientX - rect.left) * scaleX;
+            const clickY = (e.clientY - rect.top) * scaleY;
+            
+            if (clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
+                targetScore++; 
+                targetFloatingScores.push({x: clickX, y: clickY, alpha: 1.0, text: "+1"}); 
+                if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
+                
+                if (targetScore > targetHighScore) { 
+                    targetHighScore = targetScore; 
+                    try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
+                }
+                
+                duckActive = false; 
+                ctxTarget.fillStyle = "white"; 
+                ctxTarget.fillRect(0,0,400,200);
+            }
+        }
+    });
 }
 
-document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { 
+if (pacCanvas) {
+    pacCanvas.addEventListener("pointerdown", (e) => { 
+        e.preventDefault(); 
+        if (pacState === 'MENU' || pacState === 'GAMEOVER') { 
+            if (pacState === 'GAMEOVER' && Date.now() - pacDeathTime < 1000) return; 
+            pacState = 'PLAYING'; 
+            initPacGame(); 
+        } 
+    });
+}
+
+if (tetrisCanvas) {
+    tetrisCanvas.addEventListener("pointerdown", (e) => { 
+        e.preventDefault(); 
+        if (tetrisGameOver) { 
+            if (Date.now() - tetrisDeathTime < 1000) return; 
+            initTetris(); 
+        } else if (tetrisActive && !tetrisGameOver) { 
+            tRotate(); 
+        } 
+    });
+}
+
+// Mobile specific Runner controls
+document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) => { 
     e.preventDefault(); 
     jump(); 
 });
@@ -1115,26 +1125,30 @@ document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => 
 let runnerTouchY = 0;
 let isSwiping = false;
 
-canvas.addEventListener("touchstart", (e) => { 
-    e.preventDefault(); 
-    runnerTouchY = e.touches[0].clientY; 
-    isSwiping = false; 
-}, {passive: false});
+if (canvas) {
+    canvas.addEventListener("touchstart", (e) => { 
+        e.preventDefault(); 
+        runnerTouchY = e.touches[0].clientY; 
+        isSwiping = false; 
+    }, {passive: false});
 
-canvas.addEventListener("touchmove", (e) => { 
-    e.preventDefault(); 
-    if (e.touches[0].clientY - runnerTouchY > 30) { 
-        duck(true); 
-        isSwiping = true; 
-    } 
-}, {passive: false});
+    canvas.addEventListener("touchmove", (e) => { 
+        e.preventDefault(); 
+        if(e.touches[0].clientY - runnerTouchY > 30) { 
+            duck(true); 
+            isSwiping = true; 
+        } 
+    }, {passive: false});
 
-canvas.addEventListener("touchend", (e) => { 
-    e.preventDefault(); 
-    duck(false); 
-    if(!isSwiping) jump(); 
-}, {passive: false});
+    canvas.addEventListener("touchend", (e) => { 
+        e.preventDefault(); 
+        duck(false); 
+    }, {passive: false});
+}
 
+// ==========================================================================
+// 8. RUNNER GAME ENGINE
+// ==========================================================================
 function drawDino(ctx, x, y, isDucking, frame) {
     ctx.fillStyle = neonColor; 
     if (runnerGodMode) ctx.fillStyle = "#fff";
@@ -1143,33 +1157,22 @@ function drawDino(ctx, x, y, isDucking, frame) {
         ctx.fillRect(x + 8, y + 10, 20, 6); 
         ctx.fillRect(x + 28, y + 8, 12, 8); 
         ctx.fillRect(x, y + 10, 8, 6); 
-        
-        if (frame % 10 < 5 && !isJumping) {
-            ctx.fillRect(x + 10, y + 16, 4, 4);
-        } else if (!isJumping) {
-            ctx.fillRect(x + 18, y + 16, 4, 4);
-        } else { 
-            ctx.fillRect(x + 10, y + 16, 4, 4); 
-            ctx.fillRect(x + 18, y + 16, 4, 4); 
-        }
+        if (frame % 10 < 5 && !isJumping) { ctx.fillRect(x + 10, y + 16, 4, 4); } 
+        else if (!isJumping) { ctx.fillRect(x + 18, y + 16, 4, 4); } 
+        else { ctx.fillRect(x + 10, y + 16, 4, 4); ctx.fillRect(x + 18, y + 16, 4, 4); }
     } else {
         ctx.fillRect(x + 6, y + 4, 12, 16); 
         ctx.fillRect(x + 14, y, 12, 10); 
         ctx.fillRect(x, y + 10, 6, 8); 
         ctx.fillRect(x + 18, y + 10, 4, 4); 
-        
-        if (frame % 10 < 5 && !isJumping) {
-            ctx.fillRect(x + 8, y + 20, 4, 6);
-        } else if (!isJumping) {
-            ctx.fillRect(x + 14, y + 20, 4, 6);
-        } else { 
-            ctx.fillRect(x + 8, y + 20, 4, 4); 
-            ctx.fillRect(x + 14, y + 20, 4, 4); 
-        }
+        if (frame % 10 < 5 && !isJumping) { ctx.fillRect(x + 8, y + 20, 4, 6); } 
+        else if (!isJumping) { ctx.fillRect(x + 14, y + 20, 4, 6); } 
+        else { ctx.fillRect(x + 8, y + 20, 4, 4); ctx.fillRect(x + 14, y + 20, 4, 4); }
     }
 }
 
 function updateRunner() {
+    if (!ctx) return;
     cancelAnimationFrame(runnerAnimId);
     if (targetGameActive || pacGameActive || tetrisActive) return; 
 
@@ -1177,12 +1180,8 @@ function updateRunner() {
     ctx.clearRect(0, 0, 400, 200);
     ctx.strokeStyle = gridColor;
     
-    for (let i = 0; i <= 400; i += 20) { 
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); 
-    }
-    for (let i = 0; i <= 200; i += 20) { 
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); 
-    }
+    for(let i=0; i<=400; i+=20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); }
+    for(let i=0; i<=200; i+=20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); }
 
     if (gameStarted && !gameOver) {
         velocity += currentGravity; 
@@ -1206,22 +1205,17 @@ function updateRunner() {
         for (let i = 0; i < runnerObstacles.length; i++) {
             let obs = runnerObstacles[i];
             obs.x -= currentSpeed;
+            
             if (!obs.passed && obs.x + 20 < 20) { 
                 obs.passed = true; 
                 score++; 
             }
 
-            let px = 20, pw = 25;
-            let py = isDucking ? playerY + 10 : playerY - 10;
-            let ph = isDucking ? 10 : 30; 
-            
-            let ox = obs.x;
-            let oy = obs.type === 'cactus' ? 150 : 100; 
-            let ow = obs.type === 'cactus' ? 15 : 25;
-            let oh = obs.type === 'cactus' ? 20 : 60; // Huge vertical hitbox so jumping over birds fails
+            let px = 20, pw = 25, py = isDucking ? playerY + 10 : playerY - 10, ph = isDucking ? 10 : 30; 
+            let ox = obs.x, oy = obs.type === 'cactus' ? 150 : 100, ow = obs.type === 'cactus' ? 15 : 25, oh = obs.type === 'cactus' ? 20 : 60; 
             
             if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode) {
-                if (!gameOver) { // Ensure death logic only fires exactly ONCE
+                if (!gameOver) { 
                     gameOver = true; 
                     runnerDeathTime = Date.now(); 
                     currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
@@ -1234,18 +1228,16 @@ function updateRunner() {
                 }
             }
         }
-        
         runnerObstacles = runnerObstacles.filter(o => o.x + 30 > -10);
     }
 
     if (gameOver) { 
-        // Animated Glitch Screen Background
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; 
         ctx.fillRect(0, 0, 400, 200);
         
-        for (let i = 0; i < 15; i++) {
-            ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.4})`;
-            ctx.fillRect(Math.random() * 400, Math.random() * 200, Math.random() * 200 + 50, Math.random() * 5 + 1);
+        for (let i=0; i<15; i++) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${Math.random()*0.4})`;
+            ctx.fillRect(Math.random()*400, Math.random()*200, Math.random()*200+50, Math.random()*5+1);
         }
     } else { 
         drawDino(ctx, 20, playerY, isDucking, gameFrame); 
@@ -1294,8 +1286,11 @@ function updateRunner() {
         ctx.fillText("Final Score: " + score, 200, 110); 
         
         if (Date.now() - runnerDeathTime > 1000) {
+            ctx.shadowBlur = 10; 
+            ctx.shadowColor = neonColor; 
             ctx.fillStyle = neonColor; 
             ctx.fillRect(100, 130, 200, 30);
+            ctx.shadowBlur = 0; 
             ctx.fillStyle = "#000"; 
             ctx.font = "bold 16px 'Courier New', monospace"; 
             ctx.fillText("PLAY AGAIN", 200, 150);
@@ -1307,32 +1302,22 @@ function updateRunner() {
 }
 
 // ==========================================================================
-// TARGET SIMULATOR ENGINE
+// 9. TARGET SIMULATOR ENGINE
 // ==========================================================================
-function spawnDuck() {
-    duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
-    duckY = Math.floor(Math.random() * (150 - targetSize)); 
-    duckVelX = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult; 
-    duckVelY = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult;
-    duckTimer = 210; 
-    currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)]; 
-    duckActive = true;
-}
-
 function updateTargetGame() {
+    if (!ctxTarget) return;
     cancelAnimationFrame(targetAnimId);
     if (!targetGameActive) return;
     
     ctxTarget.clearRect(0, 0, 400, 200);
     
     if (targetGameOver) {
-        // Animated Target System Failure Background
         ctxTarget.fillStyle = "rgba(50, 0, 0, 0.85)"; 
         ctxTarget.fillRect(0, 0, 400, 200);
         
-        for (let i = 0; i < 20; i++) {
-            ctxTarget.strokeStyle = `rgba(255, 0, 0, ${Math.random() * 0.5})`;
-            ctxTarget.strokeRect(Math.random() * 400, Math.random() * 200, Math.random() * 40, Math.random() * 40);
+        for (let i=0; i<20; i++) {
+            ctxTarget.strokeStyle = `rgba(255, 0, 0, ${Math.random()*0.5})`;
+            ctxTarget.strokeRect(Math.random()*400, Math.random()*200, Math.random()*40, Math.random()*40);
         }
         
         ctxTarget.fillStyle = "#ff0000"; 
@@ -1345,8 +1330,11 @@ function updateTargetGame() {
         ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
         
         if (Date.now() - targetDeathTime > 1000) {
+            ctxTarget.shadowBlur = 10; 
+            ctxTarget.shadowColor = neonColor; 
             ctxTarget.fillStyle = neonColor; 
             ctxTarget.fillRect(100, 130, 200, 30);
+            ctxTarget.shadowBlur = 0; 
             ctxTarget.fillStyle = "#000"; 
             ctxTarget.font = "bold 16px 'Courier New', monospace"; 
             ctxTarget.fillText("PLAY AGAIN", 200, 150);
@@ -1390,30 +1378,44 @@ function updateTargetGame() {
             duckActive = false; 
             targetLives--; 
             
-            if (targetLives <= 0) { 
-                if (!targetGameOver) { // Ensure death logic only fires exactly ONCE
-                    targetGameOver = true; 
-                    targetDeathTime = Date.now(); 
-                    currentTargetCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)]; 
-                    triggerShake(); 
-                }
+            if (targetLives <= 0 && !targetGameOver) { 
+                targetGameOver = true; 
+                targetDeathTime = Date.now(); 
+                currentTargetCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)]; 
+                triggerShake(); 
             } 
         }
         
         if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
             targetScore++; 
+            targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1"}); 
+            
             if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
             
             if (targetScore > targetHighScore) { 
                 targetHighScore = targetScore; 
                 try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
             }
+            
             duckActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
             ctxTarget.fillRect(0, 0, 400, 200);
         }
     } else { 
         if (Math.random() < 0.03) spawnDuck(); 
+    }
+
+    // Render Floating Scores
+    for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
+        let f = targetFloatingScores[i];
+        ctxTarget.fillStyle = `rgba(0, 255, 0, ${f.alpha})`;
+        ctxTarget.font = "bold 16px 'Courier New', monospace";
+        ctxTarget.fillText(f.text, f.x, f.y);
+        f.y -= 1; 
+        f.alpha -= 0.02;
+        if (f.alpha <= 0) {
+            targetFloatingScores.splice(i, 1);
+        }
     }
 
     ctxTarget.fillStyle = "#fff"; 
@@ -1426,10 +1428,9 @@ function updateTargetGame() {
 }
 
 // ==========================================================================
-// PAC-MAN ENGINE (FLAWLESS GRID & OPEN BOX)
+// 10. PAC-MAN ENGINE
 // ==========================================================================
 function resetPacMap() {
-    // Solid walls except for the top of the box to prevent ghost confusion
     pacMap = [
         [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
         [1,3,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,1],
@@ -1437,9 +1438,9 @@ function resetPacMap() {
         [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
         [1,0,1,1,1,0,1,1,1,0,0,1,1,1,0,1,1,1,0,1],
         [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-        [1,1,1,1,1,0,1,0,2,2,2,2,0,1,0,1,1,1,1,1], // Open top of box
-        [1,1,1,1,1,0,0,0,1,2,2,1,0,0,0,1,1,1,1,1], // Inside box
-        [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1], // Sealed bottom of box
+        [1,1,1,1,1,0,1,0,2,2,2,2,0,1,0,1,1,1,1,1], 
+        [1,1,1,1,1,0,0,0,1,2,2,1,0,0,0,1,1,1,1,1], 
+        [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1], 
         [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1], 
         [1,0,1,1,1,0,1,1,1,1,1,1,1,1,0,1,1,1,0,1],
         [1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,1,0,0,0,1],
@@ -1474,14 +1475,13 @@ function initPacGame() {
     pacDy = 0; 
     nextPacDx = 0; 
     nextPacDy = 0; 
-    scaredTimer = 0;
+    scaredTimer = 0; 
+    pacEatEffects = [];
     
     currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)]; 
     currentMazeColor = mazeColors[Math.floor(Math.random() * mazeColors.length)]; 
-    
     resetPacMap();
     
-    // Spawn directly inside the walled box
     ghosts = [
         {x: 180, y: 140, dx: 0, dy: -1, color: 'red', type: 'chaser', inBox: true},
         {x: 200, y: 140, dx: 0, dy: -1, color: '#ffb8ff', type: 'random', inBox: true}, 
@@ -1502,64 +1502,18 @@ function pacCollision(x, y) {
     for(let p of pts) {
         let col = Math.floor(p.cx / 20);
         let row = Math.floor(p.cy / 20);
-        if (col < 0) col = 19; 
-        if (col > 19) col = 0; 
-        if (row < 0) row = 19; 
-        if (row > 19) row = 0;
+        if(col < 0) col = 19; 
+        if(col > 19) col = 0; 
+        if(row < 0) row = 19; 
+        if(row > 19) row = 0;
         
-        if (pacMap[row][col] === 1) return true;
+        if(pacMap[row][col] === 1) return true;
     } 
     return false;
 }
 
-function spawnFruit() {
-    let emptyTiles = []; 
-    for(let r = 0; r < 20; r++) {
-        for(let c = 0; c < 20; c++) {
-            if(pacMap[r][c] === 2 || pacMap[r][c] === 0) {
-                emptyTiles.push({r,c});
-            }
-        }
-    }
-    
-    if(emptyTiles.length > 0) { 
-        let tile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)]; 
-        let types = ['cherry', 'apple', 'melon']; 
-        fruits.push({
-            x: tile.c * 20, 
-            y: tile.r * 20, 
-            type: types[Math.floor(Math.random() * types.length)], 
-            timer: 300 
-        }); 
-    }
-}
-
-function drawFruit(ctx, f) {
-    ctx.save(); 
-    ctx.translate(f.x + 10, f.y + 10);
-    
-    if (f.type === 'cherry') { 
-        ctx.fillStyle = "red"; 
-        ctx.beginPath(); ctx.arc(-4, 4, 4, 0, Math.PI*2); ctx.fill(); 
-        ctx.beginPath(); ctx.arc(4, 4, 4, 0, Math.PI*2); ctx.fill(); 
-        ctx.strokeStyle = "green"; ctx.lineWidth = 2; 
-        ctx.beginPath(); ctx.moveTo(-4, 4); ctx.lineTo(0, -6); ctx.lineTo(4, 4); ctx.stroke(); 
-    } else if (f.type === 'apple') { 
-        ctx.fillStyle = "red"; 
-        ctx.beginPath(); ctx.arc(0, 2, 6, 0, Math.PI*2); ctx.fill(); 
-        ctx.fillStyle = "brown"; ctx.fillRect(-1, -6, 2, 4); 
-        ctx.fillStyle = "green"; ctx.beginPath(); ctx.arc(3, -5, 3, 0, Math.PI*2); ctx.fill(); 
-    } else if (f.type === 'melon') { 
-        ctx.fillStyle = "green"; 
-        ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI); ctx.fill(); 
-        ctx.fillStyle = "pink"; 
-        ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI); ctx.fill(); 
-    }
-    
-    ctx.restore();
-}
-
 function updatePacMan() {
+    if (!ctxPac) return;
     cancelAnimationFrame(pacAnimId); 
     if (!pacGameActive) return;
     
@@ -1587,7 +1541,7 @@ function updatePacMan() {
         ctxPac.fillRect(0, 0, 400, 400); 
         
         for(let i = 0; i < 40; i++) {
-            ctxPac.fillStyle = `rgba(${Math.random()>0.5 ? 255 : 0}, 0, ${Math.random()>0.5 ? 255 : 0}, ${Math.random() * 0.3})`;
+            ctxPac.fillStyle = `rgba(${Math.random() > 0.5 ? 255 : 0}, 0, ${Math.random() > 0.5 ? 255 : 0}, ${Math.random() * 0.3})`;
             ctxPac.font = "14px monospace";
             ctxPac.fillText(Math.random() > 0.5 ? "ERR" : "0x00", Math.random() * 400, Math.random() * 400);
         }
@@ -1603,8 +1557,11 @@ function updatePacMan() {
         ctxPac.fillText("High Score: " + pacHighScore, 200, 230); 
         
         if (Date.now() - pacDeathTime > 1000) {
+            ctxPac.shadowBlur = 10; 
+            ctxPac.shadowColor = neonColor; 
             ctxPac.fillStyle = neonColor; 
             ctxPac.fillRect(100, 270, 200, 30);
+            ctxPac.shadowBlur = 0; 
             ctxPac.fillStyle = "#000"; 
             ctxPac.font = "bold 16px 'Courier New', monospace"; 
             ctxPac.fillText("PLAY AGAIN", 200, 290);
@@ -1636,8 +1593,8 @@ function updatePacMan() {
     let nextX = pacX + (pacDx * pacSpeed);
     let nextY = pacY + (pacDy * pacSpeed);
     
-    if(!pacCollision(nextX, nextY) || pacWallHack) {
-        let snapX = Math.round(pacX / 20) * 20; 
+    if (!pacCollision(nextX, nextY) || pacWallHack) {
+        let snapX = Math.round(pacX / 20) * 20;
         let snapY = Math.round(pacY / 20) * 20;
         
         if (pacDx !== 0 && Math.abs(pacY - snapY) < 14) pacY = snapY; 
@@ -1656,12 +1613,13 @@ function updatePacMan() {
     let gridR = Math.floor((pacY + 10) / 20);
     
     if (gridR >= 0 && gridR < 20 && gridC >= 0 && gridC < 20) {
-        if (pacMap[gridR][gridC] === 0) { 
+        if(pacMap[gridR][gridC] === 0) { 
             pacMap[gridR][gridC] = 2; 
             pacScore += (10 * pacMultiplier); 
             dotsEaten++; 
             pacEatEffects.push({x: gridC * 20 + 10, y: gridR * 20 + 10, timer: 20, text: "10", color: "white"}); 
-        } else if (pacMap[gridR][gridC] === 3) { 
+        } 
+        else if (pacMap[gridR][gridC] === 3) { 
             pacMap[gridR][gridC] = 2; 
             pacScore += (50 * pacMultiplier); 
             dotsEaten++; 
@@ -1674,31 +1632,8 @@ function updatePacMan() {
         victoryMode = true; 
         victoryTimer = 1800; 
     }
-    
-    if (victoryMode) { 
-        victoryTimer--; 
-        if (Math.random() < 0.02) { 
-            spawnFruit(); 
-        } 
-        if (victoryTimer <= 0) {
-            initPacGame(); 
-        }
-    }
 
-    for (let i = fruits.length - 1; i >= 0; i--) {
-        let f = fruits[i]; 
-        f.timer--; 
-        drawFruit(ctxPac, f);
-        
-        if (Math.abs(f.x - pacX) < 15 && Math.abs(f.y - pacY) < 15) { 
-            pacScore += (500 * pacMultiplier); 
-            pacEatEffects.push({x: f.x + 10, y: f.y, timer: 40, text: "500", color: "pink"}); 
-            fruits.splice(i, 1); 
-        } else if (f.timer <= 0) { 
-            fruits.splice(i, 1); 
-        }
-    }
-
+    // Draw Map Elements
     for (let r = 0; r < 20; r++) {
         for (let c = 0; c < 20; c++) {
             if (pacMap[r][c] === 1) { 
@@ -1706,12 +1641,12 @@ function updatePacMan() {
                 ctxPac.fillRect(c * 20, r * 20, 20, 20); 
                 ctxPac.fillStyle = "black"; 
                 ctxPac.fillRect(c * 20 + 2, r * 20 + 2, 16, 16); 
-            } else if(pacMap[r][c] === 0) { 
+            } else if (pacMap[r][c] === 0) { 
                 ctxPac.fillStyle = "white"; 
                 ctxPac.beginPath(); 
                 ctxPac.arc(c * 20 + 10, r * 20 + 10, 3, 0, Math.PI * 2); 
                 ctxPac.fill(); 
-            } else if(pacMap[r][c] === 3) { 
+            } else if (pacMap[r][c] === 3) { 
                 ctxPac.fillStyle = (Math.floor(Date.now() / 200) % 2 === 0) ? "white" : "yellow"; 
                 ctxPac.beginPath(); 
                 ctxPac.arc(c * 20 + 10, r * 20 + 10, 7, 0, Math.PI * 2); 
@@ -1728,7 +1663,7 @@ function updatePacMan() {
         ctxPac.fillText(e.text, e.x - 10, e.y - 5); 
         e.y -= 0.5; 
         e.timer--; 
-        if (e.timer <= 0) pacEatEffects.splice(i, 1); 
+        if(e.timer <= 0) pacEatEffects.splice(i, 1); 
     }
     ctxPac.globalAlpha = 1;
 
@@ -1738,9 +1673,9 @@ function updatePacMan() {
         if (g.inBox) {
             if (g.y <= 100) { 
                 g.inBox = false; 
-                g.y = 100; // Snap exactly to the hallway grid row
-                g.dx = (Math.random() > 0.5) ? 1 : -1;
-                g.dy = 0;
+                g.y = 100; 
+                g.dx = (Math.random() > 0.5) ? 1 : -1; 
+                g.dy = 0; 
             } else { 
                 g.dx = 0; 
                 g.dy = -1; 
@@ -1751,7 +1686,7 @@ function updatePacMan() {
             let gNextY = g.y + (g.dy * actualGhostSpeed);
             
             if (pacCollision(gNextX, gNextY)) {
-                let dirs = [{dx: 1, dy: 0}, {dx: -1, dy: 0}, {dx: 0, dy: 1}, {dx: 0, dy: -1}]; 
+                let dirs = [{dx:1, dy:0}, {dx:-1, dy:0}, {dx:0, dy:1}, {dx:0, dy:-1}]; 
                 let validDirs = dirs.filter(d => !pacCollision(g.x + d.dx * 5, g.y + d.dy * 5)); 
                 
                 if (validDirs.length > 1) {
@@ -1761,10 +1696,10 @@ function updatePacMan() {
                 if (validDirs.length > 0) {
                     let isPacmanOutOfBounds = pacX < 0 || pacX > 380 || pacY < 0 || pacY > 380;
                     if (g.type === 'chaser' && scaredTimer === 0 && !isPacmanOutOfBounds) {
-                        validDirs.sort((a,b) => {
-                            let distA = Math.pow((g.x + a.dx * 20) - pacX, 2) + Math.pow((g.y + a.dy * 20) - pacY, 2);
-                            let distB = Math.pow((g.x + b.dx * 20) - pacX, 2) + Math.pow((g.y + b.dy * 20) - pacY, 2);
-                            return distA - distB;
+                        validDirs.sort((a,b) => { 
+                            let distA = Math.pow((g.x + a.dx * 20) - pacX, 2) + Math.pow((g.y + a.dy * 20) - pacY, 2); 
+                            let distB = Math.pow((g.x + b.dx * 20) - pacX, 2) + Math.pow((g.y + b.dy * 20) - pacY, 2); 
+                            return distA - distB; 
                         });
                         g.dx = validDirs[0].dx; 
                         g.dy = validDirs[0].dy;
@@ -1787,7 +1722,6 @@ function updatePacMan() {
         let flashWhite = isScared && scaredTimer < 120 && Math.floor(scaredTimer / 10) % 2 === 0;
         
         ctxPac.fillStyle = isScared ? (flashWhite ? "white" : "#0000ff") : g.color;
-        
         ctxPac.beginPath(); 
         ctxPac.arc(g.x + 10, g.y + 10, 8, Math.PI, 0); 
         ctxPac.lineTo(g.x + 18, g.y + 18); 
@@ -1814,19 +1748,19 @@ function updatePacMan() {
             if (isScared) { 
                 pacScore += (200 * pacMultiplier); 
                 pacEatEffects.push({x: g.x + 10, y: g.y, timer: 30, text: "200", color: "cyan"}); 
-                g.x = 180; 
-                g.y = 140; 
+                g.x = 180; g.y = 140; 
                 g.inBox = true; 
                 g.color = randomGhostColor(); 
             } else if (!pacGodMode) { 
-                if (pacState !== 'GAMEOVER') { // Ensure death logic only fires exactly ONCE
+                if (pacState !== 'GAMEOVER') {
+                    pacState = 'GAMEOVER'; 
+                    pacDeathTime = Date.now(); 
                     pacCrashMsg = ["SYSTEM CRASH", "FATAL EXCEPTION", "GHOST OVERFLOW"][Math.floor(Math.random() * 3)];
+                    
                     if (pacScore > pacHighScore) { 
                         pacHighScore = pacScore; 
                         try { localStorage.setItem('pacRunnerHighScore', pacHighScore); } catch(e){} 
                     } 
-                    pacState = 'GAMEOVER'; 
-                    pacDeathTime = Date.now(); 
                     triggerShake(); 
                 }
             } else { 
@@ -1864,21 +1798,137 @@ function updatePacMan() {
     ctxPac.font = "bold 14px 'Courier New', monospace"; 
     ctxPac.fillText("SCORE: " + pacScore, 10, 18); 
     ctxPac.fillText("HIGH: " + pacHighScore, 240, 18);
-    
-    if (victoryMode) { 
-        ctxPac.fillStyle = "yellow"; 
-        ctxPac.textAlign = "center"; 
-        ctxPac.fillText("FRENZY! " + Math.ceil(victoryTimer / 60) + "s", 200, 18); 
-        ctxPac.textAlign = "left"; 
-    }
 
     pacAnimId = requestAnimationFrame(updatePacMan);
 }
 
 // ==========================================================================
-// TETRIS GAME ENGINE
+// 11. TETRIS GAME ENGINE
 // ==========================================================================
+function createMatrix(w, h) { 
+    const matrix = []; 
+    while (h--) { 
+        matrix.push(new Array(w).fill(0)); 
+    } 
+    return matrix; 
+}
+
+function tCollide(board, player) { 
+    const m = player.matrix;
+    const o = player.pos; 
+    for (let y = 0; y < m.length; ++y) {
+        for (let x = 0; x < m[y].length; ++x) {
+            if (m[y][x] !== 0 && (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
+                return true; 
+            }
+        }
+    }
+    return false; 
+}
+
+function tMerge() { 
+    currentPiece.matrix.forEach((row, y) => { 
+        row.forEach((value, x) => { 
+            if (value !== 0) {
+                tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value; 
+            }
+        }); 
+    }); 
+}
+
+function tRotate() { 
+    const pos = currentPiece.pos.x; 
+    let offset = 1; 
+    for (let y = 0; y < currentPiece.matrix.length; ++y) {
+        for (let x = 0; x < y; ++x) {
+            [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]];
+        }
+    }
+    currentPiece.matrix.forEach(row => row.reverse()); 
+    
+    while (tCollide(tetrisGrid, currentPiece)) { 
+        currentPiece.pos.x += offset; 
+        offset = -(offset + (offset > 0 ? 1 : -1)); 
+        if (offset > currentPiece.matrix[0].length) { 
+            currentPiece.matrix.forEach(row => row.reverse()); 
+            for (let y = 0; y < currentPiece.matrix.length; ++y) {
+                for (let x = 0; x < y; ++x) {
+                    [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]]; 
+                }
+            }
+            currentPiece.pos.x = pos; 
+            return; 
+        } 
+    } 
+}
+
+function tMove(dir) { 
+    currentPiece.pos.x += dir; 
+    if (tCollide(tetrisGrid, currentPiece)) {
+        currentPiece.pos.x -= dir; 
+    }
+}
+
+function tDrop() { 
+    currentPiece.pos.y++; 
+    if (tCollide(tetrisGrid, currentPiece)) { 
+        currentPiece.pos.y--; 
+        tMerge(); 
+        tReset(); 
+        tSweep(); 
+    } 
+    tetrisDropCounter = 0; 
+}
+
+function tReset() {
+    const pieces = '1234567'; 
+    let type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+    currentPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[type])), pos: {x: 3, y: 0} };
+    
+    if (tCollide(tetrisGrid, currentPiece)) {
+        if (tetrisGodMode) { 
+            tetrisGrid.splice(15, 5); 
+            for(let i = 0; i < 5; i++) {
+                tetrisGrid.unshift(new Array(10).fill(0)); 
+            }
+        } else { 
+            if (!tetrisGameOver) {
+                tetrisGameOver = true; 
+                tetrisDeathTime = Date.now(); 
+                tetrisCrashMsg = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR"][Math.floor(Math.random() * 3)]; 
+                if (tetrisScore > tetrisHighScore) { 
+                    tetrisHighScore = tetrisScore; 
+                    try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){} 
+                } 
+                triggerShake(); 
+            }
+        }
+    }
+}
+
+function tSweep() { 
+    let rowCount = 1; 
+    outer: for (let y = tetrisGrid.length - 1; y > 0; --y) { 
+        for (let x = 0; x < tetrisGrid[y].length; ++x) {
+            if (tetrisGrid[y][x] === 0) continue outer; 
+        }
+        const row = tetrisGrid.splice(y, 1)[0].fill(0); 
+        tetrisGrid.unshift(row); 
+        ++y; 
+        tetrisScore += rowCount * 10; 
+        rowCount *= 2; 
+    } 
+}
+
+function initTetris() { 
+    tetrisGrid = createMatrix(10, 20); 
+    tetrisScore = 0; 
+    tetrisGameOver = false; 
+    tReset(); 
+}
+
 function updateTetris() {
+    if (!ctxTetris) return;
     cancelAnimationFrame(tetrisAnimId); 
     if (!tetrisActive) return;
     
@@ -1889,9 +1939,9 @@ function updateTetris() {
         ctxTetris.fillStyle = "rgba(0, 20, 20, 0.85)"; 
         ctxTetris.fillRect(0, 0, 400, 400);
         
-        for (let i = 0; i < 20; i++) {
-            ctxTetris.fillStyle = `rgba(0, 255, 255, ${Math.random() * 0.3})`;
-            ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20);
+        for(let i = 0; i < 20; i++) { 
+            ctxTetris.fillStyle = `rgba(0, 255, 255, ${Math.random() * 0.3})`; 
+            ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20); 
         }
         
         ctxTetris.fillStyle = "cyan"; 
@@ -1903,12 +1953,15 @@ function updateTetris() {
         ctxTetris.font = "bold 16px 'Courier New', monospace"; 
         ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200); 
         
-        if (Date.now() - tetrisDeathTime > 1000) {
+        if (Date.now() - tetrisDeathTime > 1000) { 
+            ctxTetris.shadowBlur = 10; 
+            ctxTetris.shadowColor = neonColor; 
             ctxTetris.fillStyle = neonColor; 
             ctxTetris.fillRect(100, 240, 200, 30);
+            ctxTetris.shadowBlur = 0; 
             ctxTetris.fillStyle = "#000"; 
             ctxTetris.font = "bold 16px 'Courier New', monospace"; 
-            ctxTetris.fillText("PLAY AGAIN", 200, 260);
+            ctxTetris.fillText("PLAY AGAIN", 200, 260); 
         }
         
         ctxTetris.textAlign = "left"; 
@@ -1916,20 +1969,12 @@ function updateTetris() {
         return;
     }
 
-    ctxTetris.strokeStyle = '#333';
-    
-    for (let i = 100; i <= 300; i += 20) { 
-        ctxTetris.beginPath(); 
-        ctxTetris.moveTo(i, 0); 
-        ctxTetris.lineTo(i, 400); 
-        ctxTetris.stroke(); 
-    }
-    
-    for (let i = 0; i <= 400; i += 20) { 
-        ctxTetris.beginPath(); 
-        ctxTetris.moveTo(100, i); 
-        ctxTetris.lineTo(300, i); 
-        ctxTetris.stroke(); 
+    ctxTetris.strokeStyle = '#333'; 
+    for(let i = 100; i <= 300; i += 20) { 
+        ctxTetris.beginPath(); ctxTetris.moveTo(i, 0); ctxTetris.lineTo(i, 400); ctxTetris.stroke(); 
+    } 
+    for(let i = 0; i <= 400; i += 20) { 
+        ctxTetris.beginPath(); ctxTetris.moveTo(100, i); ctxTetris.lineTo(300, i); ctxTetris.stroke(); 
     }
 
     tetrisGrid.forEach((row, y) => { 
@@ -1957,7 +2002,6 @@ function updateTetris() {
     tetrisDropCounter++; 
     let limit = 60 - (tetrisSpeedMod * 4); 
     if (limit < 5) limit = 5; 
-    
     if (tetrisDropCounter > limit) tDrop();
 
     ctxTetris.fillStyle = "cyan"; 
