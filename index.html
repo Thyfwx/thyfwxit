@@ -205,6 +205,7 @@ footer {
     90% { transform: translate(1px, 2px) rotate(0deg); }
     100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
+
 .shake-effect { 
     animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
 }
@@ -222,6 +223,7 @@ footer {
     margin: 20px auto;
     max-width: 100%;
 }
+
 .crt-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -342,6 +344,7 @@ canvas {
     0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
     100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
 }
+
 </style>
 </head>
 <body>
@@ -541,6 +544,12 @@ canvas {
 let runnerAnimId, targetAnimId, pacAnimId, tetrisAnimId;
 let keyBuffer = "", gameFrame = 0; 
 
+// Death cooldown trackers
+let runnerDeathTime = 0;
+let targetDeathTime = 0;
+let pacDeathTime = 0;
+let tetrisDeathTime = 0;
+
 async function fetchUptimeStatus() {
     try {
         let response = await fetch('https://uptime.thyfwxit.com/api/status-page/status');
@@ -673,7 +682,7 @@ function switchGame(mode) {
         gameStarted = false; gameOver = false; playerY = 150; velocity = 0; runnerObstacles = []; score = 0;
         runnerAnimId = requestAnimationFrame(updateRunner);
     } else if (mode === 'target') {
-        targetGameActive = true; targetLives = maxLives; targetScore = 0; duckActive = false;
+        targetGameActive = true; targetLives = maxLives; targetScore = 0; duckActive = false; targetGameOver = false;
         document.getElementById('targetGame').style.display = 'block'; document.getElementById('publicDifficulty').style.display = 'block'; document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "Matrix Target Simulator"; document.getElementById('gameTitle').style.color = "red";
         targetAnimId = requestAnimationFrame(updateTargetGame);
@@ -755,7 +764,11 @@ window.addEventListener("keydown", e => {
 
     if (pacGameActive) {
         if (pacState === 'MENU' || pacState === 'GAMEOVER') {
-            if (e.code === "Space" || e.code === "Enter" || e.key === " ") { pacState = 'PLAYING'; initPacGame(); } return;
+            if (e.code === "Space" || e.code === "Enter" || e.key === " ") { 
+                if (pacState === 'GAMEOVER' && Date.now() - pacDeathTime < 1000) return; // Cooldown
+                pacState = 'PLAYING'; initPacGame(); 
+            } 
+            return;
         }
         if (e.code === "ArrowUp" || e.code === "KeyW") { nextPacDx=0; nextPacDy=-1; }
         if (e.code === "ArrowDown" || e.code === "KeyS") { nextPacDx=0; nextPacDy=1; }
@@ -763,7 +776,13 @@ window.addEventListener("keydown", e => {
         if (e.code === "ArrowRight" || e.code === "KeyD") { nextPacDx=1; nextPacDy=0; }
         
     } else if (tetrisActive) {
-        if (tetrisGameOver) { if (e.code === "Space" || e.code === "Enter" || e.key === " ") initTetris(); return; }
+        if (tetrisGameOver) { 
+            if (e.code === "Space" || e.code === "Enter" || e.key === " ") {
+                if (Date.now() - tetrisDeathTime < 1000) return; // Cooldown
+                initTetris(); 
+            }
+            return; 
+        }
         if (e.code === "ArrowLeft" || e.code === "KeyA") { tMove(-1); }
         if (e.code === "ArrowRight" || e.code === "KeyD") { tMove(1); }
         if (e.code === "ArrowDown" || e.code === "KeyS") { tDrop(); }
@@ -772,6 +791,7 @@ window.addEventListener("keydown", e => {
         
     } else if (targetGameActive) {
         if (targetGameOver && (e.code === "Space" || e.code === "Enter" || e.key === " ")) {
+            if (Date.now() - targetDeathTime < 1000) return; // Cooldown
             targetGameOver = false; targetLives = maxLives; targetScore = 0; targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; duckActive = false;
         }
     } else {
@@ -788,36 +808,55 @@ window.addEventListener("keyup", e => {
     }
 });
 
-// Canvas Tap-to-Start Listeners 
-canvas.addEventListener("mousedown", (e) => { e.preventDefault(); jump(); });
+// Canvas Tap-to-Start Listeners
+canvas.addEventListener("mousedown", (e) => { 
+    e.preventDefault(); 
+    jump(); 
+});
+
 targetCanvas.addEventListener("mousedown", (e) => { 
     e.preventDefault();
-    if (targetGameOver) { targetGameOver = false; targetLives = maxLives; targetScore = 0; targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; duckActive = false; }
+    if (targetGameOver) { 
+        if (Date.now() - targetDeathTime < 1000) return; // Cooldown
+        targetGameOver = false; targetLives = maxLives; targetScore = 0; targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; duckActive = false; 
+    }
 });
+
 pacCanvas.addEventListener("mousedown", (e) => { 
     e.preventDefault(); 
-    if (pacState === 'MENU' || pacState === 'GAMEOVER') { pacState = 'PLAYING'; initPacGame(); } 
+    if (pacState === 'MENU' || pacState === 'GAMEOVER') { 
+        if (pacState === 'GAMEOVER' && Date.now() - pacDeathTime < 1000) return; // Cooldown
+        pacState = 'PLAYING'; initPacGame(); 
+    } 
 });
+
 tetrisCanvas.addEventListener("mousedown", (e) => { 
     e.preventDefault(); 
-    if (tetrisGameOver) { initTetris(); } else { tRotate(); } 
+    if (tetrisGameOver) { 
+        if (Date.now() - tetrisDeathTime < 1000) return; // Cooldown
+        initTetris(); 
+    } else if (tetrisActive && !tetrisGameOver) { 
+        tRotate(); 
+    } 
 });
 
 // ==========================================================================
 // RUNNER GAME ENGINE (CHROME DINO LOGIC)
 // ==========================================================================
-let currentGravity = 0.6, currentJumpPower = 10, currentBaseSpeed = 3.5, runnerGodMode = false;
-let isJumping = false, isDucking = false, velocity = 0, playerY = 150, score = 0, gameOver = false, gameStarted = false, currentSpeed = 3.5;
-let highScore = localStorage.getItem('cyberRunnerHighScore') || 0, currentRunnerCrash = "";
-const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; let runnerObstacles = [];
-
 function jump() {
     if (targetGameActive || pacGameActive || tetrisActive) return; 
     if (!gameStarted) { gameStarted = true; runnerObstacles = []; score = 0; isJumping = false; isDucking = false; gameOver = false; }
-    if (gameOver) { runnerObstacles = []; playerY = 150; score = 0; gameOver = false; velocity = 0; isJumping = false; isDucking = false; }
+    if (gameOver) { 
+        if (Date.now() - runnerDeathTime < 1000) return; // 1 second cooldown
+        runnerObstacles = []; playerY = 150; score = 0; gameOver = false; velocity = 0; isJumping = false; isDucking = false; 
+    }
     if (!isJumping && !gameOver && !isDucking) { isJumping = true; velocity = -currentJumpPower; }
 }
-function duck(state) { if (targetGameActive || pacGameActive || tetrisActive || gameOver || !gameStarted) return; if (!isJumping) isDucking = state; }
+
+function duck(state) { 
+    if (targetGameActive || pacGameActive || tetrisActive || gameOver || !gameStarted) return; 
+    if (!isJumping) isDucking = state; 
+}
 
 document.getElementById("mobileJumpBtn").addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
 let runnerTouchY = 0, isSwiping = false;
@@ -874,8 +913,11 @@ function updateRunner() {
             let ox = obs.x, oy = obs.type === 'cactus' ? 150 : 100, ow = obs.type === 'cactus' ? 15 : 25, oh = obs.type === 'cactus' ? 20 : 15;
             
             if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode) {
-                gameOver = true; currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
-                triggerShake(); if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
+                gameOver = true; 
+                runnerDeathTime = Date.now(); // Record death time for cooldown
+                currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
+                triggerShake(); 
+                if (score > highScore) { highScore = score; localStorage.setItem('cyberRunnerHighScore', highScore); }
             }
         }
         runnerObstacles = runnerObstacles.filter(o => o.x + 30 > -10);
@@ -910,9 +952,19 @@ function updateRunner() {
     if (!gameStarted) { 
         ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; 
     } else if (gameOver) { 
-        ctx.fillStyle = "#ff0000"; ctx.font = "bold 24px 'Courier New', monospace"; ctx.textAlign = "center"; ctx.fillText(currentRunnerCrash, 200, 80); 
-        ctx.fillStyle = "#fff"; ctx.font = "bold 16px 'Courier New', monospace"; ctx.fillText("Final Score: " + score, 200, 110); 
-        ctx.fillText("Tap JUMP or Press Space to reboot.", 200, 140); ctx.textAlign = "left"; 
+        ctx.fillStyle = "#ff0000"; ctx.font = "bold 24px 'Courier New', monospace"; ctx.textAlign = "center"; 
+        ctx.fillText(currentRunnerCrash, 200, 80); 
+        ctx.fillStyle = "#fff"; ctx.font = "bold 16px 'Courier New', monospace"; 
+        ctx.fillText("Final Score: " + score, 200, 110); 
+        
+        // Obvious PLAY AGAIN Button
+        if (Date.now() - runnerDeathTime > 1000) {
+            ctx.fillStyle = neonColor; ctx.fillRect(100, 130, 200, 30);
+            ctx.fillStyle = "#000"; ctx.font = "bold 16px 'Courier New', monospace"; 
+            ctx.fillText("PLAY AGAIN", 200, 150);
+        }
+        
+        ctx.textAlign = "left"; 
     }
     
     runnerAnimId = requestAnimationFrame(updateRunner);
@@ -921,30 +973,6 @@ function updateRunner() {
 // ==========================================================================
 // TARGET SIMULATOR ENGINE
 // ==========================================================================
-let targetGameActive = false, targetScore = 0, targetHighScore = localStorage.getItem('matrixTargetHighScore') || 0;
-let targetSpeedMult = 3, targetSize = 30, aimbotEnabled = false, duckX = 0, duckY = 0, duckActive = false, duckVelX = 0, duckVelY = 0, duckTimer = 0; 
-let maxLives = 6, targetLives = 6, targetGameOver = false, currentTargetCrash = "";
-const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
-let currentDuckColor = rainbowColors[0];
-
-function spawnDuck() {
-    duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; duckY = Math.floor(Math.random() * (150 - targetSize)); 
-    duckVelX = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult; duckVelY = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult;
-    duckTimer = 210; currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)]; duckActive = true;
-}
-
-targetCanvas.addEventListener('pointerdown', (e) => {
-    if (!targetGameActive) return;
-    const rect = targetCanvas.getBoundingClientRect(), scaleX = targetCanvas.width / rect.width, scaleY = targetCanvas.height / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX, clickY = (e.clientY - rect.top) * scaleY;
-    let buffer = 25; 
-    if (duckActive && clickX >= duckX - buffer && clickX <= duckX + targetSize + buffer && clickY >= duckY - buffer && clickY <= duckY + targetSize + buffer) {
-        targetScore++; if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-        if (targetScore > targetHighScore) { targetHighScore = targetScore; localStorage.setItem('matrixTargetHighScore', targetHighScore); }
-        duckActive = false; ctxTarget.fillStyle = "white"; ctxTarget.fillRect(0,0,400,200);
-    }
-});
-
 function updateTargetGame() {
     cancelAnimationFrame(targetAnimId);
     if (!targetGameActive) return;
@@ -962,7 +990,14 @@ function updateTargetGame() {
         ctxTarget.fillText(currentTargetCrash, 200, 80);
         ctxTarget.fillStyle = "#fff"; ctxTarget.font = "bold 16px 'Courier New', monospace"; 
         ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
-        ctxTarget.fillText("Tap or Press Space to Reboot", 200, 140); 
+        
+        // Obvious PLAY AGAIN Button
+        if (Date.now() - targetDeathTime > 1000) {
+            ctxTarget.fillStyle = neonColor; ctxTarget.fillRect(100, 130, 200, 30);
+            ctxTarget.fillStyle = "#000"; ctxTarget.font = "bold 16px 'Courier New', monospace"; 
+            ctxTarget.fillText("PLAY AGAIN", 200, 150);
+        }
+        
         ctxTarget.textAlign = "left";
         targetAnimId = requestAnimationFrame(updateTargetGame); return;
     }
@@ -981,7 +1016,12 @@ function updateTargetGame() {
         
         if (duckTimer <= 0) { 
             duckActive = false; targetLives--; 
-            if (targetLives <= 0) { targetGameOver = true; currentTargetCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)]; triggerShake(); } 
+            if (targetLives <= 0) { 
+                targetGameOver = true; 
+                targetDeathTime = Date.now(); // Record death time for cooldown
+                currentTargetCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)]; 
+                triggerShake(); 
+            } 
         }
         
         if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
@@ -1000,88 +1040,6 @@ function updateTargetGame() {
 // ==========================================================================
 // PAC-MAN ENGINE (FLAWLESS GRID & OPEN BOX)
 // ==========================================================================
-let pacState = 'MENU', pacGameActive = false, pacScore = 0, pacHighScore = localStorage.getItem('pacRunnerHighScore') || 0;
-let pacGodMode = false, pacWallHack = false, pacMultiplier = 1, pacSpeed = 2, ghostSpeed = 1, pacFrame = 0, pacEatEffects = [], scaredTimer = 0;
-let totalDots = 0, dotsEaten = 0, victoryMode = false, victoryTimer = 0, fruits = [];
-let pacX = 20, pacY = 20, pacDx = 0, pacDy = 0, nextPacDx = 0, nextPacDy = 0;
-let pacCrashMsg = "";
-
-const pacCharacterColors = ['#FFFF00', '#00FF00', '#00FFFF', '#FF00FF', '#FF4500'];
-let currentPacColor = '#FFFF00', currentMazeColor = 'blue'; const mazeColors = ['blue', 'purple', 'green', 'red'];
-let ghosts = [], pacMap = [];
-
-function resetPacMap() {
-    // Single U-shaped box in the middle. Top is totally open for instant exit.
-    pacMap = [
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-        [1,3,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,3,1],
-        [1,0,1,1,1,0,1,1,0,1,1,0,1,1,0,1,1,1,0,1],
-        [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-        [1,0,1,1,1,0,1,1,1,0,0,1,1,1,0,1,1,1,0,1],
-        [1,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,1],
-        [1,1,1,1,1,0,1,0,1,2,2,1,0,1,0,1,1,1,1,1], // Open top of box
-        [2,2,2,2,1,0,0,0,1,2,2,1,0,0,0,1,2,2,2,2], // Inside box
-        [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1], // Sealed bottom of box
-        [2,2,2,2,2,0,1,0,0,0,0,0,0,1,0,2,2,2,2,2], 
-        [1,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,1],
-        [2,2,2,2,1,0,0,0,1,2,2,1,0,0,0,1,2,2,2,2],
-        [1,1,1,1,1,0,1,0,1,2,2,1,0,1,0,1,1,1,1,1],
-        [1,0,0,0,0,0,1,0,1,1,1,1,0,1,0,0,0,0,0,1],
-        [1,0,1,1,1,0,1,0,0,0,0,0,0,1,0,1,1,1,0,1],
-        [1,3,0,0,1,0,1,1,1,1,1,1,1,1,0,1,0,0,3,1],
-        [1,1,1,0,1,0,0,0,0,1,1,0,0,0,0,1,0,1,1,1],
-        [1,0,0,0,0,0,1,1,0,1,1,0,1,1,0,0,0,0,0,1],
-        [1,0,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,0,1],
-        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-    ];
-    totalDots = 0; for(let r=0; r<20; r++) for(let c=0; c<20; c++) if(pacMap[r][c] === 0 || pacMap[r][c] === 3) totalDots++;
-}
-
-const randomGhostColor = () => { const colors = ['red', '#ffb8ff', 'cyan', 'orange', 'lime']; return colors[Math.floor(Math.random() * colors.length)]; };
-
-function initPacGame() {
-    pacScore = 0; dotsEaten = 0; victoryMode = false; fruits = []; pacX = 20; pacY = 20; pacDx = 0; pacDy = 0; nextPacDx = 0; nextPacDy = 0; scaredTimer = 0;
-    currentPacColor = pacCharacterColors[Math.floor(Math.random() * pacCharacterColors.length)]; currentMazeColor = mazeColors[Math.floor(Math.random() * mazeColors.length)]; resetPacMap();
-    
-    // Spawn directly inside the walled box (y=140 is inside the box)
-    ghosts = [
-        {x: 180, y: 140, dx: 0, dy: -1, color: 'red', type: 'chaser', inBox: true},
-        {x: 200, y: 140, dx: 0, dy: -1, color: '#ffb8ff', type: 'random', inBox: true}, 
-        {x: 180, y: 140, dx: 0, dy: -1, color: 'cyan', type: 'chaser', inBox: true},
-        {x: 200, y: 140, dx: 0, dy: -1, color: 'orange', type: 'chaser', inBox: true}
-    ];
-}
-
-pacCanvas.addEventListener('pointermove', (e) => {
-    if(pacState !== 'PLAYING') return; let dx = e.clientX - pacTouchStartX, dy = e.clientY - pacTouchStartY;
-    if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
-        if (Math.abs(dx) > Math.abs(dy)) { if (dx > 0) { nextPacDx = 1; nextPacDy = 0; } else { nextPacDx = -1; nextPacDy = 0; } } else { if (dy > 0) { nextPacDx = 0; nextPacDy = 1; } else { nextPacDx = 0; nextPacDy = -1; } }
-        pacTouchStartX = e.clientX; pacTouchStartY = e.clientY;
-    }
-});
-
-function pacCollision(x, y, isGhost=false) {
-    let padding = 4; let pts = [{cx: x + padding, cy: y + padding}, {cx: x + 20 - padding, cy: y + padding}, {cx: x + padding, cy: y + 20 - padding}, {cx: x + 20 - padding, cy: y + 20 - padding}];
-    for(let p of pts) {
-        let col = Math.floor(p.cx / 20), row = Math.floor(p.cy / 20);
-        if(col < 0) col = 19; if(col > 19) col = 0; if(row < 0) row = 19; if(row > 19) row = 0;
-        if(pacMap[row][col] === 1) return true;
-    } return false;
-}
-
-function spawnFruit() {
-    let emptyTiles = []; for(let r=0; r<20; r++) for(let c=0; c<20; c++) if(pacMap[r][c] === 2 || pacMap[r][c] === 0) emptyTiles.push({r,c});
-    if(emptyTiles.length > 0) { let tile = emptyTiles[Math.floor(Math.random()*emptyTiles.length)]; let types = ['cherry', 'apple', 'melon']; fruits.push({x: tile.c * 20, y: tile.r * 20, type: types[Math.floor(Math.random()*types.length)], timer: 300 }); }
-}
-
-function drawFruit(ctx, f) {
-    ctx.save(); ctx.translate(f.x + 10, f.y + 10);
-    if(f.type === 'cherry') { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(-4, 4, 4, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(4, 4, 4, 0, Math.PI*2); ctx.fill(); ctx.strokeStyle = "green"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-4, 4); ctx.lineTo(0, -6); ctx.lineTo(4, 4); ctx.stroke(); } 
-    else if(f.type === 'apple') { ctx.fillStyle = "red"; ctx.beginPath(); ctx.arc(0, 2, 6, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "brown"; ctx.fillRect(-1, -6, 2, 4); ctx.fillStyle = "green"; ctx.beginPath(); ctx.arc(3, -5, 3, 0, Math.PI*2); ctx.fill(); } 
-    else if(f.type === 'melon') { ctx.fillStyle = "green"; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI); ctx.fill(); ctx.fillStyle = "pink"; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI); ctx.fill(); }
-    ctx.restore();
-}
-
 function updatePacMan() {
     cancelAnimationFrame(pacAnimId); if (!pacGameActive) return;
     ctxPac.clearRect(0, 0, 400, 400); ctxPac.fillStyle = "black"; ctxPac.fillRect(0, 0, 400, 400);
@@ -1091,6 +1049,7 @@ function updatePacMan() {
         ctxPac.fillStyle = "white"; ctxPac.font = "bold 16px 'Courier New', monospace"; ctxPac.fillText("Press Space or Tap to Start", 200, 200); ctxPac.textAlign = "left";
         pacAnimId = requestAnimationFrame(updatePacMan); return;
     }
+    
     if (pacState === 'GAMEOVER') {
         // Animated Corrupted Static Ghost Background
         ctxPac.fillStyle = "rgba(0, 0, 50, 0.85)"; ctxPac.fillRect(0, 0, 400, 400); 
@@ -1101,7 +1060,16 @@ function updatePacMan() {
         }
         
         ctxPac.fillStyle = "#ff0000"; ctxPac.font = "bold 24px 'Courier New', monospace"; ctxPac.textAlign = "center"; ctxPac.fillText(pacCrashMsg, 200, 160);
-        ctxPac.fillStyle = "white"; ctxPac.font = "bold 16px 'Courier New', monospace"; ctxPac.fillText("Score: " + pacScore, 200, 200); ctxPac.fillText("High Score: " + pacHighScore, 200, 230); ctxPac.fillText("Tap or Press Space to Retry", 200, 270); ctxPac.textAlign = "left";
+        ctxPac.fillStyle = "white"; ctxPac.font = "bold 16px 'Courier New', monospace"; ctxPac.fillText("Score: " + pacScore, 200, 200); ctxPac.fillText("High Score: " + pacHighScore, 200, 230); 
+        
+        // Obvious PLAY AGAIN Button
+        if (Date.now() - pacDeathTime > 1000) {
+            ctxPac.fillStyle = neonColor; ctxPac.fillRect(100, 270, 200, 30);
+            ctxPac.fillStyle = "#000"; ctxPac.font = "bold 16px 'Courier New', monospace"; 
+            ctxPac.fillText("PLAY AGAIN", 200, 290);
+        }
+        
+        ctxPac.textAlign = "left";
         pacAnimId = requestAnimationFrame(updatePacMan); return;
     }
 
@@ -1153,10 +1121,16 @@ function updatePacMan() {
     let actualGhostSpeed = scaredTimer > 0 ? ghostSpeed * 0.5 : ghostSpeed;
     
     for(let g of ghosts) {
-        
         // Forced Exit Routine
         if (g.inBox) {
-            if (g.y <= 100) { g.inBox = false; } else { g.dx = 0; g.dy = -1; g.y += (g.dy * actualGhostSpeed); }
+            if (g.y <= 100) { 
+                g.inBox = false; 
+                g.y = 100; // Force grid snap
+                g.dx = (Math.random() > 0.5) ? 1 : -1;
+                g.dy = 0;
+            } else { 
+                g.dx = 0; g.dy = -1; g.y += (g.dy * actualGhostSpeed); 
+            }
         } else {
             let gNextX = g.x + (g.dx * actualGhostSpeed), gNextY = g.y + (g.dy * actualGhostSpeed);
             if(pacCollision(gNextX, gNextY)) {
@@ -1190,7 +1164,7 @@ function updatePacMan() {
             else if (!pacGodMode) { 
                 pacCrashMsg = ["SYSTEM CRASH", "FATAL EXCEPTION", "GHOST OVERFLOW"][Math.floor(Math.random() * 3)];
                 if (pacScore > pacHighScore) { pacHighScore = pacScore; localStorage.setItem('pacRunnerHighScore', pacHighScore); } 
-                pacState = 'GAMEOVER'; triggerShake(); 
+                pacState = 'GAMEOVER'; pacDeathTime = Date.now(); triggerShake(); 
             } 
             else { ctxPac.fillStyle = "rgba(255, 255, 255, 0.5)"; ctxPac.fillRect(g.x, g.y, 20, 20); }
         }
@@ -1213,50 +1187,6 @@ function updatePacMan() {
 // ==========================================================================
 // TETRIS GAME ENGINE
 // ==========================================================================
-let tetrisActive = false, tetrisGrid = [], tetrisScore = 0, tetrisHighScore = localStorage.getItem('tetrisHighScore') || 0;
-let tetrisGameOver = false, currentPiece = null, tetrisDropCounter = 0, tetrisSpeedMod = 5, tetrisGodMode = false;
-let tetrisCrashMsg = "";
-
-const T_COLORS = [null, '#00FFFF', '#0000FF', '#FFA500', '#FFFF00', '#00FF00', '#800080', '#FF0000'];
-const T_SHAPES = [ [], [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], [[2,0,0],[2,2,2],[0,0,0]], [[0,0,3],[3,3,3],[0,0,0]], [[4,4],[4,4]], [[0,5,5],[5,5,0],[0,0,0]], [[0,6,0],[6,6,6],[0,0,0]], [[7,7,0],[0,7,7],[0,0,0]] ];
-
-function createMatrix(w, h) { const matrix = []; while (h--) { matrix.push(new Array(w).fill(0)); } return matrix; }
-function tCollide(board, player) {
-    const m = player.matrix, o = player.pos;
-    for (let y = 0; y < m.length; ++y) for (let x = 0; x < m[y].length; ++x) if (m[y][x] !== 0 && (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) return true;
-    return false;
-}
-function tMerge() { currentPiece.matrix.forEach((row, y) => { row.forEach((value, x) => { if (value !== 0) tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value; }); }); }
-function tRotate() {
-    const pos = currentPiece.pos.x; let offset = 1;
-    for (let y = 0; y < currentPiece.matrix.length; ++y) for (let x = 0; x < y; ++x) [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]];
-    currentPiece.matrix.forEach(row => row.reverse());
-    while (tCollide(tetrisGrid, currentPiece)) { currentPiece.pos.x += offset; offset = -(offset + (offset > 0 ? 1 : -1)); if (offset > currentPiece.matrix[0].length) { currentPiece.matrix.forEach(row => row.reverse()); for (let y = 0; y < currentPiece.matrix.length; ++y) for (let x = 0; x < y; ++x) [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]]; currentPiece.pos.x = pos; return; } }
-}
-function tMove(dir) { currentPiece.pos.x += dir; if (tCollide(tetrisGrid, currentPiece)) currentPiece.pos.x -= dir; }
-function tDrop() { currentPiece.pos.y++; if (tCollide(tetrisGrid, currentPiece)) { currentPiece.pos.y--; tMerge(); tReset(); tSweep(); } tetrisDropCounter = 0; }
-function tReset() {
-    const pieces = '1234567'; let type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
-    currentPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[type])), pos: {x: 3, y: 0} };
-    if (tCollide(tetrisGrid, currentPiece)) {
-        if (tetrisGodMode) { tetrisGrid.splice(15, 5); for(let i=0;i<5;i++) tetrisGrid.unshift(new Array(10).fill(0)); } 
-        else { 
-            tetrisGameOver = true; 
-            tetrisCrashMsg = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR"][Math.floor(Math.random() * 3)];
-            if(tetrisScore > tetrisHighScore) { tetrisHighScore = tetrisScore; localStorage.setItem('tetrisHighScore', tetrisHighScore); } 
-            triggerShake();
-        }
-    }
-}
-function tSweep() {
-    let rowCount = 1;
-    outer: for (let y = tetrisGrid.length - 1; y > 0; --y) {
-        for (let x = 0; x < tetrisGrid[y].length; ++x) if (tetrisGrid[y][x] === 0) continue outer;
-        const row = tetrisGrid.splice(y, 1)[0].fill(0); tetrisGrid.unshift(row); ++y; tetrisScore += rowCount * 10; rowCount *= 2;
-    }
-}
-function initTetris() { tetrisGrid = createMatrix(10, 20); tetrisScore = 0; tetrisGameOver = false; tReset(); }
-
 function updateTetris() {
     cancelAnimationFrame(tetrisAnimId); if (!tetrisActive) return;
     ctxTetris.fillStyle = '#000'; ctxTetris.fillRect(0, 0, 400, 400);
@@ -1270,7 +1200,15 @@ function updateTetris() {
         }
         ctxTetris.fillStyle = "cyan"; ctxTetris.font = "bold 24px 'Courier New', monospace"; ctxTetris.textAlign = "center"; ctxTetris.fillText(tetrisCrashMsg, 200, 160); 
         ctxTetris.fillStyle = "white"; ctxTetris.font = "bold 16px 'Courier New', monospace"; ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200); 
-        ctxTetris.fillText("Tap or Press Space to Reboot", 200, 240); ctxTetris.textAlign = "left";
+        
+        // Obvious PLAY AGAIN Button
+        if (Date.now() - tetrisDeathTime > 1000) {
+            ctxTetris.fillStyle = neonColor; ctxTetris.fillRect(100, 240, 200, 30);
+            ctxTetris.fillStyle = "#000"; ctxTetris.font = "bold 16px 'Courier New', monospace"; 
+            ctxTetris.fillText("PLAY AGAIN", 200, 260);
+        }
+        
+        ctxTetris.textAlign = "left";
         tetrisAnimId = requestAnimationFrame(updateTetris); return;
     }
 
