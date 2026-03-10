@@ -452,6 +452,13 @@ canvas {
     <div class="controls-wrapper" id="runnerControls">
         <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
     </div>
+
+    <div class="controls-wrapper" id="tetrisControls" style="display:none; gap: 5px;">
+        <button id="btnTetrisLeft" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">⬅️</button>
+        <button id="btnTetrisRotate" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">🔄</button>
+        <button id="btnTetrisDrop" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">⬇️</button>
+        <button id="btnTetrisRight" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">➡️</button>
+    </div>
 </section>
 
 <section>
@@ -531,6 +538,10 @@ canvas {
         <input type="checkbox" id="modTetrisRainbow" style="transform: scale(1.5);">
     </div>
     <div class="mod-row">
+        <label>Ghost Piece Mode</label>
+        <input type="checkbox" id="modTetrisGhost" style="transform: scale(1.5);">
+    </div>
+    <div class="mod-row">
         <label>God Mode (Never Lose)</label>
         <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
     </div>
@@ -581,6 +592,9 @@ let tetrisAnimId;
 
 let keyBuffer = "";
 let gameFrame = 0; 
+
+// Web Audio API Context for Nuke Mode
+let audioCtx = null;
 
 // Death cooldown trackers 
 let runnerDeathTime = 0;
@@ -633,7 +647,6 @@ let duckVelX = 0;
 let duckVelY = 0;
 let duckTimer = 0; 
 
-// Golden Target Variables (Secret +2 Multiplier)
 let goldenActive = false;
 let goldenX = 0;
 let goldenY = 0;
@@ -659,7 +672,9 @@ let tetrisDropCounter = 0;
 let tetrisSpeedMod = 5;
 let tetrisGodMode = false;
 let tetrisRainbow = false;
+let tetrisGhost = false;
 let tetrisFloaters = []; 
+let tetrisStars = Array.from({length: 50}, () => ({x: Math.random()*400, y: Math.random()*400, s: Math.random()*2+0.5, v: Math.random()*2+0.5}));
 let tetrisCrashMsg = "";
 const T_COLORS = [null, '#00FFFF', '#0000FF', '#FFA500', '#FFFF00', '#00FF00', '#800080', '#FF0000'];
 const T_SHAPES = [ 
@@ -688,7 +703,43 @@ const neonColor = style.getPropertyValue('--neon-color').trim() || '#ff00ff';
 const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
 
 // ==========================================================================
-// 2. SHAKE FUNCTION (Safe Toggle)
+// 2. EXPLOSION AUDIO GENERATOR (NUKE MODE)
+// ==========================================================================
+function playExplosionSound() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    
+    const bufferSize = audioCtx.sampleRate * 2; 
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1; 
+    }
+    
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800; 
+    
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(2, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); 
+    
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    noise.start();
+}
+
+// ==========================================================================
+// 3. SHAKE FUNCTION (Safe Toggle)
 // ==========================================================================
 function triggerShake() {
     if (!shakeEnabled) return;
@@ -703,7 +754,7 @@ function triggerShake() {
 }
 
 // ==========================================================================
-// 3. INITIALIZATION & UPTIME
+// 4. INITIALIZATION & UPTIME
 // ==========================================================================
 async function fetchUptimeStatus() {
     const setOnline = () => {
@@ -728,7 +779,6 @@ async function fetchUptimeStatus() {
 window.onload = () => {
     fetchUptimeStatus(); 
     
-    // Sync UI with Variables
     if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.6;
     if(document.getElementById('modJump')) document.getElementById('modJump').value = 10;
     if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
@@ -738,13 +788,13 @@ window.onload = () => {
     if(document.getElementById('modTetrisSpeed')) document.getElementById('modTetrisSpeed').value = 5;
     if(document.getElementById('modTetrisGodMode')) document.getElementById('modTetrisGodMode').checked = false;
     if(document.getElementById('modTetrisRainbow')) document.getElementById('modTetrisRainbow').checked = false;
+    if(document.getElementById('modTetrisGhost')) document.getElementById('modTetrisGhost').checked = false;
     
     if(document.getElementById('modDuckSpeed')) document.getElementById('modDuckSpeed').value = 3;
     if(document.getElementById('modTargetSize')) document.getElementById('modTargetSize').value = 30;
     if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
     if(document.getElementById('modTargetFreeze')) document.getElementById('modTargetFreeze').checked = false;
     
-    // Screen Shake mod toggle setup
     if(document.getElementById('modShakeToggle')) {
         document.getElementById('modShakeToggle').checked = true;
         shakeEnabled = true;
@@ -754,7 +804,7 @@ window.onload = () => {
 };
 
 // ==========================================================================
-// 4. DYNAMIC TEXT GENERATION (EXPANDED LIST)
+// 5. DYNAMIC TEXT GENERATION (SAFE LOAD)
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
@@ -794,7 +844,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================================================
-// 5. MOD MENU DRAG AND DROP
+// 6. MOD MENU DRAG AND DROP
 // ==========================================================================
 let headerTapCount = 0;
 document.getElementById('mainHeader')?.addEventListener('pointerdown', () => {
@@ -846,7 +896,7 @@ document.addEventListener("mouseup", () => { isDraggingMenu = false; });
 document.addEventListener("touchend", () => { isDraggingMenu = false; });
 
 // ==========================================================================
-// 6. MASTER GAME SWITCHER
+// 7. MASTER GAME SWITCHER
 // ==========================================================================
 window.switchGame = function(mode) {
     targetGameActive = false; 
@@ -859,7 +909,9 @@ window.switchGame = function(mode) {
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
     document.getElementById('tetrisGame').style.display = 'none';
+    
     document.getElementById('runnerControls').style.display = 'none'; 
+    document.getElementById('tetrisControls').style.display = 'none'; 
     document.getElementById('publicDifficulty').style.display = 'none';
 
     if (mode === 'runner') {
@@ -901,6 +953,7 @@ window.switchGame = function(mode) {
         tetrisActive = true;
         
         document.getElementById('tetrisGame').style.display = 'block'; 
+        document.getElementById('tetrisControls').style.display = 'flex'; 
         document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; 
         document.getElementById('gameTitle').style.color = "cyan";
@@ -911,7 +964,7 @@ window.switchGame = function(mode) {
 }
 
 // ==========================================================================
-// 7. MOD MENU LINKAGE
+// 8. MOD MENU LINKAGE
 // ==========================================================================
 document.getElementById('modGravity')?.addEventListener('input', (e) => { 
     currentGravity = parseFloat(e.target.value); 
@@ -932,7 +985,6 @@ document.getElementById('modRunnerBot')?.addEventListener('change', (e) => {
     runnerAutoBot = e.target.checked; 
 });
 
-// Update Shake Toggle to intercept
 document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { 
     shakeEnabled = e.target.checked;
 });
@@ -962,8 +1014,10 @@ document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => {
 document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => { 
     tetrisRainbow = e.target.checked; 
 });
+document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { 
+    tetrisGhost = e.target.checked; 
+});
 
-// Difficulty updating (Only changes active lives if the game hasn't started playing yet)
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
     document.getElementById('modDifficulty').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
@@ -990,7 +1044,7 @@ document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
 });
 
 // ==========================================================================
-// MASSIVE NUKE MODE UPGRADE (JUMP SCARE & RED VOID)
+// MASSIVE NUKE MODE UPGRADE (JUMP SCARE & EXPLOSIONS)
 // ==========================================================================
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
     nukeModeActive = true; 
@@ -1034,38 +1088,45 @@ document.addEventListener('click', (e) => {
     // Prevent breaking the core DOM structure (body/html) so the void background stays
     if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') return;
     
-    // Deletion Particle Effect
-    for (let i = 0; i < 15; i++) {
+    playExplosionSound(); 
+    
+    if (shakeEnabled) {
+        document.body.style.transform = `translate(${(Math.random() - 0.5) * 20}px, ${(Math.random() - 0.5) * 20}px)`;
+        setTimeout(() => { document.body.style.transform = 'none'; }, 100);
+    }
+    
+    // Massive Deletion Particle Effect
+    for (let i = 0; i < 50; i++) {
         const pixel = document.createElement('div');
         pixel.style.position = 'fixed'; 
         pixel.style.left = e.clientX + 'px'; 
         pixel.style.top = e.clientY + 'px';
-        pixel.style.width = (Math.random() * 6 + 4) + 'px'; 
+        pixel.style.width = (Math.random() * 8 + 4) + 'px'; 
         pixel.style.height = pixel.style.width;
-        pixel.style.background = `hsl(${Math.random() * 360}, 100%, 50%)`; 
+        pixel.style.background = `hsl(${Math.random() * 60 + 0}, 100%, 50%)`; // Fire colors
         pixel.style.pointerEvents = 'none'; 
         pixel.style.zIndex = 10001;
         
-        const vx = (Math.random() - 0.5) * 200;
-        const vy = (Math.random() - 0.5) * 200;
+        const vx = (Math.random() - 0.5) * 600;
+        const vy = (Math.random() - 0.5) * 600;
         pixel.animate([
-            { transform: 'translate(0, 0) scale(1)', opacity: 1 }, 
-            { transform: `translate(${vx}px, ${vy}px) scale(0)`, opacity: 0 }
-        ], { duration: 600, easing: 'ease-out' });
+            { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 }, 
+            { transform: `translate(${vx}px, ${vy}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 }
+        ], { duration: 800, easing: 'ease-out' });
         
         document.body.appendChild(pixel); 
-        setTimeout(() => pixel.remove(), 600);
+        setTimeout(() => pixel.remove(), 800);
     }
     
     // Physically delete the element you clicked
-    e.target.style.transition = 'all 0.2s'; 
+    e.target.style.transition = 'all 0.1s'; 
     e.target.style.transform = 'scale(0)'; 
     e.target.style.opacity = '0';
-    setTimeout(() => { if (e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 200);
+    setTimeout(() => { if (e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 100);
 });
 
 // ==========================================================================
-// 8. UNIVERSAL INPUT ROUTER (STRICT SCROLL LOCK)
+// 9. UNIVERSAL INPUT ROUTER (STRICT SCROLL LOCK)
 // ==========================================================================
 window.addEventListener("keydown", function(e) {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
@@ -1204,7 +1265,6 @@ if (targetCanvas) {
             }
 
             if (hitNormal || hitGolden) {
-                // Clear and redraw background instantly for visual feedback
                 ctxTarget.fillStyle = "white"; 
                 ctxTarget.fillRect(0,0,400,200);
             }
@@ -1212,15 +1272,25 @@ if (targetCanvas) {
     });
 }
 
+// Mobile Tetris HTML Buttons mapping
+document.getElementById("btnTetrisLeft")?.addEventListener("pointerdown", (e) => { e.preventDefault(); if(tetrisActive && !tetrisGameOver) tMove(-1); });
+document.getElementById("btnTetrisRight")?.addEventListener("pointerdown", (e) => { e.preventDefault(); if(tetrisActive && !tetrisGameOver) tMove(1); });
+document.getElementById("btnTetrisRotate")?.addEventListener("pointerdown", (e) => { e.preventDefault(); if(tetrisActive && !tetrisGameOver) tRotate(); });
+document.getElementById("btnTetrisDrop")?.addEventListener("pointerdown", (e) => { 
+    e.preventDefault(); 
+    if(tetrisActive && !tetrisGameOver) {
+        while(!tCollide(tetrisGrid, currentPiece)) { currentPiece.pos.y++; } 
+        currentPiece.pos.y--; tMerge(); tReset(); tSweep();
+    }
+});
+
 if (tetrisCanvas) {
     tetrisCanvas.addEventListener("pointerdown", (e) => { 
         e.preventDefault(); 
         if (tetrisGameOver) { 
             if (Date.now() - tetrisDeathTime < 1000) return; 
             initTetris(); 
-        } else if (tetrisActive && !tetrisGameOver) { 
-            tRotate(); 
-        } 
+        }
     });
 }
 
@@ -1231,7 +1301,7 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) =>
 });
 
 // ==========================================================================
-// 9. RUNNER GAME ENGINE (PURE JUMPING)
+// 10. RUNNER GAME ENGINE (PURE JUMPING)
 // ==========================================================================
 function jump() {
     if (targetGameActive || tetrisActive) return; 
@@ -1418,7 +1488,7 @@ function updateRunner() {
 }
 
 // ==========================================================================
-// 10. TARGET SIMULATOR ENGINE (WITH SECRET GOLDEN TARGET)
+// 11. TARGET SIMULATOR ENGINE (GOLDEN TARGET + INFINITE LOGO)
 // ==========================================================================
 function spawnDuck() {
     duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
@@ -1438,10 +1508,10 @@ function spawnDuck() {
 function spawnGoldenDuck() {
     goldenX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
     goldenY = Math.floor(Math.random() * (150 - targetSize)); 
-    let gSpeed = targetSpeedMult * 1.5; // Moves faster
+    let gSpeed = targetSpeedMult * 1.5; 
     goldenVx = (Math.random() > 0.5 ? 1 : -1) * gSpeed; 
     goldenVy = (Math.random() > 0.5 ? 1 : -1) * gSpeed;
-    goldenTimer = 120; // Disappears much faster
+    goldenTimer = 120; 
     goldenActive = true;
 }
 
@@ -1496,14 +1566,12 @@ function updateTargetGame() {
     ctxTarget.lineWidth = 2;
     let timeOffset = (Date.now() / 20) % 40;
     
-    // Horizontal lines moving down
     for(let i = -40; i < 200; i += 40) {
         ctxTarget.beginPath(); 
         ctxTarget.moveTo(0, i + timeOffset); 
         ctxTarget.lineTo(400, i + timeOffset); 
         ctxTarget.stroke();
     }
-    // Vertical lines
     for(let i = 0; i <= 400; i += 40) {
         ctxTarget.beginPath(); 
         ctxTarget.moveTo(i, 0); 
@@ -1511,7 +1579,6 @@ function updateTargetGame() {
         ctxTarget.stroke();
     }
 
-    // Normal Target Logic (Bullseye)
     if (duckActive) {
         duckX += duckVelX; 
         duckY += duckVelY;
@@ -1555,7 +1622,11 @@ function updateTargetGame() {
             targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
             
             if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
+            
+            if (targetScore > targetHighScore) { 
+                targetHighScore = targetScore; 
+                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
+            }
             
             duckActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
@@ -1565,7 +1636,6 @@ function updateTargetGame() {
         if (Math.random() < 0.03) spawnDuck(); 
     }
     
-    // Golden Target Logic
     if (goldenActive) {
         goldenX += goldenVx; 
         goldenY += goldenVy;
@@ -1600,7 +1670,10 @@ function updateTargetGame() {
             targetScore += 2; 
             targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
             
-            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
+            if (targetScore > targetHighScore) { 
+                targetHighScore = targetScore; 
+                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
+            }
             
             goldenActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
@@ -1608,7 +1681,7 @@ function updateTargetGame() {
         }
     }
 
-    // Render Floating Scores (RGB mapped)
+    // Render Floating Scores 
     for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
         let f = targetFloatingScores[i];
         ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`;
@@ -1626,14 +1699,14 @@ function updateTargetGame() {
     ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
     ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
     
-    // Check infinite freeze mod logic for UI
+    // Infinite freeze UI
     ctxTarget.fillText("LIVES: " + (targetFreeze ? "∞" : targetLives), 320, 20);
     
     targetAnimId = requestAnimationFrame(updateTargetGame);
 }
 
 // ==========================================================================
-// 11. TETRIS GAME ENGINE
+// 12. TETRIS GAME ENGINE 
 // ==========================================================================
 function createMatrix(w, h) { 
     const matrix = []; 
@@ -1777,8 +1850,19 @@ function updateTetris() {
     cancelAnimationFrame(tetrisAnimId); 
     if (!tetrisActive) return;
     
-    ctxTetris.fillStyle = '#000'; 
+    // Starfield Background
+    ctxTetris.fillStyle = '#050515'; 
     ctxTetris.fillRect(0, 0, 400, 400);
+    
+    ctxTetris.fillStyle = '#fff';
+    tetrisStars.forEach(star => {
+        star.y += star.v;
+        if (star.y > 400) { 
+            star.y = 0; 
+            star.x = Math.random() * 400; 
+        }
+        ctxTetris.fillRect(star.x, star.y, star.s, star.s);
+    });
 
     if (tetrisGameOver) {
         ctxTetris.fillStyle = "rgba(0, 20, 20, 0.85)"; 
@@ -1815,7 +1899,7 @@ function updateTetris() {
         return;
     }
 
-    ctxTetris.strokeStyle = '#333'; 
+    ctxTetris.strokeStyle = 'rgba(51, 51, 51, 0.5)'; 
     for(let i = 100; i <= 300; i += 20) { 
         ctxTetris.beginPath(); ctxTetris.moveTo(i, 0); ctxTetris.lineTo(i, 400); ctxTetris.stroke(); 
     } 
@@ -1823,7 +1907,7 @@ function updateTetris() {
         ctxTetris.beginPath(); ctxTetris.moveTo(100, i); ctxTetris.lineTo(300, i); ctxTetris.stroke(); 
     }
 
-    let time = Date.now() / 5; // Used for smooth rainbow effect
+    let time = Date.now() / 5; 
 
     tetrisGrid.forEach((row, y) => { 
         row.forEach((value, x) => { 
@@ -1836,6 +1920,24 @@ function updateTetris() {
             } 
         });
     });
+    
+    // Ghost Piece Logic
+    if (tetrisGhost && currentPiece) {
+        let ghostY = currentPiece.pos.y;
+        while (!tCollide(tetrisGrid, {matrix: currentPiece.matrix, pos: {x: currentPiece.pos.x, y: ghostY + 1}})) { 
+            ghostY++; 
+        }
+        currentPiece.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    ctxTetris.fillStyle = "rgba(255, 255, 255, 0.2)";
+                    ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
+                    ctxTetris.strokeStyle = "rgba(255, 255, 255, 0.5)";
+                    ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
+                }
+            });
+        });
+    }
     
     currentPiece.matrix.forEach((row, y) => { 
         row.forEach((value, x) => { 
