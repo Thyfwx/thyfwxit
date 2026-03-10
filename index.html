@@ -35,6 +35,7 @@ body {
     padding: 40px 20px; 
     background-color: var(--bg-color); 
     color: var(--text-color); 
+    transition: background-color 0.3s ease;
 }
 
 header { 
@@ -217,6 +218,19 @@ footer {
 
 .shake-effect { 
     animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
+}
+
+/* NUKE JUMP SCARE ANIMATION */
+@keyframes jumpScare {
+    0% { filter: invert(1) hue-rotate(180deg) blur(5px); transform: scale(1.05) translate(10px, 10px); }
+    15% { filter: invert(0) hue-rotate(0deg) blur(0px); transform: scale(1) translate(-10px, -10px); }
+    30% { filter: invert(1) hue-rotate(90deg) blur(2px); transform: scale(1.02) translate(5px, -5px); }
+    45% { filter: invert(0) hue-rotate(0deg) blur(0px); transform: scale(1) translate(0px, 0px); }
+    100% { filter: none; transform: none; }
+}
+
+.nuke-flash {
+    animation: jumpScare 0.6s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 /* CRT Flicker */
@@ -740,7 +754,7 @@ window.onload = () => {
 };
 
 // ==========================================================================
-// 4. DYNAMIC TEXT GENERATION (SAFE LOAD)
+// 4. DYNAMIC TEXT GENERATION (EXPANDED LIST)
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
@@ -748,7 +762,12 @@ document.addEventListener("DOMContentLoaded", () => {
         "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
         "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
         "Applying fresh <b>thermal paste</b> (cooling compound) every few years prevents processor throttling.",
-        "Set up <b>WireGuard VPN</b> (virtual private network) on your router to safely access your home lab from public Wi-Fi."
+        "Set up <b>WireGuard VPN</b> (virtual private network) on your router to safely access your home lab from public Wi-Fi.",
+        "Use <b>Docker</b> containers instead of full virtual machines when possible to drastically save server resources.",
+        "Disable <b>UPnP</b> on your router to prevent random devices from silently opening ports to the public internet.",
+        "When repairing MacBooks, always disconnect the <b>battery ribbon cable</b> first to avoid shorting the logic board.",
+        "Configure <b>Fail2Ban</b> on your reverse proxy to permanently block IPs that repeatedly fail authentication.",
+        "Implement a <b>3-2-1 backup strategy</b>: 3 copies of data, 2 different media types, 1 offsite."
     ];
 
     const tipElement = document.getElementById("techTipText");
@@ -970,17 +989,52 @@ document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
     alert("SYSTEM PURGED: All local high scores have been wiped.");
 });
 
+// ==========================================================================
+// MASSIVE NUKE MODE UPGRADE (JUMP SCARE & RED VOID)
+// ==========================================================================
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
     nukeModeActive = true; 
-    e.target.style.background = "#fff"; 
-    e.target.style.color = "#ff0000"; 
-    e.target.innerText = "SYSTEM NUKED - CLICK TO DESTROY"; 
+    
+    // Jump Scare Flash
+    document.body.classList.add("nuke-flash");
+    
+    // Change background to a dark red warning grid
+    document.body.style.backgroundColor = "#0a0000";
+    document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #220000 25%, transparent 25%, transparent 75%, #220000 75%, #220000), repeating-linear-gradient(45deg, #220000 25%, #0a0000 25%, #0a0000 75%, #220000 75%, #220000)";
+    document.body.style.backgroundPosition = "0 0, 10px 10px";
+    document.body.style.backgroundSize = "20px 20px";
+    document.body.style.cursor = "crosshair";
+
+    e.target.style.background = "#ff0000"; 
+    e.target.style.color = "#000"; 
+    e.target.innerText = "WARNING: SYSTEM NUKED. CLICK TO PURGE DATA."; 
     e.target.style.pointerEvents = "none";
+    
+    // Add permanent un-deletable background warning text
+    const doomText = document.createElement("div");
+    doomText.style.position = "fixed";
+    doomText.style.top = "50%";
+    doomText.style.left = "50%";
+    doomText.style.transform = "translate(-50%, -50%)";
+    doomText.style.color = "rgba(255, 0, 0, 0.15)";
+    doomText.style.fontSize = "5vw";
+    doomText.style.fontFamily = "monospace";
+    doomText.style.fontWeight = "bold";
+    doomText.style.pointerEvents = "none"; // Make it un-clickable
+    doomText.style.zIndex = "-1"; // Keep it strictly in the background
+    doomText.style.textAlign = "center";
+    doomText.innerHTML = "SYSTEM PURGE ACTIVE<br>NO RECOVERY POSSIBLE";
+    document.body.appendChild(doomText);
+
+    triggerShake();
+    setTimeout(triggerShake, 500);
 });
 
 document.addEventListener('click', (e) => {
-    if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'CANVAS') return;
+    // Prevent breaking the core DOM structure (body/html) so the void background stays
+    if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') return;
     
+    // Deletion Particle Effect
     for (let i = 0; i < 15; i++) {
         const pixel = document.createElement('div');
         pixel.style.position = 'fixed'; 
@@ -1003,6 +1057,7 @@ document.addEventListener('click', (e) => {
         setTimeout(() => pixel.remove(), 600);
     }
     
+    // Physically delete the element you clicked
     e.target.style.transition = 'all 0.2s'; 
     e.target.style.transform = 'scale(0)'; 
     e.target.style.opacity = '0';
@@ -1500,11 +1555,7 @@ function updateTargetGame() {
             targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
             
             if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-            
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
+            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
             
             duckActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
@@ -1549,10 +1600,7 @@ function updateTargetGame() {
             targetScore += 2; 
             targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
             
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
+            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
             
             goldenActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
