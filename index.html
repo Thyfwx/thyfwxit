@@ -438,7 +438,7 @@ canvas {
     </div>
 
     <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump</p>
-    <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s;">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
+    <p id="secretText" onclick="window.switchGame('target')" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
     <div id="publicDifficulty" style="display:none; margin-top: 15px;">
         <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -451,13 +451,6 @@ canvas {
 
     <div class="controls-wrapper" id="runnerControls">
         <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
-    </div>
-
-    <div class="controls-wrapper" id="tetrisControls" style="display:none; gap: 5px;">
-        <button id="btnTetrisLeft" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">⬅️</button>
-        <button id="btnTetrisRotate" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">🔄</button>
-        <button id="btnTetrisDrop" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">⬇️</button>
-        <button id="btnTetrisRight" class="jump-btn" style="padding: 15px 10px; min-width: 60px;">➡️</button>
     </div>
 </section>
 
@@ -647,6 +640,7 @@ let duckVelX = 0;
 let duckVelY = 0;
 let duckTimer = 0; 
 
+// Golden Target Variables (Secret +2 Multiplier)
 let goldenActive = false;
 let goldenX = 0;
 let goldenY = 0;
@@ -779,6 +773,7 @@ async function fetchUptimeStatus() {
 window.onload = () => {
     fetchUptimeStatus(); 
     
+    // Sync UI with Variables
     if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.6;
     if(document.getElementById('modJump')) document.getElementById('modJump').value = 10;
     if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
@@ -804,7 +799,7 @@ window.onload = () => {
 };
 
 // ==========================================================================
-// 5. DYNAMIC TEXT GENERATION (SAFE LOAD)
+// 5. DYNAMIC TEXT GENERATION (EXPANDED LIST)
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
@@ -909,9 +904,7 @@ window.switchGame = function(mode) {
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
     document.getElementById('tetrisGame').style.display = 'none';
-    
     document.getElementById('runnerControls').style.display = 'none'; 
-    document.getElementById('tetrisControls').style.display = 'none'; 
     document.getElementById('publicDifficulty').style.display = 'none';
 
     if (mode === 'runner') {
@@ -953,7 +946,6 @@ window.switchGame = function(mode) {
         tetrisActive = true;
         
         document.getElementById('tetrisGame').style.display = 'block'; 
-        document.getElementById('tetrisControls').style.display = 'flex'; 
         document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; 
         document.getElementById('gameTitle').style.color = "cyan";
@@ -1018,6 +1010,7 @@ document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => {
     tetrisGhost = e.target.checked; 
 });
 
+// Difficulty updating
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
     document.getElementById('modDifficulty').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
@@ -1126,18 +1119,14 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================================================
-// 9. UNIVERSAL INPUT ROUTER (STRICT SCROLL LOCK)
+// 9. UNIVERSAL INPUT ROUTER & MOBILE SWIPE LOGIC
 // ==========================================================================
+
+// Global Keydown (Listens Everywhere, even in Contact Form for cheats)
 window.addEventListener("keydown", function(e) {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-    }
-
-    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") {
-        e.preventDefault();
-    }
-
-    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    
+    // 1. Cheat Code Buffer (Tracked ALWAYS, so mobile users can type in the form)
+    if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
         keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
         if (keyBuffer.endsWith("sudo")) { document.getElementById('terminalOverlay').style.display = 'block'; }
         if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'block'; }
@@ -1146,6 +1135,17 @@ window.addEventListener("keydown", function(e) {
         if (keyBuffer.endsWith("runn")) { window.switchGame('runner'); }
     }
 
+    // 2. Stop executing game controls if actually typing in a form
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+    }
+
+    // 3. Block page scrolling for game keys
+    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") {
+        e.preventDefault();
+    }
+
+    // 4. Pass inputs to active games
     if (tetrisActive) {
         if (tetrisGameOver) { 
             if (e.code === "Space" || e.code === "Enter" || e.key === " ") {
@@ -1229,25 +1229,18 @@ if (targetCanvas) {
             let hitNormal = false;
             let hitGolden = false;
 
-            // Check Golden Target First
             if (goldenActive && clickX >= goldenX - 25 && clickX <= goldenX + targetSize + 25 && clickY >= goldenY - 25 && clickY <= goldenY + targetSize + 25) {
                 hitGolden = true;
                 targetGameStarted = true;
-                targetScore += 2; // Secret Multiplier
+                targetScore += 2; 
                 targetFloatingScores.push({x: clickX + 15, y: clickY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
                 
                 if (targetScore > 0 && Math.floor(targetScore / 25) > Math.floor((targetScore - 2) / 25)) {
                     targetSpeedMult += 1; 
                 }
-                
-                if (targetScore > targetHighScore) { 
-                    targetHighScore = targetScore; 
-                    try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
-                }
-                
+                if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
                 goldenActive = false; 
             }
-            // Check Normal Target Second
             else if (duckActive && clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
                 hitNormal = true;
                 targetGameStarted = true;
@@ -1255,12 +1248,7 @@ if (targetCanvas) {
                 targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
                 
                 if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-                
-                if (targetScore > targetHighScore) { 
-                    targetHighScore = targetScore; 
-                    try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
-                }
-                
+                if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
                 duckActive = false; 
             }
 
@@ -1272,24 +1260,55 @@ if (targetCanvas) {
     });
 }
 
-// Mobile Tetris HTML Buttons mapping
-document.getElementById("btnTetrisLeft")?.addEventListener("pointerdown", (e) => { e.preventDefault(); if(tetrisActive && !tetrisGameOver) tMove(-1); });
-document.getElementById("btnTetrisRight")?.addEventListener("pointerdown", (e) => { e.preventDefault(); if(tetrisActive && !tetrisGameOver) tMove(1); });
-document.getElementById("btnTetrisRotate")?.addEventListener("pointerdown", (e) => { e.preventDefault(); if(tetrisActive && !tetrisGameOver) tRotate(); });
-document.getElementById("btnTetrisDrop")?.addEventListener("pointerdown", (e) => { 
-    e.preventDefault(); 
-    if(tetrisActive && !tetrisGameOver) {
-        while(!tCollide(tetrisGrid, currentPiece)) { currentPiece.pos.y++; } 
-        currentPiece.pos.y--; tMerge(); tReset(); tSweep();
-    }
-});
+// TETRIS MOBILE SWIPE ENGINE
+let tPointerStartX = 0;
+let tPointerStartY = 0;
+let tPointerHandled = false;
 
 if (tetrisCanvas) {
-    tetrisCanvas.addEventListener("pointerdown", (e) => { 
+    tetrisCanvas.addEventListener("touchstart", (e) => { 
         e.preventDefault(); 
         if (tetrisGameOver) { 
-            if (Date.now() - tetrisDeathTime < 1000) return; 
-            initTetris(); 
+            if (Date.now() - tetrisDeathTime > 1000) initTetris(); 
+            return; 
+        }
+        tPointerStartX = e.touches[0].clientX;
+        tPointerStartY = e.touches[0].clientY;
+        tPointerHandled = false;
+    }, {passive: false});
+
+    tetrisCanvas.addEventListener("touchmove", (e) => { 
+        e.preventDefault(); 
+        if (!tetrisActive || tetrisGameOver) return;
+        
+        let dx = e.touches[0].clientX - tPointerStartX;
+        let dy = e.touches[0].clientY - tPointerStartY;
+        
+        if (Math.abs(dx) > 30) {
+            tMove(dx > 0 ? 1 : -1);
+            tPointerStartX = e.touches[0].clientX; // Reset to allow smooth dragging
+            tPointerHandled = true;
+        } else if (dy > 40) {
+            tDrop(); // Swipe down to fast drop
+            tPointerStartY = e.touches[0].clientY;
+            tPointerHandled = true;
+        }
+    }, {passive: false});
+
+    tetrisCanvas.addEventListener("touchend", (e) => {
+        e.preventDefault();
+        if (!tPointerHandled && tetrisActive && !tetrisGameOver) {
+            tRotate(); // Simple tap to rotate
+        }
+    }, {passive: false});
+    
+    // Also allow mouse clicks for desktop if they just want to tap
+    tetrisCanvas.addEventListener("mousedown", (e) => {
+        e.preventDefault();
+        if (tetrisGameOver) {
+            if (Date.now() - tetrisDeathTime > 1000) initTetris();
+        } else if (tetrisActive) {
+            tRotate();
         }
     });
 }
@@ -1488,7 +1507,7 @@ function updateRunner() {
 }
 
 // ==========================================================================
-// 11. TARGET SIMULATOR ENGINE (GOLDEN TARGET + INFINITE LOGO)
+// 11. TARGET SIMULATOR ENGINE
 // ==========================================================================
 function spawnDuck() {
     duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
@@ -1508,10 +1527,10 @@ function spawnDuck() {
 function spawnGoldenDuck() {
     goldenX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
     goldenY = Math.floor(Math.random() * (150 - targetSize)); 
-    let gSpeed = targetSpeedMult * 1.5; 
+    let gSpeed = targetSpeedMult * 1.5; // Moves faster
     goldenVx = (Math.random() > 0.5 ? 1 : -1) * gSpeed; 
     goldenVy = (Math.random() > 0.5 ? 1 : -1) * gSpeed;
-    goldenTimer = 120; 
+    goldenTimer = 120; // Disappears much faster
     goldenActive = true;
 }
 
@@ -1566,12 +1585,14 @@ function updateTargetGame() {
     ctxTarget.lineWidth = 2;
     let timeOffset = (Date.now() / 20) % 40;
     
+    // Horizontal lines moving down
     for(let i = -40; i < 200; i += 40) {
         ctxTarget.beginPath(); 
         ctxTarget.moveTo(0, i + timeOffset); 
         ctxTarget.lineTo(400, i + timeOffset); 
         ctxTarget.stroke();
     }
+    // Vertical lines
     for(let i = 0; i <= 400; i += 40) {
         ctxTarget.beginPath(); 
         ctxTarget.moveTo(i, 0); 
@@ -1579,6 +1600,7 @@ function updateTargetGame() {
         ctxTarget.stroke();
     }
 
+    // Normal Target Logic (Bullseye)
     if (duckActive) {
         duckX += duckVelX; 
         duckY += duckVelY;
@@ -1616,26 +1638,11 @@ function updateTargetGame() {
             } 
         }
         
-        if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
-            targetGameStarted = true;
-            targetScore++; 
-            targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
-            
-            if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-            
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
-            
-            duckActive = false; 
-            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
-            ctxTarget.fillRect(0, 0, 400, 200);
-        }
     } else { 
         if (Math.random() < 0.03) spawnDuck(); 
     }
     
+    // Golden Target Logic
     if (goldenActive) {
         goldenX += goldenVx; 
         goldenY += goldenVy;
@@ -1664,24 +1671,31 @@ function updateTargetGame() {
         if (goldenTimer <= 0) { 
             goldenActive = false; // Disappears, but no life penalty
         }
-        
-        if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
+    }
+
+    // Aimbot Logic (Shoots whichever is on screen automatically)
+    if (aimbotEnabled) {
+        if (goldenActive && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
             targetGameStarted = true;
             targetScore += 2; 
             targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
-            
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
-            
+            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
             goldenActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
-            ctxTarget.fillRect(0, 0, 400, 200);
+            ctxTarget.fillRect(0,0,400,200);
+        } else if (duckActive && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
+            targetGameStarted = true;
+            targetScore++; 
+            targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
+            if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
+            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
+            duckActive = false; 
+            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
+            ctxTarget.fillRect(0,0,400,200);
         }
     }
 
-    // Render Floating Scores 
+    // Render Floating Scores (RGB mapped)
     for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
         let f = targetFloatingScores[i];
         ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`;
@@ -1699,14 +1713,14 @@ function updateTargetGame() {
     ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
     ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
     
-    // Infinite freeze UI
+    // Check infinite freeze mod logic for UI
     ctxTarget.fillText("LIVES: " + (targetFreeze ? "∞" : targetLives), 320, 20);
     
     targetAnimId = requestAnimationFrame(updateTargetGame);
 }
 
 // ==========================================================================
-// 12. TETRIS GAME ENGINE 
+// 12. TETRIS GAME ENGINE (SWIPE ENABLED)
 // ==========================================================================
 function createMatrix(w, h) { 
     const matrix = []; 
@@ -1850,11 +1864,11 @@ function updateTetris() {
     cancelAnimationFrame(tetrisAnimId); 
     if (!tetrisActive) return;
     
-    // Starfield Background
-    ctxTetris.fillStyle = '#050515'; 
+    // Deep Space Starfield Background
+    ctxTetris.fillStyle = '#000000'; 
     ctxTetris.fillRect(0, 0, 400, 400);
     
-    ctxTetris.fillStyle = '#fff';
+    ctxTetris.fillStyle = 'rgba(255, 255, 255, 0.4)';
     tetrisStars.forEach(star => {
         star.y += star.v;
         if (star.y > 400) { 
@@ -1899,7 +1913,7 @@ function updateTetris() {
         return;
     }
 
-    ctxTetris.strokeStyle = 'rgba(51, 51, 51, 0.5)'; 
+    ctxTetris.strokeStyle = 'rgba(51, 51, 51, 0.3)'; 
     for(let i = 100; i <= 300; i += 20) { 
         ctxTetris.beginPath(); ctxTetris.moveTo(i, 0); ctxTetris.lineTo(i, 400); ctxTetris.stroke(); 
     } 
