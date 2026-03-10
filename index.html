@@ -221,12 +221,12 @@ footer {
 
 /* CRT Flicker */
 @keyframes crt-flicker {
-    0% { opacity: 0.8; }
-    5% { opacity: 0.95; }
-    10% { opacity: 0.8; }
+    0% { opacity: 0.95; }
+    5% { opacity: 0.85; }
+    10% { opacity: 0.95; }
     15% { opacity: 1; }
-    50% { opacity: 0.9; }
-    100% { opacity: 0.85; }
+    50% { opacity: 0.95; }
+    100% { opacity: 0.9; }
 }
 
 .game-container { 
@@ -481,8 +481,8 @@ canvas {
             
     <div class="mod-section-title">Global Mods</div>
     <div class="mod-row">
-        <label>CRT Flicker</label>
-        <input type="checkbox" id="modCrtToggle" style="transform: scale(1.5);">
+        <label>Screen Shake</label>
+        <input type="checkbox" id="modShakeToggle" checked style="transform: scale(1.5);">
     </div>
 
     <div class="mod-section-title">Runner Mods</div>
@@ -583,7 +583,7 @@ try { targetHighScore = parseInt(localStorage.getItem('matrixTargetHighScore')) 
 try { tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; } catch(e) {}
 
 // Global Mods
-let crtEnabled = false;
+let shakeEnabled = true;
 
 // Cyber Runner Variables
 let currentGravity = 0.6;
@@ -613,6 +613,15 @@ let duckActive = false;
 let duckVelX = 0;
 let duckVelY = 0;
 let duckTimer = 0; 
+
+// Golden Target Variables (Secret +2 Multiplier)
+let goldenActive = false;
+let goldenX = 0;
+let goldenY = 0;
+let goldenVx = 0;
+let goldenVy = 0;
+let goldenTimer = 0;
+
 let maxLives = 6;
 let targetLives = 6;
 let targetGameOver = false;
@@ -661,9 +670,11 @@ const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
 const crashMessages = ["KERNEL PANIC", "SEGFAULT DETECTED", "FATAL EXCEPTION", "SYSTEM HALTED", "MEMORY CORRUPTION"];
 
 // ==========================================================================
-// 2. SHAKE FUNCTION
+// 2. SHAKE FUNCTION (Safe Toggle)
 // ==========================================================================
 function triggerShake() {
+    if (!shakeEnabled) return;
+    
     const gameArea = document.getElementById("gameArea");
     if (gameArea) {
         gameArea.classList.remove("shake-effect");
@@ -714,7 +725,12 @@ window.onload = () => {
     if(document.getElementById('modTargetSize')) document.getElementById('modTargetSize').value = 30;
     if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
     if(document.getElementById('modTargetFreeze')) document.getElementById('modTargetFreeze').checked = false;
-    if(document.getElementById('modCrtToggle')) document.getElementById('modCrtToggle').checked = false;
+    
+    // Screen Shake mod toggle setup
+    if(document.getElementById('modShakeToggle')) {
+        document.getElementById('modShakeToggle').checked = true;
+        shakeEnabled = true;
+    }
     
     if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
 };
@@ -845,7 +861,8 @@ window.switchGame = function(mode) {
         targetGameStarted = false;
         targetLives = maxLives; 
         targetScore = 0; 
-        duckActive = false; 
+        duckActive = false;
+        goldenActive = false; 
         targetGameOver = false;
         targetFloatingScores = [];
         
@@ -891,12 +908,10 @@ document.getElementById('modGodMode')?.addEventListener('change', (e) => {
 document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { 
     runnerAutoBot = e.target.checked; 
 });
-document.getElementById('modCrtToggle')?.addEventListener('change', (e) => { 
-    crtEnabled = e.target.checked;
-    const overlay = document.getElementById('crtOverlayElement');
-    if (overlay) {
-        overlay.style.display = crtEnabled ? 'block' : 'none';
-    }
+
+// Update Shake Toggle to intercept
+document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { 
+    shakeEnabled = e.target.checked;
 });
 
 document.getElementById('modDuckSpeed')?.addEventListener('input', (e) => { 
@@ -925,7 +940,7 @@ document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => {
     tetrisRainbow = e.target.checked; 
 });
 
-// Difficulty updating (Only changes active lives if the game hasn't started playing yet)
+// Difficulty updating 
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
     document.getElementById('modDifficulty').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
@@ -1042,6 +1057,7 @@ window.addEventListener("keydown", function(e) {
             targetScore = 0; 
             targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
             duckActive = false;
+            goldenActive = false;
             targetFloatingScores = [];
         }
     } else {
@@ -1081,18 +1097,43 @@ if (targetCanvas) {
             targetScore = 0; 
             targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
             duckActive = false; 
+            goldenActive = false;
             targetFloatingScores = [];
-        } else if (duckActive) {
+        } else {
             const rect = targetCanvas.getBoundingClientRect();
             const scaleX = targetCanvas.width / rect.width;
             const scaleY = targetCanvas.height / rect.height;
             const clickX = (e.clientX - rect.left) * scaleX;
             const clickY = (e.clientY - rect.top) * scaleY;
             
-            if (clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
+            let hitNormal = false;
+            let hitGolden = false;
+
+            // Check Golden Target First
+            if (goldenActive && clickX >= goldenX - 25 && clickX <= goldenX + targetSize + 25 && clickY >= goldenY - 25 && clickY <= goldenY + targetSize + 25) {
+                hitGolden = true;
+                targetGameStarted = true;
+                targetScore += 2; // Secret Multiplier
+                targetFloatingScores.push({x: clickX + 15, y: clickY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
+                
+                if (targetScore > 0 && Math.floor(targetScore / 25) > Math.floor((targetScore - 2) / 25)) {
+                    targetSpeedMult += 1; 
+                }
+                
+                if (targetScore > targetHighScore) { 
+                    targetHighScore = targetScore; 
+                    try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
+                }
+                
+                goldenActive = false; 
+            }
+            // Check Normal Target Second
+            else if (duckActive && clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
+                hitNormal = true;
                 targetGameStarted = true;
                 targetScore++; 
-                targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1"}); 
+                targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
+                
                 if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
                 
                 if (targetScore > targetHighScore) { 
@@ -1101,6 +1142,9 @@ if (targetCanvas) {
                 }
                 
                 duckActive = false; 
+            }
+
+            if (hitNormal || hitGolden) {
                 ctxTarget.fillStyle = "white"; 
                 ctxTarget.fillRect(0,0,400,200);
             }
@@ -1139,7 +1183,7 @@ function jump() {
         isJumping = false; 
         gameOver = false; 
     } else if (gameOver) { 
-        if (Date.now() - runnerDeathTime < 1000) return; 
+        if (Date.now() - runnerDeathTime < 1000) return; // 1 second lock
         runnerObstacles = []; 
         playerY = 150; 
         score = 0; 
@@ -1314,7 +1358,7 @@ function updateRunner() {
 }
 
 // ==========================================================================
-// 10. TARGET SIMULATOR ENGINE
+// 10. TARGET SIMULATOR ENGINE (WITH SECRET GOLDEN TARGET)
 // ==========================================================================
 function spawnDuck() {
     duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
@@ -1324,6 +1368,21 @@ function spawnDuck() {
     duckTimer = 210; 
     currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)]; 
     duckActive = true;
+    
+    // 15% Chance to spawn a golden secret target concurrently
+    if (Math.random() < 0.15 && !goldenActive) {
+        spawnGoldenDuck();
+    }
+}
+
+function spawnGoldenDuck() {
+    goldenX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
+    goldenY = Math.floor(Math.random() * (150 - targetSize)); 
+    let gSpeed = targetSpeedMult * 1.5; // Moves faster
+    goldenVx = (Math.random() > 0.5 ? 1 : -1) * gSpeed; 
+    goldenVy = (Math.random() > 0.5 ? 1 : -1) * gSpeed;
+    goldenTimer = 120; // Disappears much faster
+    goldenActive = true;
 }
 
 function updateTargetGame() {
@@ -1391,6 +1450,7 @@ function updateTargetGame() {
     ctxTarget.fillStyle = "#006400"; 
     ctxTarget.fillRect(0, 150, 400, 50);
 
+    // Normal Target Logic
     if (duckActive) {
         duckX += duckVelX; 
         duckY += duckVelY;
@@ -1423,14 +1483,10 @@ function updateTargetGame() {
         if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
             targetGameStarted = true;
             targetScore++; 
-            targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1"}); 
+            targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
             
             if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-            
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
+            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
             
             duckActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
@@ -1439,11 +1495,46 @@ function updateTargetGame() {
     } else { 
         if (Math.random() < 0.03) spawnDuck(); 
     }
+    
+    // Golden Target Logic
+    if (goldenActive) {
+        goldenX += goldenVx; 
+        goldenY += goldenVy;
+        
+        if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1; 
+        if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
+        
+        ctxTarget.shadowBlur = 10;
+        ctxTarget.shadowColor = "#FFD700";
+        ctxTarget.fillStyle = "#FFD700"; 
+        ctxTarget.fillRect(goldenX, goldenY, targetSize, targetSize);
+        ctxTarget.shadowBlur = 0;
+        
+        if (!targetFreeze) {
+            goldenTimer--;
+        }
+        
+        if (goldenTimer <= 0) { 
+            goldenActive = false; // Disappears, but no life penalty
+        }
+        
+        if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
+            targetGameStarted = true;
+            targetScore += 2; 
+            targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
+            
+            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
+            
+            goldenActive = false; 
+            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
+            ctxTarget.fillRect(0, 0, 400, 200);
+        }
+    }
 
-    // Render Floating Scores
+    // Render Floating Scores (RGB mapped)
     for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
         let f = targetFloatingScores[i];
-        ctxTarget.fillStyle = `rgba(0, 255, 0, ${f.alpha})`;
+        ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`;
         ctxTarget.font = "bold 16px 'Courier New', monospace";
         ctxTarget.fillText(f.text, f.x, f.y);
         f.y -= 1; 
@@ -1457,7 +1548,9 @@ function updateTargetGame() {
     ctxTarget.font = "bold 14px 'Courier New', monospace"; 
     ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
     ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
-    ctxTarget.fillText("LIVES: " + (targetFreeze ? "INF" : targetLives), 320, 20);
+    
+    // Check infinite freeze mod logic for UI
+    ctxTarget.fillText("LIVES: " + (targetFreeze ? "∞" : targetLives), 320, 20);
     
     targetAnimId = requestAnimationFrame(updateTargetGame);
 }
