@@ -221,12 +221,12 @@ footer {
 
 /* CRT Flicker */
 @keyframes crt-flicker {
-    0% { opacity: 0.95; }
-    5% { opacity: 0.85; }
-    10% { opacity: 0.95; }
+    0% { opacity: 0.8; }
+    5% { opacity: 0.95; }
+    10% { opacity: 0.8; }
     15% { opacity: 1; }
-    50% { opacity: 0.95; }
-    100% { opacity: 0.9; }
+    50% { opacity: 0.9; }
+    100% { opacity: 0.85; }
 }
 
 .game-container { 
@@ -251,7 +251,7 @@ footer {
     pointer-events: none;
     z-index: 10;
     animation: crt-flicker 0.15s infinite;
-    display: none; /* Default off */
+    display: none; 
 }
 
 canvas { 
@@ -585,6 +585,11 @@ try { tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; 
 // Global Mods
 let shakeEnabled = true;
 
+// Custom Crash Messages
+const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS", "FATAL COLLISION", "NETWORK OFFLINE"];
+const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "AIM BOT OFFLINE", "TOO SLOW", "SIGNAL LOST"];
+const tetrisCrashMessages = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR", "TETROMINO JAM", "OUT OF MEMORY"];
+
 // Cyber Runner Variables
 let currentGravity = 0.6;
 let currentJumpPower = 10;
@@ -667,7 +672,6 @@ const ctxTetris = tetrisCanvas ? tetrisCanvas.getContext("2d") : null;
 const style = getComputedStyle(document.body);
 const neonColor = style.getPropertyValue('--neon-color').trim() || '#ff00ff';
 const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
-const crashMessages = ["KERNEL PANIC", "SEGFAULT DETECTED", "FATAL EXCEPTION", "SYSTEM HALTED", "MEMORY CORRUPTION"];
 
 // ==========================================================================
 // 2. SHAKE FUNCTION (Safe Toggle)
@@ -940,7 +944,7 @@ document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => {
     tetrisRainbow = e.target.checked; 
 });
 
-// Difficulty updating 
+// Difficulty updating (Only changes active lives if the game hasn't started playing yet)
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
     document.getElementById('modDifficulty').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
@@ -1145,6 +1149,7 @@ if (targetCanvas) {
             }
 
             if (hitNormal || hitGolden) {
+                // Clear and redraw background instantly for visual feedback
                 ctxTarget.fillStyle = "white"; 
                 ctxTarget.fillRect(0,0,400,200);
             }
@@ -1282,7 +1287,7 @@ function updateRunner() {
                 if (!gameOver) { 
                     gameOver = true; 
                     runnerDeathTime = Date.now(); 
-                    currentRunnerCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)];
+                    currentRunnerCrash = runnerCrashMessages[Math.floor(Math.random() * runnerCrashMessages.length)];
                     triggerShake(); 
                     
                     if (score > runnerHighScore) { 
@@ -1428,29 +1433,30 @@ function updateTargetGame() {
         return;
     }
 
-    let gradient = ctxTarget.createLinearGradient(0, 0, 0, 100); 
-    gradient.addColorStop(0, "#000033"); 
-    gradient.addColorStop(1, "#FF4500");
-    
-    ctxTarget.fillStyle = gradient; 
-    ctxTarget.fillRect(0, 0, 400, 100);
-    
-    // Glowing Sun
-    ctxTarget.shadowBlur = 15;
-    ctxTarget.shadowColor = "#FFD700";
-    ctxTarget.fillStyle = "#FFD700"; 
-    ctxTarget.beginPath(); 
-    ctxTarget.arc(200, 100, 30, 0, Math.PI * 2); 
-    ctxTarget.fill();
-    ctxTarget.shadowBlur = 0;
-    
-    ctxTarget.fillStyle = "#008080"; 
-    ctxTarget.fillRect(0, 100, 400, 50); 
-    
-    ctxTarget.fillStyle = "#006400"; 
-    ctxTarget.fillRect(0, 150, 400, 50);
+    // Moving Cyber Grid Background
+    ctxTarget.fillStyle = "#050510"; 
+    ctxTarget.fillRect(0, 0, 400, 200);
 
-    // Normal Target Logic
+    ctxTarget.strokeStyle = "rgba(0, 255, 255, 0.2)";
+    ctxTarget.lineWidth = 2;
+    let timeOffset = (Date.now() / 20) % 40;
+    
+    // Horizontal lines moving down
+    for(let i = -40; i < 200; i += 40) {
+        ctxTarget.beginPath(); 
+        ctxTarget.moveTo(0, i + timeOffset); 
+        ctxTarget.lineTo(400, i + timeOffset); 
+        ctxTarget.stroke();
+    }
+    // Vertical lines
+    for(let i = 0; i <= 400; i += 40) {
+        ctxTarget.beginPath(); 
+        ctxTarget.moveTo(i, 0); 
+        ctxTarget.lineTo(i, 200); 
+        ctxTarget.stroke();
+    }
+
+    // Normal Target Logic (Bullseye)
     if (duckActive) {
         duckX += duckVelX; 
         duckY += duckVelY;
@@ -1458,8 +1464,16 @@ function updateTargetGame() {
         if (duckX <= 0 || duckX + targetSize >= 400) duckVelX *= -1; 
         if (duckY <= 0 || duckY + targetSize >= 200) duckVelY *= -1;
         
-        ctxTarget.fillStyle = currentDuckColor; 
-        ctxTarget.fillRect(duckX, duckY, targetSize, targetSize);
+        let radius = targetSize / 2;
+        let centerX = duckX + radius;
+        let centerY = duckY + radius;
+        
+        ctxTarget.fillStyle = currentDuckColor;
+        ctxTarget.beginPath(); ctxTarget.arc(centerX, centerY, radius, 0, Math.PI*2); ctxTarget.fill();
+        ctxTarget.fillStyle = "#000";
+        ctxTarget.beginPath(); ctxTarget.arc(centerX, centerY, radius * 0.6, 0, Math.PI*2); ctxTarget.fill();
+        ctxTarget.fillStyle = currentDuckColor;
+        ctxTarget.beginPath(); ctxTarget.arc(centerX, centerY, radius * 0.2, 0, Math.PI*2); ctxTarget.fill();
         
         if (!targetFreeze) {
             duckTimer--;
@@ -1474,7 +1488,7 @@ function updateTargetGame() {
                 if (!targetGameOver) { 
                     targetGameOver = true; 
                     targetDeathTime = Date.now(); 
-                    currentTargetCrash = crashMessages[Math.floor(Math.random() * crashMessages.length)]; 
+                    currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)]; 
                     triggerShake(); 
                 }
             } 
@@ -1486,7 +1500,11 @@ function updateTargetGame() {
             targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
             
             if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
-            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
+            
+            if (targetScore > targetHighScore) { 
+                targetHighScore = targetScore; 
+                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
+            }
             
             duckActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
@@ -1504,10 +1522,18 @@ function updateTargetGame() {
         if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1; 
         if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
         
-        ctxTarget.shadowBlur = 10;
+        let gRadius = targetSize / 2;
+        let gCx = goldenX + gRadius;
+        let gCy = goldenY + gRadius;
+
+        ctxTarget.shadowBlur = 15;
         ctxTarget.shadowColor = "#FFD700";
-        ctxTarget.fillStyle = "#FFD700"; 
-        ctxTarget.fillRect(goldenX, goldenY, targetSize, targetSize);
+        ctxTarget.fillStyle = "#FFD700";
+        ctxTarget.beginPath(); ctxTarget.arc(gCx, gCy, gRadius, 0, Math.PI*2); ctxTarget.fill();
+        ctxTarget.fillStyle = "#fff";
+        ctxTarget.beginPath(); ctxTarget.arc(gCx, gCy, gRadius * 0.6, 0, Math.PI*2); ctxTarget.fill();
+        ctxTarget.fillStyle = "#FFD700";
+        ctxTarget.beginPath(); ctxTarget.arc(gCx, gCy, gRadius * 0.2, 0, Math.PI*2); ctxTarget.fill();
         ctxTarget.shadowBlur = 0;
         
         if (!targetFreeze) {
@@ -1523,7 +1549,10 @@ function updateTargetGame() {
             targetScore += 2; 
             targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
             
-            if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} }
+            if (targetScore > targetHighScore) { 
+                targetHighScore = targetScore; 
+                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
+            }
             
             goldenActive = false; 
             ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
@@ -1648,7 +1677,7 @@ function tReset() {
             if (!tetrisGameOver) {
                 tetrisGameOver = true; 
                 tetrisDeathTime = Date.now(); 
-                tetrisCrashMsg = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR"][Math.floor(Math.random() * 3)]; 
+                tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)]; 
                 if (tetrisScore > tetrisHighScore) { 
                     tetrisHighScore = tetrisScore; 
                     try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){} 
