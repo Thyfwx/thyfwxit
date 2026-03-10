@@ -17,46 +17,188 @@
     --grid-color: #330033;
 }
 
-::selection { background: var(--neon-color); color: #000; }
-::-moz-selection { background: var(--neon-color); color: #000; }
+::selection {
+    background: var(--neon-color);
+    color: #000;
+}
+
+::-moz-selection {
+    background: var(--neon-color);
+    color: #000;
+}
 
 body { 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    line-height: 1.8; max-width: 800px; margin: 0 auto; padding: 40px 20px; 
-    background-color: var(--bg-color); color: var(--text-color); 
+    line-height: 1.8; 
+    max-width: 800px; 
+    margin: 0 auto; 
+    padding: 40px 20px; 
+    background-color: var(--bg-color); 
+    color: var(--text-color); 
 }
-header { border-bottom: 2px solid var(--neon-color); margin-bottom: 40px; text-align: center; user-select: none; cursor: pointer; }
-h1, h2 { color: var(--neon-color); margin-bottom: 20px; }
-section { margin-bottom: 40px; background: var(--section-bg); padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: transform 0.3s ease; }
-section:hover { transform: translateY(-5px); }
-ul { list-style-type: none; padding: 0; }
-li { margin-bottom: 20px; transition: color 0.3s ease, text-shadow 0.3s ease; }
-li:hover { color: var(--neon-color); text-shadow: 0 0 8px var(--neon-color); }
-b { color: var(--neon-color); }
-footer { margin-top: 60px; text-align: center; border-top: 1px solid #444; padding-top: 30px; }
+
+header { 
+    border-bottom: 2px solid var(--neon-color); 
+    margin-bottom: 40px; 
+    text-align: center; 
+    user-select: none;
+    cursor: pointer;
+}
+
+h1, h2 { 
+    color: var(--neon-color); 
+    margin-bottom: 20px; 
+}
+
+section { 
+    margin-bottom: 40px; 
+    background: var(--section-bg); 
+    padding: 25px; 
+    border-radius: 8px; 
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+    transition: transform 0.3s ease;
+}
+
+section:hover { 
+    transform: translateY(-5px); 
+}
+
+ul { 
+    list-style-type: none; 
+    padding: 0; 
+}
+
+li { 
+    margin-bottom: 20px; 
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+li:hover { 
+    color: var(--neon-color); 
+    text-shadow: 0 0 8px var(--neon-color); 
+}
+
+b { 
+    color: var(--neon-color); 
+}
+
+footer { 
+    margin-top: 60px; 
+    text-align: center; 
+    border-top: 1px solid #444; 
+    padding-top: 30px; 
+}
 
 /* Project Grid */
-.project-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
-@media (max-width: 600px) { .project-grid { grid-template-columns: 1fr; } }
-.project-card { background: #111; padding: 20px; border: 1px solid var(--neon-color); border-radius: 5px; }
+.project-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 15px;
+}
+
+@media (max-width: 600px) {
+    .project-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.project-card {
+    background: #111;
+    padding: 20px;
+    border: 1px solid var(--neon-color);
+    border-radius: 5px;
+}
 
 /* Pulsing Neon Indicator */
-.pulse-indicator { color: var(--neon-color); animation: pulse 1.5s infinite; margin-right: 10px; }
-@keyframes pulse { 0% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); } 50% { opacity: 0.3; text-shadow: none; } 100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); } }
+.pulse-indicator {
+    color: var(--neon-color);
+    animation: pulse 1.5s infinite;
+    margin-right: 10px;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+    50% { opacity: 0.3; text-shadow: none; }
+    100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+}
 
 /* Custom Status Badges */
-.status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; background: #111; padding: 20px; border: 1px solid var(--neon-color); border-radius: 5px; }
-.status-item { display: flex; align-items: center; font-weight: bold; font-size: 1.1em; }
-.status-dot { width: 12px; height: 12px; border-radius: 50%; margin-right: 10px; background: #555; transition: background 0.3s, box-shadow 0.3s; }
-.status-online { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
-.status-offline { background: #ff0000; box-shadow: 0 0 8px #ff0000; }
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+    background: #111;
+    padding: 20px;
+    border: 1px solid var(--neon-color);
+    border-radius: 5px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 10px;
+    background: #555; 
+    transition: background 0.3s, box-shadow 0.3s;
+}
+
+.status-online {
+    background: #00ff00;
+    box-shadow: 0 0 8px #00ff00;
+}
+
+.status-offline {
+    background: #ff0000;
+    box-shadow: 0 0 8px #ff0000;
+}
 
 /* Contact Form */
-.contact-form { display: flex; flex-direction: column; gap: 15px; }
-.contact-form input, .contact-form select, .contact-form textarea { padding: 12px; background: var(--canvas-bg); color: var(--text-color); border: 1px solid #444; border-radius: 4px; font-family: inherit; font-size: 1rem; }
-.contact-form button { background: var(--neon-color); color: #000; padding: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; font-size: 1.1rem; transition: all 0.2s ease; }
-.contact-form button:hover { box-shadow: 0 0 15px var(--neon-color); }
-.contact-form button:active { transform: scale(0.97); }
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.contact-form input, 
+.contact-form select, 
+.contact-form textarea {
+    padding: 12px;
+    background: var(--canvas-bg);
+    color: var(--text-color);
+    border: 1px solid #444;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.contact-form button {
+    background: var(--neon-color);
+    color: #000;
+    padding: 15px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 1.1rem;
+    transition: all 0.2s ease;
+}
+
+.contact-form button:hover {
+    box-shadow: 0 0 15px var(--neon-color);
+}
+
+.contact-form button:active {
+    transform: scale(0.97); /* Tactile form button press */
+}
 
 /* Screen Shake Animation */
 @keyframes shake {
@@ -72,42 +214,158 @@ footer { margin-top: 60px; text-align: center; border-top: 1px solid #444; paddi
     90% { transform: translate(1px, 2px) rotate(0deg); }
     100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
-.shake-effect { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 
-/* CRT Flicker for Game Over screens */
-@keyframes crt-flicker {
-    0% { opacity: 0.95; } 5% { opacity: 0.85; } 10% { opacity: 0.95; } 15% { opacity: 1; } 50% { opacity: 0.95; } 100% { opacity: 0.9; }
+.shake-effect { 
+    animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
 }
 
-.game-container { text-align: center; position: relative; padding-bottom: 30px; }
+/* CRT Flicker */
+@keyframes crt-flicker {
+    0% { opacity: 0.95; }
+    5% { opacity: 0.85; }
+    10% { opacity: 0.95; }
+    15% { opacity: 1; }
+    50% { opacity: 0.95; }
+    100% { opacity: 0.9; }
+}
+
+.game-container { 
+    text-align: center; 
+    position: relative; 
+    padding-bottom: 30px;
+}
 
 /* CRT Scanline Overlay */
-.game-screen-wrapper { position: relative; display: inline-block; margin: 20px auto; max-width: 100%; }
+.game-screen-wrapper {
+    position: relative;
+    display: inline-block;
+    margin: 20px auto;
+    max-width: 100%;
+}
+
 .crt-overlay {
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
     background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    background-size: 100% 4px, 3px 100%; pointer-events: none; z-index: 10;
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 10;
     animation: crt-flicker 0.15s infinite;
 }
 
-canvas { display: block; background: var(--canvas-bg); border: 2px solid var(--neon-color); width: 100%; max-width: 400px; touch-action: none; cursor: pointer; }
+canvas { 
+    display: block; 
+    background: var(--canvas-bg); 
+    border: 2px solid var(--neon-color); 
+    width: 100%; 
+    max-width: 400px; 
+    touch-action: none; 
+    cursor: pointer; 
+}
 
-.controls-wrapper { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
-.jump-btn { background-color: #111; color: var(--neon-color); border: 2px solid var(--neon-color); padding: 15px 30px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; user-select: none; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 2px; flex: 1; max-width: 200px; }
-.jump-btn:hover { background-color: var(--neon-color); color: #000; box-shadow: 0 0 15px var(--neon-color); }
-.jump-btn:active { transform: scale(0.95); } /* Tactile button press */
+.controls-wrapper {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+}
 
-#terminalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #00ff00; font-family: monospace; padding: 20px; z-index: 9999; overflow-y: auto; }
-#modMenu { display: none; position: fixed; top: 10%; left: 50%; margin-left: -170px; background: #000; border: 3px solid #ff0000; padding: 20px; z-index: 10000; box-shadow: 0 0 20px #ff0000; color: #fff; width: 300px; border-radius: 10px; max-height: 80vh; overflow-y: auto; }
-.mod-section-title { color: var(--neon-color); margin-top: 15px; margin-bottom: 10px; border-bottom: 1px solid #444; font-size: 0.9em; text-transform: uppercase; }
-.mod-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.9em; }
-.nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; transition: all 0.2s; }
-.nuke-btn:active { transform: scale(0.95); } /* Tactile button press */
+.jump-btn { 
+    background-color: #111; 
+    color: var(--neon-color); 
+    border: 2px solid var(--neon-color); 
+    padding: 15px 30px; 
+    font-size: 1.2em; 
+    font-weight: bold; 
+    border-radius: 5px; 
+    cursor: pointer; 
+    user-select: none; 
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    flex: 1;
+    max-width: 200px;
+}
+
+.jump-btn:hover {
+    background-color: var(--neon-color);
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-color);
+}
+
+.jump-btn:active {
+    transform: scale(0.95); /* Tactile arcade button press */
+}
+
+#terminalOverlay { 
+    display: none; 
+    position: fixed; 
+    top: 0; left: 0; 
+    width: 100%; height: 100%; 
+    background: #000; 
+    color: #00ff00; 
+    font-family: monospace; 
+    padding: 20px; 
+    z-index: 9999; 
+    overflow-y: auto; 
+}
+
+#modMenu { 
+    display: none; 
+    position: fixed; 
+    top: 10%; left: 50%; 
+    margin-left: -170px;
+    background: #000; 
+    border: 3px solid #ff0000; 
+    padding: 20px; 
+    z-index: 10000; 
+    box-shadow: 0 0 20px #ff0000; 
+    color: #fff; 
+    width: 300px; 
+    border-radius: 10px; 
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.mod-section-title {
+    color: var(--neon-color);
+    margin-top: 15px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #444;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+.mod-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+    font-size: 0.9em;
+}
+
+.nuke-btn { 
+    background: #ff0000; 
+    color: #fff; 
+    width: 100%; 
+    padding: 10px; 
+    font-weight: bold; 
+    border: none; 
+    cursor: pointer; 
+    border-radius: 5px; 
+    margin-top: 10px; 
+    transition: all 0.2s; 
+}
+
+.nuke-btn:active {
+    transform: scale(0.95); /* Tactile mod button press */
+}
 
 @keyframes nukeParticle {
     0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
     100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
 }
+
 </style>
 </head>
 <body>
@@ -335,6 +593,7 @@ let duckTimer = 0;
 let maxLives = 6;
 let targetLives = 6;
 let targetGameOver = false;
+let targetGameStarted = false; // Prevents difficulty resetting during active run
 let currentTargetCrash = "";
 let targetFloatingScores = []; 
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
@@ -552,6 +811,7 @@ window.switchGame = function(mode) {
         
     } else if (mode === 'target') {
         targetGameActive = true; 
+        targetGameStarted = false;
         targetLives = maxLives; 
         targetScore = 0; 
         duckActive = false; 
@@ -618,15 +878,16 @@ document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => {
     tetrisGodMode = e.target.checked; 
 });
 
+// Difficulty updating (Only changes active lives if the game hasn't started playing yet)
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
     document.getElementById('modDifficulty').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
-    if (!targetGameOver) targetLives = maxLives; 
+    if (!targetGameStarted && !targetGameOver) targetLives = maxLives; 
 });
 document.getElementById('modDifficulty')?.addEventListener('change', (e) => { 
     document.getElementById('publicDiffSelect').value = e.target.value; 
     maxLives = parseInt(e.target.value); 
-    if (!targetGameOver) targetLives = maxLives; 
+    if (!targetGameStarted && !targetGameOver) targetLives = maxLives; 
 });
 
 document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
@@ -729,6 +990,7 @@ window.addEventListener("keydown", function(e) {
         if (targetGameOver && (e.code === "Space" || e.code === "Enter" || e.key === " ")) {
             if (Date.now() - targetDeathTime < 1000) return; 
             targetGameOver = false; 
+            targetGameStarted = false;
             targetLives = maxLives; 
             targetScore = 0; 
             targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
@@ -741,17 +1003,6 @@ window.addEventListener("keydown", function(e) {
         } 
     }
 }, { passive: false });
-
-window.addEventListener("keyup", e => { 
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-    }
-    if (!targetGameActive && !tetrisActive) {
-        if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
-            if (velocity < -4) velocity = -4; 
-        } 
-    }
-});
 
 // Canvas Tap-to-Start Listeners
 if (canvas) {
@@ -767,6 +1018,7 @@ if (targetCanvas) {
         if (targetGameOver) { 
             if (Date.now() - targetDeathTime < 1000) return; 
             targetGameOver = false; 
+            targetGameStarted = false;
             targetLives = maxLives; 
             targetScore = 0; 
             targetSpeedMult = parseInt(document.getElementById('modDuckSpeed').value) || 3; 
@@ -780,6 +1032,7 @@ if (targetCanvas) {
             const clickY = (e.clientY - rect.top) * scaleY;
             
             if (clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
+                targetGameStarted = true;
                 targetScore++; 
                 targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1"}); 
                 if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
@@ -1078,6 +1331,7 @@ function updateTargetGame() {
         
         if (duckTimer <= 0) { 
             duckActive = false; 
+            targetGameStarted = true; // Timer ran out, game officially started
             targetLives--; 
             
             if (targetLives <= 0) { 
@@ -1091,6 +1345,7 @@ function updateTargetGame() {
         }
         
         if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
+            targetGameStarted = true;
             targetScore++; 
             targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1"}); 
             
