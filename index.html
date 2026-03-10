@@ -54,7 +54,9 @@ footer { margin-top: 60px; text-align: center; border-top: 1px solid #444; paddi
 /* Contact Form */
 .contact-form { display: flex; flex-direction: column; gap: 15px; }
 .contact-form input, .contact-form select, .contact-form textarea { padding: 12px; background: var(--canvas-bg); color: var(--text-color); border: 1px solid #444; border-radius: 4px; font-family: inherit; font-size: 1rem; }
-.contact-form button { background: var(--neon-color); color: #000; padding: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; font-size: 1.1rem; }
+.contact-form button { background: var(--neon-color); color: #000; padding: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 4px; font-size: 1.1rem; transition: all 0.2s ease; }
+.contact-form button:hover { box-shadow: 0 0 15px var(--neon-color); }
+.contact-form button:active { transform: scale(0.97); }
 
 /* Screen Shake Animation */
 @keyframes shake {
@@ -72,14 +74,10 @@ footer { margin-top: 60px; text-align: center; border-top: 1px solid #444; paddi
 }
 .shake-effect { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
 
-/* CRT Flicker */
+/* CRT Flicker for Game Over screens */
 @keyframes crt-flicker {
     0% { opacity: 0.95; } 5% { opacity: 0.85; } 10% { opacity: 0.95; } 15% { opacity: 1; } 50% { opacity: 0.95; } 100% { opacity: 0.9; }
 }
-
-/* Blinking Cursor for Terminal Text */
-@keyframes blink-caret { 50% { opacity: 0; } }
-.blink-cursor::after { content: '_'; animation: blink-caret 1s step-end infinite; }
 
 .game-container { text-align: center; position: relative; padding-bottom: 30px; }
 
@@ -97,12 +95,19 @@ canvas { display: block; background: var(--canvas-bg); border: 2px solid var(--n
 .controls-wrapper { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
 .jump-btn { background-color: #111; color: var(--neon-color); border: 2px solid var(--neon-color); padding: 15px 30px; font-size: 1.2em; font-weight: bold; border-radius: 5px; cursor: pointer; user-select: none; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 2px; flex: 1; max-width: 200px; }
 .jump-btn:hover { background-color: var(--neon-color); color: #000; box-shadow: 0 0 15px var(--neon-color); }
+.jump-btn:active { transform: scale(0.95); } /* Tactile button press */
 
 #terminalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #00ff00; font-family: monospace; padding: 20px; z-index: 9999; overflow-y: auto; }
 #modMenu { display: none; position: fixed; top: 10%; left: 50%; margin-left: -170px; background: #000; border: 3px solid #ff0000; padding: 20px; z-index: 10000; box-shadow: 0 0 20px #ff0000; color: #fff; width: 300px; border-radius: 10px; max-height: 80vh; overflow-y: auto; }
 .mod-section-title { color: var(--neon-color); margin-top: 15px; margin-bottom: 10px; border-bottom: 1px solid #444; font-size: 0.9em; text-transform: uppercase; }
 .mod-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.9em; }
 .nuke-btn { background: #ff0000; color: #fff; width: 100%; padding: 10px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; margin-top: 10px; transition: all 0.2s; }
+.nuke-btn:active { transform: scale(0.95); } /* Tactile button press */
+
+@keyframes nukeParticle {
+    0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+    100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
+}
 </style>
 </head>
 <body>
@@ -160,8 +165,8 @@ canvas { display: block; background: var(--canvas-bg); border: 2px solid var(--n
         <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
     </div>
 
-    <p style="font-size: 0.9em;" id="gamePrompt">[ Press <b>Space</b> or <b>Tap Game</b> to Jump ]</p>
-    <p id="secretText" class="blink-cursor" style="font-size: 0.8em; color: #888; margin-top: 10px;">[ Secret: Type <b>duck</b> for a secret game mode ;) ]</p>
+    <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump</p>
+    <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s;">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
     <div id="publicDifficulty" style="display:none; margin-top: 15px;">
         <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -234,6 +239,16 @@ canvas { display: block; background: var(--canvas-bg); border: 2px solid var(--n
         <input type="checkbox" id="modGodMode" style="transform: scale(1.5);">
     </div>
 
+    <div class="mod-section-title">Tetris Mods</div>
+    <div class="mod-row">
+        <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
+        <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
+    </div>
+    <div class="mod-row">
+        <label>God Mode (Never Lose)</label>
+        <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
+    </div>
+
     <div class="mod-section-title">Target Mods</div>
     <div class="mod-row">
         <label>Target Speed (<span id="duckSpeedVal">3</span>)</label>
@@ -256,16 +271,6 @@ canvas { display: block; background: var(--canvas-bg); border: 2px solid var(--n
         <input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
     </div>
 
-    <div class="mod-section-title">Tetris Mods</div>
-    <div class="mod-row">
-        <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
-        <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
-    </div>
-    <div class="mod-row">
-        <label>God Mode (Never Lose)</label>
-        <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
-    </div>
-
     <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
     <button id="nukeToggle" class="nuke-btn">NUKE THIS PAGE ;)</button>
     <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
@@ -276,7 +281,6 @@ canvas { display: block; background: var(--canvas-bg); border: 2px solid var(--n
 // 1. GLOBAL VARIABLES & STATE DECLARATIONS
 // ==========================================================================
 
-// Critical Game States 
 let targetGameActive = false;
 let tetrisActive = false;
 let nukeModeActive = false;
@@ -315,7 +319,6 @@ let gameOver = false;
 let gameStarted = false;
 let currentSpeed = 3.5;
 let currentRunnerCrash = "";
-const hazardColors = ['#00ff00', '#00ccff', '#ff0055']; 
 let runnerObstacles = [];
 
 // Target Simulator Variables
@@ -374,7 +377,7 @@ const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
 const crashMessages = ["KERNEL PANIC", "SEGFAULT DETECTED", "FATAL EXCEPTION", "SYSTEM HALTED", "MEMORY CORRUPTION"];
 
 // ==========================================================================
-// 2. THE MISSING SHAKE FUNCTION
+// 2. SHAKE FUNCTION
 // ==========================================================================
 function triggerShake() {
     const gameArea = document.getElementById("gameArea");
@@ -427,7 +430,7 @@ window.onload = () => {
 };
 
 // ==========================================================================
-// 4. DYNAMIC TEXT GENERATION 
+// 4. DYNAMIC TEXT GENERATION (SAFE LOAD)
 // ==========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
@@ -526,7 +529,6 @@ window.switchGame = function(mode) {
 
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
-    if(document.getElementById('pacmanGame')) document.getElementById('pacmanGame').style.display = 'none'; 
     document.getElementById('tetrisGame').style.display = 'none';
     document.getElementById('runnerControls').style.display = 'none'; 
     document.getElementById('publicDifficulty').style.display = 'none';
@@ -779,7 +781,7 @@ if (targetCanvas) {
             
             if (clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
                 targetScore++; 
-                targetFloatingScores.push({x: clickX, y: clickY, alpha: 1.0, text: "+1"}); 
+                targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1"}); 
                 if (targetScore > 0 && targetScore % 25 === 0) targetSpeedMult += 1; 
                 
                 if (targetScore > targetHighScore) { 
@@ -926,6 +928,7 @@ function updateRunner() {
     }
 
     if (gameOver) { 
+        // Animated Glitch Screen Background
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; 
         ctx.fillRect(0, 0, 400, 200);
         
@@ -969,9 +972,13 @@ function updateRunner() {
         ctx.fillText("Final Score: " + score, 200, 110); 
         
         if (Date.now() - runnerDeathTime > 1000) {
-            ctx.fillStyle = neonColor; 
+            let pulse = Math.floor(Date.now() / 300) % 2 === 0;
+            ctx.shadowBlur = pulse ? 10 : 0; 
+            ctx.shadowColor = neonColor; 
+            ctx.fillStyle = pulse ? "#222" : neonColor; 
             ctx.fillRect(100, 130, 200, 30);
-            ctx.fillStyle = "#000"; 
+            ctx.shadowBlur = 0; 
+            ctx.fillStyle = pulse ? neonColor : "#000"; 
             ctx.font = "bold 16px 'Courier New', monospace"; 
             ctx.fillText("PLAY AGAIN", 200, 150);
         }
@@ -1002,6 +1009,7 @@ function updateTargetGame() {
     ctxTarget.clearRect(0, 0, 400, 200);
     
     if (targetGameOver) {
+        // Animated Target System Failure Background
         ctxTarget.fillStyle = "rgba(50, 0, 0, 0.85)"; 
         ctxTarget.fillRect(0, 0, 400, 200);
         
@@ -1020,9 +1028,13 @@ function updateTargetGame() {
         ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
         
         if (Date.now() - targetDeathTime > 1000) {
-            ctxTarget.fillStyle = neonColor; 
+            let pulse = Math.floor(Date.now() / 300) % 2 === 0;
+            ctxTarget.shadowBlur = pulse ? 10 : 0; 
+            ctxTarget.shadowColor = neonColor; 
+            ctxTarget.fillStyle = pulse ? "#222" : neonColor; 
             ctxTarget.fillRect(100, 130, 200, 30);
-            ctxTarget.fillStyle = "#000"; 
+            ctxTarget.shadowBlur = 0; 
+            ctxTarget.fillStyle = pulse ? neonColor : "#000"; 
             ctxTarget.font = "bold 16px 'Courier New', monospace"; 
             ctxTarget.fillText("PLAY AGAIN", 200, 150);
         }
@@ -1039,10 +1051,13 @@ function updateTargetGame() {
     ctxTarget.fillStyle = gradient; 
     ctxTarget.fillRect(0, 0, 400, 100);
     
+    ctxTarget.shadowBlur = 15;
+    ctxTarget.shadowColor = "#FFD700";
     ctxTarget.fillStyle = "#FFD700"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(200, 100, 30, 0, Math.PI * 2); 
     ctxTarget.fill();
+    ctxTarget.shadowBlur = 0;
     
     ctxTarget.fillStyle = "#008080"; 
     ctxTarget.fillRect(0, 100, 400, 50); 
@@ -1268,9 +1283,13 @@ function updateTetris() {
         ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200); 
         
         if (Date.now() - tetrisDeathTime > 1000) { 
-            ctxTetris.fillStyle = neonColor; 
+            let pulse = Math.floor(Date.now() / 300) % 2 === 0;
+            ctxTetris.shadowBlur = pulse ? 10 : 0; 
+            ctxTetris.shadowColor = neonColor; 
+            ctxTetris.fillStyle = pulse ? "#222" : neonColor; 
             ctxTetris.fillRect(100, 240, 200, 30);
-            ctxTetris.fillStyle = "#000"; 
+            ctxTetris.shadowBlur = 0; 
+            ctxTetris.fillStyle = pulse ? neonColor : "#000"; 
             ctxTetris.font = "bold 16px 'Courier New', monospace"; 
             ctxTetris.fillText("PLAY AGAIN", 200, 260); 
         }
