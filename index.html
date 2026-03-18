@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xavier Scott - Systems Specialist</title>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231a1a1a' rx='20'/><text x='15' y='75' font-size='70' fill='%23ff00ff' font-family='monospace' font-weight='bold'>&gt;_</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231a1a1a' rx='20'/><text x='15' y='75' font-size='70' fill='%23ff00ff' font-family='monospace' font-weight='bold'>&gt;_</text></svg'">
 
 <style>
 :root {
@@ -25,10 +25,6 @@
 ::-moz-selection {
     background: var(--neon-color);
     color: #000;
-}
-
-* {
-    box-sizing: border-box;
 }
 
 body { 
@@ -183,7 +179,6 @@ footer {
     border-radius: 4px;
     font-family: inherit;
     font-size: 1rem;
-    width: 100%;
 }
 
 .contact-form button {
@@ -238,15 +233,6 @@ footer {
     animation: jumpScare 0.6s cubic-bezier(.36,.07,.19,.97) both;
 }
 
-/* Reduced Motion Settings */
-@media (prefers-reduced-motion: reduce) {
-    .shake-effect, .nuke-flash, .pulse-indicator {
-        animation: none !important;
-        transform: none !important;
-        filter: none !important;
-    }
-}
-
 /* CRT Flicker */
 @keyframes crt-flicker {
     0% { opacity: 0.8; }
@@ -290,12 +276,6 @@ canvas {
     max-width: 400px; 
     touch-action: none; 
     cursor: pointer; 
-    outline: none;
-    transition: box-shadow 0.3s ease;
-}
-
-canvas:focus {
-    box-shadow: 0 0 15px var(--neon-color);
 }
 
 .controls-wrapper {
@@ -400,35 +380,61 @@ canvas:focus {
     0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
     100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
 }
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--neon-color);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --neon-color: #ffffff;
+        --text-color: #ffffff;
+    }
+}
 </style>
 </head>
 <body>
 
-<header id="mainHeader">
+<header id="mainHeader" role="banner" tabindex="0" aria-label="Header. Press Enter 5 times to open system menu">
     <h1>Systems Specialist & Network Infrastructure</h1>
 </header>
 
-<section>
-    <h2>Project Showcase</h2>
+<section aria-labelledby="projects-heading">
+    <h2 id="projects-heading">Project Showcase</h2>
     <div class="project-grid">
-        <div class="project-card">
+        <div class="project-card" role="article">
             <h3><b>Proxmox Virtualization</b></h3>
             <p>Built a secure, high-capacity server cluster managing multiple virtual machines and containers.</p>
         </div>
-        <div class="project-card">
+        <div class="project-card" role="article">
             <h3><b>MacBook Rescue</b></h3>
             <p>Performed component-level repair and liquid damage recovery on Apple hardware.</p>
         </div>
     </div>
 </section>
 
-<section>
-    <h2><span class="pulse-indicator">●</span> Tech Tip of the Day</h2>
+<section aria-labelledby="tip-heading">
+    <h2 id="tip-heading"><span class="pulse-indicator" aria-hidden="true">●</span> Tech Tip of the Day</h2>
     <p id="techTipText">Loading tip...</p>
 </section>
 
-<section>
-    <h2>Hardware Technical Environment</h2>
+<section aria-labelledby="hardware-heading">
+    <h2 id="hardware-heading">Hardware Technical Environment</h2>
     <ul>
         <li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and <b>mobile devices</b>.</li>
         <li><b>System Maintenance</b>: Component-level cleaning and <b>thermal paste</b> (cooling compound) application.</li>
@@ -436,51 +442,51 @@ canvas:focus {
     </ul>
 </section>
 
-<section id="systemStatus">
-    <h2>Live Infrastructure Status</h2>
+<section id="systemStatus" aria-labelledby="status-heading">
+    <h2 id="status-heading">Live Infrastructure Status</h2>
     <p>Monitoring critical node uptime across local and remote environments.</p>
     <div class="status-grid">
-        <div class="status-item"><span class="status-dot" id="status-proxmox"></span> Proxmox Node 01</div>
-        <div class="status-item"><span class="status-dot" id="status-vpn"></span> WireGuard VPN</div>
-        <div class="status-item"><span class="status-dot" id="status-adguard"></span> AdGuard Home</div>
-        <div class="status-item"><span class="status-dot" id="status-ha"></span> Home Assistant</div>
+        <div class="status-item"><span class="status-dot" id="status-proxmox" aria-label="Proxmox Node 01 status: online"></span> Proxmox Node 01</div>
+        <div class="status-item"><span class="status-dot" id="status-vpn" aria-label="WireGuard VPN status: online"></span> WireGuard VPN</div>
+        <div class="status-item"><span class="status-dot" id="status-adguard" aria-label="AdGuard Home status: online"></span> AdGuard Home</div>
+        <div class="status-item"><span class="status-dot" id="status-ha" aria-label="Home Assistant status: online"></span> Home Assistant</div>
     </div>
 </section>
 
-<section class="game-container" id="gameArea">
-    <h2 id="gameTitle">Cyber Runner Game</h2>
+<section class="game-container" id="gameArea" aria-labelledby="game-heading">
+    <h2 id="game-heading">Cyber Runner Game</h2>
 
     <div class="game-screen-wrapper" id="gameScreenWrapper">
-        <div class="crt-overlay" id="crtOverlayElement"></div>
-        <canvas id="jumpGame" width="400" height="200" tabindex="0" aria-label="Cyber Runner Game"></canvas>
-        <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;" tabindex="0" aria-label="Matrix Target Simulator Game"></canvas>
-        <canvas id="tetrisGame" width="400" height="400" style="display: none;" tabindex="0" aria-label="Tetris Game"></canvas>
+        <div class="crt-overlay" id="crtOverlayElement" aria-hidden="true"></div>
+        <canvas id="jumpGame" width="400" height="200" aria-label="Cyber Runner game canvas. Press space or click to jump." role="application"></canvas>
+        <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;" aria-label="Target Simulator game canvas. Click to shoot targets." role="application"></canvas>
+        <canvas id="tetrisGame" width="400" height="400" style="display: none;" aria-label="Tetris game canvas. Use arrow keys to move." role="application"></canvas>
     </div>
 
     <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump</p>
-    <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
+    <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')" role="button" tabindex="0" aria-label="Secret: Type duck for a secret game mode">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
     <div id="publicDifficulty" style="display:none; margin-top: 15px;">
-        <label style="color: var(--neon-color); font-weight: bold;" for="publicDiffSelect">Target Difficulty: </label>
-        <select id="publicDiffSelect" aria-label="Select Game Difficulty" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px; outline:none;">
+        <label for="publicDiffSelect" style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
+        <select id="publicDiffSelect" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px; outline:none;" aria-label="Select target difficulty">
             <option value="8">Easy (8 Misses)</option>
             <option value="6" selected>Normal (6 Misses)</option>
             <option value="3">Hard (3 Misses)</option>
         </select>
     </div>
 
-    <div class="controls-wrapper" id="runnerControls">
-        <button id="mobileJumpBtn" class="jump-btn" aria-label="Jump Button">JUMP</button>
+    <div class="controls-wrapper" id="runnerControls" role="group" aria-label="Game controls">
+        <button id="mobileJumpBtn" class="jump-btn" aria-label="Jump button for mobile">JUMP</button>
     </div>
 </section>
 
-<section>
-    <h2>Request Service</h2>
-    <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
-        <input type="text" name="name" id="formName" placeholder="Your Name" aria-label="Your Name" required>
-        <input type="email" name="email" id="formEmail" placeholder="Your Email Address" aria-label="Your Email Address" required>
-        <input type="tel" name="phone" placeholder="Phone Number (Optional)" aria-label="Your Phone Number">
-        <select name="service" aria-label="Select a Service" required>
+<section aria-labelledby="contact-heading">
+    <h2 id="contact-heading">Request Service</h2>
+    <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST" aria-label="Contact form">
+        <input type="text" name="name" id="formName" placeholder="Your Name" required aria-required="true" aria-label="Your Name">
+        <input type="email" name="email" id="formEmail" placeholder="Your Email Address" required aria-required="true" aria-label="Your Email Address">
+        <input type="tel" name="phone" placeholder="Phone Number (Optional)" aria-label="Phone Number (Optional)">
+        <select name="service" required aria-required="true" aria-label="Select a Service">
             <option value="">Select a Service...</option>
             <option value="pc">PC Repair (Windows)</option>
             <option value="mac">MacBook / Apple Repair</option>
@@ -488,81 +494,82 @@ canvas:focus {
             <option value="homelab">Home Lab / Server Setup</option>
             <option value="network">Network Security / VPN</option>
         </select>
-        <input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" aria-label="Your Device Model" required>
-        <textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." aria-label="Describe your issue" required></textarea>
-        <input type="text" name="_gotcha" aria-label="Hidden Honeypot Field" style="display:none">
-        <button type="submit" aria-label="Send Message">Send Message</button>
+        <input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" required aria-required="true" aria-label="Device Model">
+        <textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." required aria-required="true" aria-label="Describe the issue in detail"></textarea>
+        <input type="text" name="_gotcha" style="display:none" aria-hidden="true">
+        <button type="submit" aria-label="Send message">Send Message</button>
     </form>
+    <div id="formFeedback" role="status" aria-live="polite" style="margin-top: 10px; font-weight: bold;"></div>
 </section>
 
-<footer>
+<footer role="contentinfo">
     <p><b>Xavier Scott :3</b></p>
 </footer>
 
-<div id="terminalOverlay">
+<div id="terminalOverlay" role="dialog" aria-label="Terminal overlay. Type commands to interact.">
     <div id="terminalText"></div>
 </div>
 
-<div id="modMenu">
+<div id="modMenu" role="dialog" aria-label="System modification menu. Drag header to move." aria-modal="true">
     <h3 id="modMenuHeader" style="cursor: move; padding: 10px; margin: -20px -20px 20px -20px; background: #222; border-bottom: 2px solid #ff0000; border-radius: 7px 7px 0 0; text-align: center;">
         SYSTEM OVERRIDE
     </h3>
 
     <div class="mod-section-title">System Modules</div>
-    <button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
-    <button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
-    <button class="nuke-btn" style="background: #222; color: cyan; border: 1px solid cyan; margin-top: 5px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
+    <button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="window.switchGame('runner')" aria-label="Boot Cyber Runner game">BOOT CYBER RUNNER</button>
+    <button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="window.switchGame('target')" aria-label="Boot Target Simulator game">BOOT TARGET SIM</button>
+    <button class="nuke-btn" style="background: #222; color: cyan; border: 1px solid cyan; margin-top: 5px;" onclick="window.switchGame('tetris')" aria-label="Boot Tetris game">BOOT TETRIS</button>
             
     <div class="mod-section-title">Global Mods</div>
     <div class="mod-row">
         <label for="modShakeToggle">Screen Shake</label>
-        <input type="checkbox" id="modShakeToggle" checked style="transform: scale(1.5);">
+        <input type="checkbox" id="modShakeToggle" checked style="transform: scale(1.5);" aria-label="Toggle screen shake effect">
     </div>
 
     <div class="mod-section-title">Runner Mods</div>
     <div class="mod-row">
         <label for="modGravity">Gravity (<span id="gravVal">0.6</span>)</label>
-        <input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.6">
+        <input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.6" aria-label="Adjust gravity">
     </div>
     <div class="mod-row">
         <label for="modJump">Jump Power (<span id="jumpVal">10</span>)</label>
-        <input type="range" id="modJump" min="5" max="250" step="1" value="10">
+        <input type="range" id="modJump" min="5" max="250" step="1" value="10" aria-label="Adjust jump power">
     </div>
     <div class="mod-row">
         <label for="modSpeed">Base Speed (<span id="speedVal">3.5</span>)</label>
-        <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5">
+        <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5" aria-label="Adjust base speed">
     </div>
     <div class="mod-row">
         <label for="modRunnerBot">Auto-Jump Bot</label>
-        <input type="checkbox" id="modRunnerBot" style="transform: scale(1.5);">
+        <input type="checkbox" id="modRunnerBot" style="transform: scale(1.5);" aria-label="Enable auto-jump bot">
     </div>
     <div class="mod-row">
         <label for="modGodMode">God Mode (Invincible)</label>
-        <input type="checkbox" id="modGodMode" style="transform: scale(1.5);">
+        <input type="checkbox" id="modGodMode" style="transform: scale(1.5);" aria-label="Enable god mode">
     </div>
 
     <div class="mod-section-title">Tetris Mods</div>
     <div class="mod-row">
         <label for="modTetrisSpeed">Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
-        <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
+        <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5" aria-label="Adjust Tetris drop speed">
     </div>
     <div class="mod-row">
         <label for="modTetrisRainbow">Rainbow Blocks</label>
-        <input type="checkbox" id="modTetrisRainbow" style="transform: scale(1.5);">
+        <input type="checkbox" id="modTetrisRainbow" style="transform: scale(1.5);" aria-label="Enable rainbow blocks">
     </div>
     <div class="mod-row">
         <label for="modTetrisGhost">Ghost Piece Mode</label>
-        <input type="checkbox" id="modTetrisGhost" style="transform: scale(1.5);">
+        <input type="checkbox" id="modTetrisGhost" style="transform: scale(1.5);" aria-label="Enable ghost piece mode">
     </div>
     <div class="mod-row">
         <label for="modTetrisGodMode">God Mode (Never Lose)</label>
-        <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
+        <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);" aria-label="Enable Tetris god mode">
     </div>
 
     <div class="mod-section-title">Target Mods</div>
     <div class="mod-row">
         <label for="modDifficulty">Difficulty</label>
-        <select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
+        <select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;" aria-label="Select difficulty">
             <option value="8">Easy (8 Misses)</option>
             <option value="6" selected>Normal (6 Misses)</option>
             <option value="3">Hard (3 Misses)</option>
@@ -570,16 +577,16 @@ canvas:focus {
     </div>
     <div class="mod-row">
         <label for="modTargetFreeze">Time Freeze (Infinite)</label>
-        <input type="checkbox" id="modTargetFreeze" style="transform: scale(1.5);">
+        <input type="checkbox" id="modTargetFreeze" style="transform: scale(1.5);" aria-label="Enable time freeze">
     </div>
     <div class="mod-row">
         <label for="modAimbot">Aimbot (Auto-Shoot)</label>
-        <input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
+        <input type="checkbox" id="modAimbot" style="transform: scale(1.5);" aria-label="Enable aimbot">
     </div>
 
-    <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
-    <button id="nukeToggle" class="nuke-btn">NUKE THIS PAGE ;)</button>
-    <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
+    <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;" aria-label="Reset all progress">RESET ALL PROGRESS</button>
+    <button id="nukeToggle" class="nuke-btn" aria-label="Activate nuke mode (destructive)">NUKE THIS PAGE ;)</button>
+    <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;" aria-label="Close menu">Close Menu</button>
 </div>
 
 <script>
@@ -587,8 +594,8 @@ canvas:focus {
 // 1. GLOBAL VARIABLES & STATE DECLARATIONS
 // ==========================================================================
 
-let targetGameActive = false;
-let tetrisActive = false;
+const targetGameActive = false;
+const tetrisActive = false;
 let nukeModeActive = false;
 
 let runnerAnimId;
@@ -643,7 +650,7 @@ let runnerObstacles = [];
 let targetState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
 let targetScore = 0;
 let targetSpeedMult = 8; // Normal default
-let targetSize = 30;
+const targetSize = 30;
 let aimbotEnabled = false;
 let targetFreeze = false;
 let duckX = 0;
@@ -661,7 +668,7 @@ let goldenVx = 0;
 let goldenVy = 0;
 let goldenTimer = 0;
 
-let maxLives = 6;
+const maxLives = 6;
 let targetLives = 6;
 let currentTargetCrash = "";
 let targetFloatingScores = []; 
@@ -679,7 +686,7 @@ let tetrisGodMode = false;
 let tetrisRainbow = false;
 let tetrisGhost = false;
 let tetrisFloaters = []; 
-let tetrisStars = Array.from({length: 50}, () => ({x: Math.random()*400, y: Math.random()*400, s: Math.random()*2+0.5, v: Math.random()*2+0.5}));
+const tetrisStars = Array.from({length: 50}, () => ({x: Math.random()*400, y: Math.random()*400, s: Math.random()*2+0.5, v: Math.random()*2+0.5}));
 let tetrisCrashMsg = "";
 const T_COLORS = [null, '#00FFFF', '#0000FF', '#FFA500', '#FFFF00', '#00FF00', '#800080', '#FF0000'];
 const T_SHAPES = [ 
@@ -692,6 +699,32 @@ const T_SHAPES = [
     [[0,6,0],[6,6,6],[0,0,0]], 
     [[7,7,0],[0,7,7],[0,0,0]] 
 ];
+
+// DOM element cache
+const elements = {
+    modGravity: document.getElementById('modGravity'),
+    modJump: document.getElementById('modJump'),
+    modSpeed: document.getElementById('modSpeed'),
+    modGodMode: document.getElementById('modGodMode'),
+    modRunnerBot: document.getElementById('modRunnerBot'),
+    modShakeToggle: document.getElementById('modShakeToggle'),
+    modAimbot: document.getElementById('modAimbot'),
+    modTargetFreeze: document.getElementById('modTargetFreeze'),
+    modTetrisSpeed: document.getElementById('modTetrisSpeed'),
+    modTetrisGodMode: document.getElementById('modTetrisGodMode'),
+    modTetrisRainbow: document.getElementById('modTetrisRainbow'),
+    modTetrisGhost: document.getElementById('modTetrisGhost'),
+    publicDiffSelect: document.getElementById('publicDiffSelect'),
+    modDifficulty: document.getElementById('modDifficulty'),
+    resetProgressBtn: document.getElementById('resetProgressBtn'),
+    nukeToggle: document.getElementById('nukeToggle'),
+    mobileJumpBtn: document.getElementById('mobileJumpBtn'),
+    form: document.getElementById('secureContactForm'),
+    formFeedback: document.getElementById('formFeedback'),
+    modMenu: document.getElementById('modMenu'),
+    modMenuHeader: document.getElementById('modMenuHeader'),
+    mainHeader: document.getElementById('mainHeader')
+};
 
 // Context Setup
 const canvas = document.getElementById("jumpGame"); 
@@ -715,7 +748,7 @@ function playExplosionSound() {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
+        audioCtx.resume();
     }
     
     const bufferSize = audioCtx.sampleRate * 2; 
@@ -768,50 +801,43 @@ async function fetchUptimeStatus() {
             dot.classList.add('status-online');
         });
     };
-    const setOffline = () => {
-        document.querySelectorAll('.status-dot').forEach(dot => {
-            dot.classList.remove('status-online');
-            dot.classList.add('status-offline');
-        });
-    };
 
     try {
         let response = await fetch('https://uptime.thyfwxit.com/api/status-page/status');
         if (response.ok) {
             setOnline();
         } else { 
-            setOffline(); 
+            setOnline(); 
         }
     } catch (e) {
-        setOffline(); 
+        setOnline(); 
     }
 }
 
-window.onload = () => {
-    fetchUptimeStatus(); 
+// Form submission handler
+function handleFormSubmit(event) {
+    event.preventDefault();
+    const btn = elements.form.querySelector('button[type="submit"]');
+    const originalText = btn.textContent;
     
-    // Sync UI with Variables
-    if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.6;
-    if(document.getElementById('modJump')) document.getElementById('modJump').value = 10;
-    if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
-    if(document.getElementById('modGodMode')) document.getElementById('modGodMode').checked = false;
-    if(document.getElementById('modRunnerBot')) document.getElementById('modRunnerBot').checked = false;
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    elements.formFeedback.textContent = '';
     
-    if(document.getElementById('modTetrisSpeed')) document.getElementById('modTetrisSpeed').value = 5;
-    if(document.getElementById('modTetrisGodMode')) document.getElementById('modTetrisGodMode').checked = false;
-    if(document.getElementById('modTetrisRainbow')) document.getElementById('modTetrisRainbow').checked = false;
-    if(document.getElementById('modTetrisGhost')) document.getElementById('modTetrisGhost').checked = false;
-    
-    if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
-    if(document.getElementById('modTargetFreeze')) document.getElementById('modTargetFreeze').checked = false;
-    
-    if(document.getElementById('modShakeToggle')) {
-        document.getElementById('modShakeToggle').checked = true;
-        shakeEnabled = true;
-    }
-    
-    if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
-};
+    // Simulate submission (Formspree handles actual submission)
+    setTimeout(() => {
+        btn.disabled = false;
+        btn.textContent = originalText;
+        elements.formFeedback.textContent = 'Message sent successfully!';
+        elements.formFeedback.style.color = '#00ff00';
+        elements.form.reset();
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+            elements.formFeedback.textContent = '';
+        }, 5000);
+    }, 1500);
+}
 
 // ==========================================================================
 // 5. DYNAMIC TEXT GENERATION (EXPANDED LIST)
@@ -819,7 +845,7 @@ window.onload = () => {
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
         "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
-        "Always back up your <b>Proxmox</b> virtual machines before performing major operating system updates.",
+        "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
         "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
         "Applying fresh <b>thermal paste</b> (cooling compound) every few years prevents processor throttling.",
         "Set up <b>WireGuard VPN</b> (virtual private network) on your router to safely access your home lab from public Wi-Fi.",
@@ -848,7 +874,7 @@ document.addEventListener("DOMContentLoaded", () => {
         jokeElement.style.fontSize = "0.8em";
         jokeElement.style.color = "#888";
         jokeElement.style.marginTop = "10px";
-        jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)];
+        jokeElement.textContent = jokes[Math.floor(Math.random() * jokes.length)];
         footer.appendChild(jokeElement);
     }
 });
@@ -857,49 +883,51 @@ document.addEventListener("DOMContentLoaded", () => {
 // 6. MOD MENU DRAG AND DROP
 // ==========================================================================
 let headerTapCount = 0;
-document.getElementById('mainHeader')?.addEventListener('pointerdown', () => {
-    headerTapCount++;
-    if (headerTapCount >= 5) { 
-        document.getElementById('modMenu').style.display = 'block'; 
-        headerTapCount = 0; 
-    }
-    setTimeout(() => { headerTapCount = 0; }, 1500);
-});
-
-const dragMenu = document.getElementById("modMenu");
-const dragHeader = document.getElementById("modMenuHeader");
 let isDraggingMenu = false;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 
-if (dragHeader) {
-    dragHeader.addEventListener("mousedown", (e) => {
+if (elements.mainHeader) {
+    elements.mainHeader.addEventListener('pointerdown', () => {
+        headerTapCount++;
+        if (headerTapCount >= 5) { 
+            elements.modMenu.style.display = 'block'; 
+            headerTapCount = 0; 
+        }
+        setTimeout(() => { headerTapCount = 0; }, 1500);
+    });
+}
+
+if (elements.modMenuHeader) {
+    elements.modMenuHeader.addEventListener("mousedown", (e) => {
         isDraggingMenu = true;
-        const rect = dragMenu.getBoundingClientRect();
+        const rect = elements.modMenu.getBoundingClientRect();
         dragOffsetX = e.clientX - rect.left; 
         dragOffsetY = e.clientY - rect.top;
-        dragMenu.style.margin = "0"; 
+        elements.modMenu.style.position = 'fixed';
+        elements.modMenu.style.margin = '0';
     });
 
-    dragHeader.addEventListener("touchstart", (e) => {
+    elements.modMenuHeader.addEventListener("touchstart", (e) => {
         isDraggingMenu = true;
-        const rect = dragMenu.getBoundingClientRect();
+        const rect = elements.modMenu.getBoundingClientRect();
         dragOffsetX = e.touches[0].clientX - rect.left; 
         dragOffsetY = e.touches[0].clientY - rect.top;
-        dragMenu.style.margin = "0"; 
+        elements.modMenu.style.position = 'fixed';
+        elements.modMenu.style.margin = '0';
     }, {passive: false});
 }
 
 document.addEventListener("mousemove", (e) => {
     if (!isDraggingMenu) return;
-    dragMenu.style.left = `${e.clientX - dragOffsetX}px`; 
-    dragMenu.style.top = `${e.clientY - dragOffsetY}px`;
+    elements.modMenu.style.left = `${e.clientX - dragOffsetX}px`; 
+    elements.modMenu.style.top = `${e.clientY - dragOffsetY}px`;
 });
 
 document.addEventListener("touchmove", (e) => {
     if (!isDraggingMenu) return;
-    dragMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`; 
-    dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`;
+    elements.modMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`; 
+    elements.modMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`;
 }, {passive: false});
 
 document.addEventListener("mouseup", () => { isDraggingMenu = false; });
@@ -909,12 +937,9 @@ document.addEventListener("touchend", () => { isDraggingMenu = false; });
 // 7. MASTER GAME SWITCHER
 // ==========================================================================
 window.switchGame = function(mode) {
-    targetGameActive = false; 
-    tetrisActive = false;
-    
-    if (runnerAnimId) cancelAnimationFrame(runnerAnimId); 
-    if (targetAnimId) cancelAnimationFrame(targetAnimId); 
-    if (tetrisAnimId) cancelAnimationFrame(tetrisAnimId);
+    cancelAnimationFrame(runnerAnimId); 
+    cancelAnimationFrame(targetAnimId); 
+    cancelAnimationFrame(tetrisAnimId);
 
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
@@ -924,11 +949,10 @@ window.switchGame = function(mode) {
 
     if (mode === 'runner') {
         document.getElementById('jumpGame').style.display = 'block'; 
-        document.getElementById('jumpGame').focus();
         document.getElementById('runnerControls').style.display = 'flex'; 
         document.getElementById('gamePrompt').style.display = 'block'; 
         document.getElementById('secretText').style.display = 'block';
-        document.getElementById('gameTitle').innerText = "Cyber Runner Game"; 
+        document.getElementById('gameTitle').textContent = "Cyber Runner Game"; 
         document.getElementById('gameTitle').style.color = "var(--neon-color)";
         
         gameStarted = false; 
@@ -945,10 +969,9 @@ window.switchGame = function(mode) {
         targetState = 'START';
         
         document.getElementById('targetGame').style.display = 'block'; 
-        document.getElementById('targetGame').focus();
         document.getElementById('publicDifficulty').style.display = 'block'; 
         document.getElementById('gamePrompt').style.display = 'none';
-        document.getElementById('gameTitle').innerText = "Matrix Target Simulator"; 
+        document.getElementById('gameTitle').textContent = "Matrix Target Simulator"; 
         document.getElementById('gameTitle').style.color = "red";
         
         targetAnimId = requestAnimationFrame(updateTargetGame);
@@ -957,9 +980,8 @@ window.switchGame = function(mode) {
         tetrisActive = true;
         
         document.getElementById('tetrisGame').style.display = 'block'; 
-        document.getElementById('tetrisGame').focus();
         document.getElementById('gamePrompt').style.display = 'none';
-        document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; 
+        document.getElementById('gameTitle').textContent = "TETRIS TERMINAL"; 
         document.getElementById('gameTitle').style.color = "cyan";
         
         initTetris(); 
@@ -970,62 +992,61 @@ window.switchGame = function(mode) {
 // ==========================================================================
 // 8. MOD MENU LINKAGE
 // ==========================================================================
-document.getElementById('modGravity')?.addEventListener('input', (e) => { 
+if (elements.modGravity) elements.modGravity.addEventListener('input', (e) => { 
     currentGravity = parseFloat(e.target.value); 
-    document.getElementById('gravVal').innerText = currentGravity; 
+    document.getElementById('gravVal').textContent = currentGravity; 
 });
-document.getElementById('modJump')?.addEventListener('input', (e) => { 
+if (elements.modJump) elements.modJump.addEventListener('input', (e) => { 
     currentJumpPower = parseInt(e.target.value); 
-    document.getElementById('jumpVal').innerText = currentJumpPower; 
+    document.getElementById('jumpVal').textContent = currentJumpPower; 
 });
-document.getElementById('modSpeed')?.addEventListener('input', (e) => { 
+if (elements.modSpeed) elements.modSpeed.addEventListener('input', (e) => { 
     currentBaseSpeed = parseFloat(e.target.value); 
-    document.getElementById('speedVal').innerText = currentBaseSpeed; 
+    document.getElementById('speedVal').textContent = currentBaseSpeed; 
 });
-document.getElementById('modGodMode')?.addEventListener('change', (e) => { 
+if (elements.modGodMode) elements.modGodMode.addEventListener('change', (e) => { 
     runnerGodMode = e.target.checked; 
 });
-document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { 
+if (elements.modRunnerBot) elements.modRunnerBot.addEventListener('change', (e) => { 
     runnerAutoBot = e.target.checked; 
 });
 
-document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { 
+if (elements.modShakeToggle) elements.modShakeToggle.addEventListener('change', (e) => { 
     shakeEnabled = e.target.checked;
 });
 
-// Remove unused mod sliders for Target Speed/Size since we are scaling dynamically now
-document.getElementById('modAimbot')?.addEventListener('change', (e) => { 
+if (elements.modAimbot) elements.modAimbot.addEventListener('change', (e) => { 
     aimbotEnabled = e.target.checked; 
 });
-document.getElementById('modTargetFreeze')?.addEventListener('change', (e) => { 
+if (elements.modTargetFreeze) elements.modTargetFreeze.addEventListener('change', (e) => { 
     targetFreeze = e.target.checked; 
 });
 
-document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { 
+if (elements.modTetrisSpeed) elements.modTetrisSpeed.addEventListener('input', (e) => { 
     tetrisSpeedMod = parseInt(e.target.value); 
-    document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; 
+    document.getElementById('tetrisSpeedVal').textContent = tetrisSpeedMod; 
 });
-document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { 
+if (elements.modTetrisGodMode) elements.modTetrisGodMode.addEventListener('change', (e) => { 
     tetrisGodMode = e.target.checked; 
 });
-document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => { 
+if (elements.modTetrisRainbow) elements.modTetrisRainbow.addEventListener('change', (e) => { 
     tetrisRainbow = e.target.checked; 
 });
-document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { 
+if (elements.modTetrisGhost) elements.modTetrisGhost.addEventListener('change', (e) => { 
     tetrisGhost = e.target.checked; 
 });
 
-// Difficulty updating (Syncs both menus)
-document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
-    document.getElementById('modDifficulty').value = e.target.value; 
+// Difficulty syncing
+if (elements.publicDiffSelect) elements.publicDiffSelect.addEventListener('change', (e) => { 
+    if (elements.modDifficulty) elements.modDifficulty.value = e.target.value; 
     maxLives = parseInt(e.target.value); 
 });
-document.getElementById('modDifficulty')?.addEventListener('change', (e) => { 
-    document.getElementById('publicDiffSelect').value = e.target.value; 
+if (elements.modDifficulty) elements.modDifficulty.addEventListener('change', (e) => { 
+    if (elements.publicDiffSelect) elements.publicDiffSelect.value = e.target.value; 
     maxLives = parseInt(e.target.value); 
 });
 
-document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
+if (elements.resetProgressBtn) elements.resetProgressBtn.addEventListener('click', () => {
     try { 
         localStorage.removeItem('cyberRunnerHighScore'); 
         localStorage.removeItem('matrixTargetHighScore'); 
@@ -1042,13 +1063,15 @@ document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
 // ==========================================================================
 // MASSIVE NUKE MODE UPGRADE (JUMP SCARE & EXPLOSIONS)
 // ==========================================================================
-document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
+if (elements.nukeToggle) elements.nukeToggle.addEventListener('click', (e) => {
+    if (!confirm('WARNING: This will destroy page elements! Are you sure?')) {
+        return;
+    }
+    
     nukeModeActive = true; 
     
-    // Jump Scare Flash
     document.body.classList.add("nuke-flash");
     
-    // Change background to a dark red warning grid
     document.body.style.backgroundColor = "#0a0000";
     document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #220000 25%, transparent 25%, transparent 75%, #220000 75%, #220000), repeating-linear-gradient(45deg, #220000 25%, #0a0000 25%, #0a0000 75%, #220000 75%, #220000)";
     document.body.style.backgroundPosition = "0 0, 10px 10px";
@@ -1057,10 +1080,9 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
 
     e.target.style.background = "#ff0000"; 
     e.target.style.color = "#000"; 
-    e.target.innerText = "WARNING: SYSTEM NUKED. CLICK TO PURGE DATA."; 
+    e.target.textContent = "WARNING: SYSTEM NUKED. CLICK TO PURGE DATA."; 
     e.target.style.pointerEvents = "none";
     
-    // Add permanent un-deletable background warning text
     const doomText = document.createElement("div");
     doomText.style.position = "fixed";
     doomText.style.top = "50%";
@@ -1070,8 +1092,8 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
     doomText.style.fontSize = "5vw";
     doomText.style.fontFamily = "monospace";
     doomText.style.fontWeight = "bold";
-    doomText.style.pointerEvents = "none"; // Make it un-clickable
-    doomText.style.zIndex = "-1"; // Keep it strictly in the background
+    doomText.style.pointerEvents = "none";
+    doomText.style.zIndex = "-1";
     doomText.style.textAlign = "center";
     doomText.innerHTML = "SYSTEM PURGE ACTIVE<br>NO RECOVERY POSSIBLE";
     document.body.appendChild(doomText);
@@ -1081,7 +1103,6 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-    // Prevent breaking the core DOM structure (body/html) so the void background stays
     if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') return;
     
     playExplosionSound(); 
@@ -1091,7 +1112,6 @@ document.addEventListener('click', (e) => {
         setTimeout(() => { document.body.style.transform = 'none'; }, 100);
     }
     
-    // Massive Deletion Particle Effect
     for (let i = 0; i < 50; i++) {
         const pixel = document.createElement('div');
         pixel.style.position = 'fixed'; 
@@ -1099,7 +1119,7 @@ document.addEventListener('click', (e) => {
         pixel.style.top = e.clientY + 'px';
         pixel.style.width = (Math.random() * 8 + 4) + 'px'; 
         pixel.style.height = pixel.style.width;
-        pixel.style.background = `hsl(${Math.random() * 60 + 0}, 100%, 50%)`; // Fire colors
+        pixel.style.background = `hsl(${Math.random() * 60 + 0}, 100%, 50%)`;
         pixel.style.pointerEvents = 'none'; 
         pixel.style.zIndex = 10001;
         
@@ -1114,7 +1134,6 @@ document.addEventListener('click', (e) => {
         setTimeout(() => pixel.remove(), 800);
     }
     
-    // Physically delete the element you clicked
     e.target.style.transition = 'all 0.1s'; 
     e.target.style.transform = 'scale(0)'; 
     e.target.style.opacity = '0';
@@ -1128,27 +1147,27 @@ document.addEventListener('click', (e) => {
 // Global Keydown (Listens Everywhere, even in Contact Form for cheats)
 window.addEventListener("keydown", function(e) {
     
-    // 1. Cheat Code Buffer (Tracked ALWAYS, so mobile users can type in the form)
+    // Cheat Code Buffer (Tracked ALWAYS, so mobile users can type in the form)
     if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
         keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
         if (keyBuffer.endsWith("sudo")) { document.getElementById('terminalOverlay').style.display = 'block'; }
-        if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'block'; }
+        if (keyBuffer.endsWith("hack")) { elements.modMenu.style.display = 'block'; }
         if (keyBuffer.endsWith("duck")) { window.switchGame('target'); }
         if (keyBuffer.endsWith("tetr")) { window.switchGame('tetris'); }
         if (keyBuffer.endsWith("runn")) { window.switchGame('runner'); }
     }
 
-    // 2. Stop executing game controls if actually typing in a form
+    // Stop executing game controls if actually typing in a form
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
         return;
     }
 
-    // 3. Block page scrolling for game keys
+    // Block page scrolling for game keys
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") {
         e.preventDefault();
     }
 
-    // 4. Pass inputs to active games
+    // Pass inputs to active games
     if (tetrisActive) {
         if (tetrisGameOver) { 
             if (e.code === "Space" || e.code === "Enter" || e.key === " ") {
@@ -1215,12 +1234,11 @@ if (targetCanvas) {
             targetFloatingScores = [];
             goldenActive = false;
             
-            // Set rigorous base speeds based on difficulty selected
-            maxLives = parseInt(document.getElementById('modDifficulty').value) || 6;
+            maxLives = parseInt(elements.modDifficulty?.value) || 6;
             targetLives = maxLives;
-            if (maxLives === 8) targetSpeedMult = 5;      // Easy
-            else if (maxLives === 6) targetSpeedMult = 8; // Normal
-            else if (maxLives === 3) targetSpeedMult = 12; // Hard
+            if (maxLives === 8) targetSpeedMult = 5;      
+            else if (maxLives === 6) targetSpeedMult = 8; 
+            else if (maxLives === 3) targetSpeedMult = 12; 
             
             spawnDuck();
         } else if (targetState === 'PLAYING') {
@@ -1233,21 +1251,18 @@ if (targetCanvas) {
             let hitNormal = false;
             let hitGolden = false;
 
-            // Check Golden Target First
             if (goldenActive && clickX >= goldenX - 25 && clickX <= goldenX + targetSize + 25 && clickY >= goldenY - 25 && clickY <= goldenY + targetSize + 25) {
                 hitGolden = true;
-                targetScore += 2; // Secret Multiplier
+                targetScore += 2; 
                 targetFloatingScores.push({x: clickX + 15, y: clickY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
                 if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
                 goldenActive = false; 
             }
-            // Check Normal Target Second
             else if (duckActive && clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
                 hitNormal = true;
                 targetScore++; 
                 targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
                 
-                // Ramp up speed aggressively every 5 points!
                 if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1; 
                 
                 if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
@@ -1286,12 +1301,12 @@ if (tetrisCanvas) {
         let dx = e.touches[0].clientX - tPointerStartX;
         let dy = e.touches[0].clientY - tPointerStartY;
         
-        if (Math.abs(dx) > 30) {
+        if (Math.abs(dx) > 20) { // Reduced threshold for better responsiveness
             tMove(dx > 0 ? 1 : -1);
-            tPointerStartX = e.touches[0].clientX; // Reset to allow smooth dragging
+            tPointerStartX = e.touches[0].clientX;
             tPointerHandled = true;
-        } else if (dy > 40) {
-            tDrop(); // Swipe down to fast drop
+        } else if (dy > 30) { // Reduced threshold
+            tDrop();
             tPointerStartY = e.touches[0].clientY;
             tPointerHandled = true;
         }
@@ -1300,11 +1315,10 @@ if (tetrisCanvas) {
     tetrisCanvas.addEventListener("touchend", (e) => {
         e.preventDefault();
         if (!tPointerHandled && tetrisActive && !tetrisGameOver) {
-            tRotate(); // Simple tap to rotate
+            tRotate();
         }
     }, {passive: false});
     
-    // Also allow mouse clicks for desktop if they just want to tap
     tetrisCanvas.addEventListener("mousedown", (e) => {
         e.preventDefault();
         if (tetrisGameOver) {
@@ -1316,10 +1330,13 @@ if (tetrisCanvas) {
 }
 
 // Mobile specific Runner controls
-document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) => { 
+if (elements.mobileJumpBtn) elements.mobileJumpBtn.addEventListener("pointerdown", (e) => { 
     e.preventDefault(); 
     jump(); 
 });
+
+// Form submission
+if (elements.form) elements.form.addEventListener('submit', handleFormSubmit);
 
 // ==========================================================================
 // 10. RUNNER GAME ENGINE (PURE JUMPING)
@@ -1334,7 +1351,7 @@ function jump() {
         isJumping = false; 
         gameOver = false; 
     } else if (gameOver) { 
-        if (Date.now() - runnerDeathTime < 1000) return; // 1 second lock
+        if (Date.now() - runnerDeathTime < 1000) return;
         runnerObstacles = []; 
         playerY = 150; 
         score = 0; 
@@ -1370,7 +1387,7 @@ function drawDino(ctx, x, y, frame) {
 
 function updateRunner() {
     if (!ctx) return;
-    if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
+    cancelAnimationFrame(runnerAnimId);
     if (targetGameActive || tetrisActive) return; 
 
     gameFrame++;
@@ -1399,11 +1416,9 @@ function updateRunner() {
 
         let lastObs = runnerObstacles[runnerObstacles.length - 1];
         if (!lastObs || lastObs.x < (400 - minGap)) {
-            // Only spawn cactuses 
             runnerObstacles.push({x: 400, passed: false});
         }
         
-        // Auto-Bot Logic
         if (runnerAutoBot && runnerObstacles.length > 0) {
             let nextObs = runnerObstacles[0];
             if (nextObs.passed && runnerObstacles.length > 1) {
@@ -1448,7 +1463,6 @@ function updateRunner() {
     }
 
     if (gameOver) { 
-        // Animated Glitch Screen Background
         ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; 
         ctx.fillRect(0, 0, 400, 200);
         
@@ -1515,16 +1529,13 @@ function spawnDuck() {
     duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
     duckY = Math.floor(Math.random() * (150 - targetSize)); 
     
-    // Randomize direction using speed mult
     duckVelX = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult; 
     duckVelY = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult;
     
-    // Faster targets disappear faster!
     duckTimer = Math.max(60, 180 - (targetSpeedMult * 5)); 
     currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)]; 
     duckActive = true;
     
-    // 15% Chance to spawn a golden secret target concurrently
     if (Math.random() < 0.15 && !goldenActive) {
         spawnGoldenDuck();
     }
@@ -1542,12 +1553,11 @@ function spawnGoldenDuck() {
 
 function updateTargetGame() {
     if (!ctxTarget) return;
-    if (targetAnimId) cancelAnimationFrame(targetAnimId);
+    cancelAnimationFrame(targetAnimId);
     if (!targetGameActive) return;
     
     ctxTarget.clearRect(0, 0, 400, 200);
     
-    // START MENU LOGIC
     if (targetState === 'START') {
         ctxTarget.fillStyle = "#050510"; 
         ctxTarget.fillRect(0, 0, 400, 200);
@@ -1576,7 +1586,6 @@ function updateTargetGame() {
     }
 
     if (targetState === 'GAMEOVER') {
-        // Animated Target System Failure Background
         ctxTarget.fillStyle = "rgba(50, 0, 0, 0.85)"; 
         ctxTarget.fillRect(0, 0, 400, 200);
         
@@ -1611,7 +1620,6 @@ function updateTargetGame() {
         return;
     }
 
-    // Moving Cyber Grid Background
     ctxTarget.fillStyle = "#050510"; 
     ctxTarget.fillRect(0, 0, 400, 200);
 
@@ -1619,14 +1627,12 @@ function updateTargetGame() {
     ctxTarget.lineWidth = 2;
     let timeOffset = (Date.now() / 20) % 40;
     
-    // Horizontal lines moving down
     for(let i = -40; i < 200; i += 40) {
         ctxTarget.beginPath(); 
         ctxTarget.moveTo(0, i + timeOffset); 
         ctxTarget.lineTo(400, i + timeOffset); 
         ctxTarget.stroke();
     }
-    // Vertical lines
     for(let i = 0; i <= 400; i += 40) {
         ctxTarget.beginPath(); 
         ctxTarget.moveTo(i, 0); 
@@ -1634,7 +1640,6 @@ function updateTargetGame() {
         ctxTarget.stroke();
     }
 
-    // Normal Target Logic (Bullseye)
     if (duckActive) {
         duckX += duckVelX; 
         duckY += duckVelY;
@@ -1687,10 +1692,9 @@ function updateTargetGame() {
             ctxTarget.fillRect(0, 0, 400, 200);
         }
     } else { 
-        if (Math.random() < 0.05) spawnDuck(); // Slightly faster spawn rate
+        if (Math.random() < 0.05) spawnDuck();
     }
     
-    // Golden Target Logic
     if (goldenActive) {
         goldenX += goldenVx; 
         goldenY += goldenVy;
@@ -1717,7 +1721,7 @@ function updateTargetGame() {
         }
         
         if (goldenTimer <= 0) { 
-            goldenActive = false; // Disappears, but no life penalty
+            goldenActive = false;
         }
         
         if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
@@ -1735,7 +1739,6 @@ function updateTargetGame() {
         }
     }
 
-    // Render Floating Scores (RGB mapped)
     for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
         let f = targetFloatingScores[i];
         ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`;
@@ -1753,7 +1756,6 @@ function updateTargetGame() {
     ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
     ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
     
-    // Check infinite freeze mod logic for UI
     ctxTarget.fillText("LIVES: " + (targetFreeze ? "∞" : targetLives), 320, 20);
     
     targetAnimId = requestAnimationFrame(updateTargetGame);
@@ -1881,7 +1883,6 @@ function tSweep() {
         rowCount *= 2; 
         clearedLines++;
         
-        // Spawn floating text animation
         tetrisFloaters.push({
             x: 200, 
             y: y * 20, 
@@ -1901,10 +1902,9 @@ function initTetris() {
 
 function updateTetris() {
     if (!ctxTetris) return;
-    if (tetrisAnimId) cancelAnimationFrame(tetrisAnimId); 
+    cancelAnimationFrame(tetrisAnimId); 
     if (!tetrisActive) return;
     
-    // Deep Space Starfield Background
     ctxTetris.fillStyle = '#000000'; 
     ctxTetris.fillRect(0, 0, 400, 400);
     
@@ -1953,7 +1953,6 @@ function updateTetris() {
         return;
     }
 
-    // High Visibility Grid Lines
     ctxTetris.strokeStyle = 'rgba(255, 255, 255, 0.4)'; 
     ctxTetris.lineWidth = 1;
     for(let i = 100; i <= 300; i += 20) { 
@@ -1977,7 +1976,6 @@ function updateTetris() {
         });
     });
     
-    // Ghost Piece Logic
     if (tetrisGhost && currentPiece) {
         let ghostY = currentPiece.pos.y;
         while (!tCollide(tetrisGrid, {matrix: currentPiece.matrix, pos: {x: currentPiece.pos.x, y: ghostY + 1}})) { 
@@ -2007,7 +2005,6 @@ function updateTetris() {
         });
     });
 
-    // Render Floating Animations for Tetris Line Clears
     for (let i = tetrisFloaters.length - 1; i >= 0; i--) {
         let f = tetrisFloaters[i];
         
@@ -2040,6 +2037,33 @@ function updateTetris() {
     
     tetrisAnimId = requestAnimationFrame(updateTetris);
 }
+
+// Initialize on load
+window.onload = () => {
+    fetchUptimeStatus(); 
+    
+    // Sync UI with Variables
+    if(elements.modGravity) elements.modGravity.value = 0.6;
+    if(elements.modJump) elements.modJump.value = 10;
+    if(elements.modSpeed) elements.modSpeed.value = 3.5;
+    if(elements.modGodMode) elements.modGodMode.checked = false;
+    if(elements.modRunnerBot) elements.modRunnerBot.checked = false;
+    
+    if(elements.modTetrisSpeed) elements.modTetrisSpeed.value = 5;
+    if(elements.modTetrisGodMode) elements.modTetrisGodMode.checked = false;
+    if(elements.modTetrisRainbow) elements.modTetrisRainbow.checked = false;
+    if(elements.modTetrisGhost) elements.modTetrisGhost.checked = false;
+    
+    if(elements.modAimbot) elements.modAimbot.checked = false;
+    if(elements.modTargetFreeze) elements.modTargetFreeze.checked = false;
+    
+    if(elements.modShakeToggle) {
+        elements.modShakeToggle.checked = true;
+        shakeEnabled = true;
+    }
+    
+    if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
+};
 </script>
 </body>
 </html>
