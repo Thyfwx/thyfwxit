@@ -27,6 +27,10 @@
     color: #000;
 }
 
+* {
+    box-sizing: border-box;
+}
+
 body { 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
     line-height: 1.8; 
@@ -179,6 +183,7 @@ footer {
     border-radius: 4px;
     font-family: inherit;
     font-size: 1rem;
+    width: 100%;
 }
 
 .contact-form button {
@@ -233,6 +238,15 @@ footer {
     animation: jumpScare 0.6s cubic-bezier(.36,.07,.19,.97) both;
 }
 
+/* Reduced Motion Settings */
+@media (prefers-reduced-motion: reduce) {
+    .shake-effect, .nuke-flash, .pulse-indicator {
+        animation: none !important;
+        transform: none !important;
+        filter: none !important;
+    }
+}
+
 /* CRT Flicker */
 @keyframes crt-flicker {
     0% { opacity: 0.8; }
@@ -276,6 +290,12 @@ canvas {
     max-width: 400px; 
     touch-action: none; 
     cursor: pointer; 
+    outline: none;
+    transition: box-shadow 0.3s ease;
+}
+
+canvas:focus {
+    box-shadow: 0 0 15px var(--neon-color);
 }
 
 .controls-wrapper {
@@ -432,17 +452,17 @@ canvas {
 
     <div class="game-screen-wrapper" id="gameScreenWrapper">
         <div class="crt-overlay" id="crtOverlayElement"></div>
-        <canvas id="jumpGame" width="400" height="200"></canvas>
-        <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
-        <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
+        <canvas id="jumpGame" width="400" height="200" tabindex="0" aria-label="Cyber Runner Game"></canvas>
+        <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;" tabindex="0" aria-label="Matrix Target Simulator Game"></canvas>
+        <canvas id="tetrisGame" width="400" height="400" style="display: none;" tabindex="0" aria-label="Tetris Game"></canvas>
     </div>
 
     <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump</p>
     <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
     <div id="publicDifficulty" style="display:none; margin-top: 15px;">
-        <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
-        <select id="publicDiffSelect" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px; outline:none;">
+        <label style="color: var(--neon-color); font-weight: bold;" for="publicDiffSelect">Target Difficulty: </label>
+        <select id="publicDiffSelect" aria-label="Select Game Difficulty" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px; outline:none;">
             <option value="8">Easy (8 Misses)</option>
             <option value="6" selected>Normal (6 Misses)</option>
             <option value="3">Hard (3 Misses)</option>
@@ -450,17 +470,17 @@ canvas {
     </div>
 
     <div class="controls-wrapper" id="runnerControls">
-        <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+        <button id="mobileJumpBtn" class="jump-btn" aria-label="Jump Button">JUMP</button>
     </div>
 </section>
 
 <section>
     <h2>Request Service</h2>
     <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
-        <input type="text" name="name" id="formName" placeholder="Your Name" required>
-        <input type="email" name="email" id="formEmail" placeholder="Your Email Address" required>
-        <input type="tel" name="phone" placeholder="Phone Number (Optional)">
-        <select name="service" required>
+        <input type="text" name="name" id="formName" placeholder="Your Name" aria-label="Your Name" required>
+        <input type="email" name="email" id="formEmail" placeholder="Your Email Address" aria-label="Your Email Address" required>
+        <input type="tel" name="phone" placeholder="Phone Number (Optional)" aria-label="Your Phone Number">
+        <select name="service" aria-label="Select a Service" required>
             <option value="">Select a Service...</option>
             <option value="pc">PC Repair (Windows)</option>
             <option value="mac">MacBook / Apple Repair</option>
@@ -468,10 +488,10 @@ canvas {
             <option value="homelab">Home Lab / Server Setup</option>
             <option value="network">Network Security / VPN</option>
         </select>
-        <input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" required>
-        <textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." required></textarea>
-        <input type="text" name="_gotcha" style="display:none">
-        <button type="submit">Send Message</button>
+        <input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" aria-label="Your Device Model" required>
+        <textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." aria-label="Describe your issue" required></textarea>
+        <input type="text" name="_gotcha" aria-label="Hidden Honeypot Field" style="display:none">
+        <button type="submit" aria-label="Send Message">Send Message</button>
     </form>
 </section>
 
@@ -495,53 +515,53 @@ canvas {
             
     <div class="mod-section-title">Global Mods</div>
     <div class="mod-row">
-        <label>Screen Shake</label>
+        <label for="modShakeToggle">Screen Shake</label>
         <input type="checkbox" id="modShakeToggle" checked style="transform: scale(1.5);">
     </div>
 
     <div class="mod-section-title">Runner Mods</div>
     <div class="mod-row">
-        <label>Gravity (<span id="gravVal">0.6</span>)</label>
+        <label for="modGravity">Gravity (<span id="gravVal">0.6</span>)</label>
         <input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.6">
     </div>
     <div class="mod-row">
-        <label>Jump Power (<span id="jumpVal">10</span>)</label>
+        <label for="modJump">Jump Power (<span id="jumpVal">10</span>)</label>
         <input type="range" id="modJump" min="5" max="250" step="1" value="10">
     </div>
     <div class="mod-row">
-        <label>Base Speed (<span id="speedVal">3.5</span>)</label>
+        <label for="modSpeed">Base Speed (<span id="speedVal">3.5</span>)</label>
         <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5">
     </div>
     <div class="mod-row">
-        <label>Auto-Jump Bot</label>
+        <label for="modRunnerBot">Auto-Jump Bot</label>
         <input type="checkbox" id="modRunnerBot" style="transform: scale(1.5);">
     </div>
     <div class="mod-row">
-        <label>God Mode (Invincible)</label>
+        <label for="modGodMode">God Mode (Invincible)</label>
         <input type="checkbox" id="modGodMode" style="transform: scale(1.5);">
     </div>
 
     <div class="mod-section-title">Tetris Mods</div>
     <div class="mod-row">
-        <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
+        <label for="modTetrisSpeed">Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
         <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
     </div>
     <div class="mod-row">
-        <label>Rainbow Blocks</label>
+        <label for="modTetrisRainbow">Rainbow Blocks</label>
         <input type="checkbox" id="modTetrisRainbow" style="transform: scale(1.5);">
     </div>
     <div class="mod-row">
-        <label>Ghost Piece Mode</label>
+        <label for="modTetrisGhost">Ghost Piece Mode</label>
         <input type="checkbox" id="modTetrisGhost" style="transform: scale(1.5);">
     </div>
     <div class="mod-row">
-        <label>God Mode (Never Lose)</label>
+        <label for="modTetrisGodMode">God Mode (Never Lose)</label>
         <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
     </div>
 
     <div class="mod-section-title">Target Mods</div>
     <div class="mod-row">
-        <label>Difficulty</label>
+        <label for="modDifficulty">Difficulty</label>
         <select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
             <option value="8">Easy (8 Misses)</option>
             <option value="6" selected>Normal (6 Misses)</option>
@@ -549,11 +569,11 @@ canvas {
         </select>
     </div>
     <div class="mod-row">
-        <label>Time Freeze (Infinite)</label>
+        <label for="modTargetFreeze">Time Freeze (Infinite)</label>
         <input type="checkbox" id="modTargetFreeze" style="transform: scale(1.5);">
     </div>
     <div class="mod-row">
-        <label>Aimbot (Auto-Shoot)</label>
+        <label for="modAimbot">Aimbot (Auto-Shoot)</label>
         <input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
     </div>
 
@@ -695,7 +715,7 @@ function playExplosionSound() {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
+        audioCtx.resume().catch(() => {});
     }
     
     const bufferSize = audioCtx.sampleRate * 2; 
@@ -748,16 +768,22 @@ async function fetchUptimeStatus() {
             dot.classList.add('status-online');
         });
     };
+    const setOffline = () => {
+        document.querySelectorAll('.status-dot').forEach(dot => {
+            dot.classList.remove('status-online');
+            dot.classList.add('status-offline');
+        });
+    };
 
     try {
         let response = await fetch('https://uptime.thyfwxit.com/api/status-page/status');
         if (response.ok) {
             setOnline();
         } else { 
-            setOnline(); 
+            setOffline(); 
         }
     } catch (e) {
-        setOnline(); 
+        setOffline(); 
     }
 }
 
@@ -793,7 +819,7 @@ window.onload = () => {
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
         "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
-        "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
+        "Always back up your <b>Proxmox</b> virtual machines before performing major operating system updates.",
         "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
         "Applying fresh <b>thermal paste</b> (cooling compound) every few years prevents processor throttling.",
         "Set up <b>WireGuard VPN</b> (virtual private network) on your router to safely access your home lab from public Wi-Fi.",
@@ -886,9 +912,9 @@ window.switchGame = function(mode) {
     targetGameActive = false; 
     tetrisActive = false;
     
-    cancelAnimationFrame(runnerAnimId); 
-    cancelAnimationFrame(targetAnimId); 
-    cancelAnimationFrame(tetrisAnimId);
+    if (runnerAnimId) cancelAnimationFrame(runnerAnimId); 
+    if (targetAnimId) cancelAnimationFrame(targetAnimId); 
+    if (tetrisAnimId) cancelAnimationFrame(tetrisAnimId);
 
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
@@ -898,6 +924,7 @@ window.switchGame = function(mode) {
 
     if (mode === 'runner') {
         document.getElementById('jumpGame').style.display = 'block'; 
+        document.getElementById('jumpGame').focus();
         document.getElementById('runnerControls').style.display = 'flex'; 
         document.getElementById('gamePrompt').style.display = 'block'; 
         document.getElementById('secretText').style.display = 'block';
@@ -918,6 +945,7 @@ window.switchGame = function(mode) {
         targetState = 'START';
         
         document.getElementById('targetGame').style.display = 'block'; 
+        document.getElementById('targetGame').focus();
         document.getElementById('publicDifficulty').style.display = 'block'; 
         document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "Matrix Target Simulator"; 
@@ -929,6 +957,7 @@ window.switchGame = function(mode) {
         tetrisActive = true;
         
         document.getElementById('tetrisGame').style.display = 'block'; 
+        document.getElementById('tetrisGame').focus();
         document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; 
         document.getElementById('gameTitle').style.color = "cyan";
@@ -1341,7 +1370,7 @@ function drawDino(ctx, x, y, frame) {
 
 function updateRunner() {
     if (!ctx) return;
-    cancelAnimationFrame(runnerAnimId);
+    if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
     if (targetGameActive || tetrisActive) return; 
 
     gameFrame++;
@@ -1513,7 +1542,7 @@ function spawnGoldenDuck() {
 
 function updateTargetGame() {
     if (!ctxTarget) return;
-    cancelAnimationFrame(targetAnimId);
+    if (targetAnimId) cancelAnimationFrame(targetAnimId);
     if (!targetGameActive) return;
     
     ctxTarget.clearRect(0, 0, 400, 200);
@@ -1872,7 +1901,7 @@ function initTetris() {
 
 function updateTetris() {
     if (!ctxTetris) return;
-    cancelAnimationFrame(tetrisAnimId); 
+    if (tetrisAnimId) cancelAnimationFrame(tetrisAnimId); 
     if (!tetrisActive) return;
     
     // Deep Space Starfield Background
