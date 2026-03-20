@@ -10,11 +10,22 @@
 <style>
 :root {
     --bg-color: #1a1a1a;
-    --section-bg: #2a2a2a;
+    --section-bg: rgba(42, 42, 42, 0.4);
     --text-color: #e0e0e0;
     --neon-color: #ff00ff;
     --canvas-bg: #0a0a0a;
     --grid-color: #330033;
+    --line-height: 1.8;
+    --font-size: 16px;
+}
+
+/* Reading Mode Variables */
+body.reading-mode {
+    --bg-color: #222;
+    --text-color: #ffffff;
+    --neon-color: #ff88ff; 
+    --line-height: 2.2;
+    --font-size: 18px;
 }
 
 ::selection {
@@ -27,19 +38,75 @@
     color: #000;
 }
 
+/* Custom Neon Scrollbar */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+    border-left: 1px solid var(--grid-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--neon-color);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #cc00cc;
+}
+
 * {
     box-sizing: border-box;
 }
 
 body { 
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-    line-height: 1.8; 
+    line-height: var(--line-height); 
+    font-size: var(--font-size);
     max-width: 800px; 
     margin: 0 auto; 
     padding: 40px 20px; 
-    background-color: var(--bg-color); 
+    background-color: var(--bg-color);
+    background-image: linear-gradient(rgba(26, 26, 26, 0.9), rgba(26, 26, 26, 0.9)), 
+                      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
+                      linear-gradient(var(--grid-color) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
     color: var(--text-color); 
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+/* Accessibility Focus Highlights */
+*:focus-visible {
+    outline: 3px solid var(--neon-color);
+    outline-offset: 4px;
+}
+
+section:hover, section:focus-within {
+    border-left: 4px solid var(--neon-color);
+}
+
+.controls-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.readability-btn {
+    background: transparent;
+    color: var(--text-color);
+    border: 1px solid var(--text-color);
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.readability-btn:hover {
+    background: var(--text-color);
+    color: var(--bg-color);
 }
 
 header { 
@@ -48,6 +115,13 @@ header {
     text-align: center; 
     user-select: none;
     cursor: pointer;
+    background: var(--section-bg);
+    padding: 20px;
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    min-height: 90px;
 }
 
 h1, h2 { 
@@ -55,17 +129,28 @@ h1, h2 {
     margin-bottom: 20px; 
 }
 
+/* Blinking Cursor for Typewriter */
+.blinking-cursor {
+    font-weight: bold;
+    color: var(--neon-color);
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    50% { opacity: 0; }
+}
+
 section { 
     margin-bottom: 40px; 
     background: var(--section-bg); 
     padding: 25px; 
     border-radius: 8px; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
-    transition: transform 0.3s ease;
-}
-
-section:hover { 
-    transform: translateY(-5px); 
+    border: 1px solid rgba(255, 0, 255, 0.1);
+    border-left: 4px solid transparent;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-left 0.3s ease;
 }
 
 ul { 
@@ -92,6 +177,14 @@ footer {
     text-align: center; 
     border-top: 1px solid #444; 
     padding-top: 30px; 
+    position: relative;
+}
+
+.scramble-text:hover {
+    font-family: monospace;
+    color: #00ff00;
+    letter-spacing: 2px;
+    cursor: crosshair;
 }
 
 /* Project Grid */
@@ -109,10 +202,11 @@ footer {
 }
 
 .project-card {
-    background: #111;
+    background: rgba(17, 17, 17, 0.7);
     padding: 20px;
     border: 1px solid var(--neon-color);
     border-radius: 5px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
 }
 
 /* Pulsing Neon Indicator */
@@ -128,23 +222,42 @@ footer {
     100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
 }
 
+@keyframes networkTraffic {
+    0% { opacity: 1; }
+    20% { opacity: 0.4; }
+    40% { opacity: 1; }
+    60% { opacity: 0.2; }
+    80% { opacity: 1; }
+    100% { opacity: 0.8; }
+}
+
 /* Custom Status Badges */
+#systemStatus {
+    position: sticky;
+    top: 20px;
+    z-index: 100;
+    padding: 15px 25px;
+    background: rgba(20, 20, 20, 0.85);
+    border: 1px solid var(--neon-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+}
+
 .status-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 15px;
-    margin-top: 15px;
-    background: #111;
-    padding: 20px;
-    border: 1px solid var(--neon-color);
+    margin-top: 10px;
+    background: rgba(10, 10, 10, 0.5);
+    padding: 15px;
     border-radius: 5px;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8);
 }
 
 .status-item {
     display: flex;
     align-items: center;
     font-weight: bold;
-    font-size: 1.1em;
+    font-size: 1.0em;
 }
 
 .status-dot {
@@ -159,6 +272,7 @@ footer {
 .status-online {
     background: #00ff00;
     box-shadow: 0 0 8px #00ff00;
+    animation: networkTraffic 2s infinite;
 }
 
 .status-offline {
@@ -166,24 +280,46 @@ footer {
     box-shadow: 0 0 8px #ff0000;
 }
 
-/* Contact Form */
+/* Contact Form with Permanent Labels */
 .contact-form {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-group label {
+    font-weight: bold;
+    color: var(--neon-color);
+    font-size: 0.9em;
 }
 
 .contact-form input, 
 .contact-form select, 
 .contact-form textarea {
     padding: 12px;
-    background: var(--canvas-bg);
+    background: rgba(10, 10, 10, 0.6);
     color: var(--text-color);
     border: 1px solid #444;
     border-radius: 4px;
     font-family: inherit;
     font-size: 1rem;
     width: 100%;
+    box-shadow: inset 2px 2px 6px rgba(0,0,0,0.8);
+    transition: all 0.3s ease;
+}
+
+.contact-form input:focus, 
+.contact-form select:focus, 
+.contact-form textarea:focus {
+    outline: none;
+    border-color: var(--neon-color);
+    box-shadow: 0 0 10px rgba(255, 0, 255, 0.2), inset 2px 2px 6px rgba(0,0,0,0.8);
 }
 
 .contact-form button {
@@ -195,15 +331,18 @@ footer {
     cursor: pointer;
     border-radius: 4px;
     font-size: 1.1rem;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
+    box-shadow: 0 4px 0 #b300b3, 0 5px 10px rgba(0,0,0,0.5);
+    margin-top: 10px;
 }
 
 .contact-form button:hover {
-    box-shadow: 0 0 15px var(--neon-color);
+    box-shadow: 0 4px 0 #b300b3, 0 0 15px var(--neon-color);
 }
 
 .contact-form button:active {
-    transform: scale(0.97); 
+    transform: translateY(4px); 
+    box-shadow: 0 0 0 #b300b3, 0 0 5px var(--neon-color);
 }
 
 /* Screen Shake Animation */
@@ -225,36 +364,13 @@ footer {
     animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
 }
 
-/* NUKE JUMP SCARE ANIMATION */
-@keyframes jumpScare {
-    0% { filter: invert(1) hue-rotate(180deg) blur(5px); transform: scale(1.05) translate(10px, 10px); }
-    15% { filter: invert(0) hue-rotate(0deg) blur(0px); transform: scale(1) translate(-10px, -10px); }
-    30% { filter: invert(1) hue-rotate(90deg) blur(2px); transform: scale(1.02) translate(5px, -5px); }
-    45% { filter: invert(0) hue-rotate(0deg) blur(0px); transform: scale(1) translate(0px, 0px); }
-    100% { filter: none; transform: none; }
-}
-
-.nuke-flash {
-    animation: jumpScare 0.6s cubic-bezier(.36,.07,.19,.97) both;
-}
-
 /* Reduced Motion Settings */
 @media (prefers-reduced-motion: reduce) {
-    .shake-effect, .nuke-flash, .pulse-indicator {
+    .shake-effect, .pulse-indicator {
         animation: none !important;
         transform: none !important;
         filter: none !important;
     }
-}
-
-/* CRT Flicker */
-@keyframes crt-flicker {
-    0% { opacity: 0.8; }
-    5% { opacity: 0.95; }
-    10% { opacity: 0.8; }
-    15% { opacity: 1; }
-    50% { opacity: 0.9; }
-    100% { opacity: 0.85; }
 }
 
 .game-container { 
@@ -263,23 +379,11 @@ footer {
     padding-bottom: 30px;
 }
 
-/* CRT Scanline Overlay */
 .game-screen-wrapper {
     position: relative;
     display: inline-block;
     margin: 20px auto;
     max-width: 100%;
-}
-
-.crt-overlay {
-    position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-    background-size: 100% 4px, 3px 100%;
-    pointer-events: none;
-    z-index: 10;
-    animation: crt-flicker 0.15s infinite;
-    display: none; 
 }
 
 canvas { 
@@ -315,21 +419,17 @@ canvas:focus {
     border-radius: 5px; 
     cursor: pointer; 
     user-select: none; 
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
     text-transform: uppercase;
     letter-spacing: 2px;
     flex: 1;
     max-width: 200px;
-}
-
-.jump-btn:hover {
-    background-color: var(--neon-color);
-    color: #000;
-    box-shadow: 0 0 15px var(--neon-color);
+    box-shadow: 0 4px 0 #800080, 0 5px 10px rgba(0,0,0,0.5);
 }
 
 .jump-btn:active {
-    transform: scale(0.95); 
+    transform: translateY(4px); 
+    box-shadow: 0 0 0 #b300b3;
 }
 
 #terminalOverlay { 
@@ -337,12 +437,13 @@ canvas:focus {
     position: fixed; 
     top: 0; left: 0; 
     width: 100%; height: 100%; 
-    background: #000; 
+    background: #050505; 
     color: #00ff00; 
     font-family: monospace; 
     padding: 20px; 
     z-index: 9999; 
     overflow-y: auto; 
+    font-size: 1.2em;
 }
 
 #modMenu { 
@@ -350,11 +451,13 @@ canvas:focus {
     position: fixed; 
     top: 10%; left: 50%; 
     margin-left: -170px;
-    background: #000; 
+    background: rgba(10, 10, 10, 0.95); 
     border: 3px solid #ff0000; 
     padding: 20px; 
     z-index: 10000; 
-    box-shadow: 0 0 20px #ff0000; 
+    box-shadow: 0 0 30px rgba(255, 0, 0, 0.5); 
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: #fff; 
     width: 300px; 
     border-radius: 10px; 
@@ -389,23 +492,54 @@ canvas:focus {
     cursor: pointer; 
     border-radius: 5px; 
     margin-top: 10px; 
-    transition: all 0.2s; 
+    transition: all 0.1s; 
+    box-shadow: 0 4px 0 #990000, 0 5px 10px rgba(0,0,0,0.5);
 }
 
 .nuke-btn:active {
-    transform: scale(0.95); 
+    transform: translateY(4px); 
+    box-shadow: 0 0 0 #990000;
 }
 
-@keyframes nukeParticle {
-    0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
-    100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
+/* Milo Easter Egg Animation */
+@keyframes slideInCat {
+    from { right: -150px; }
+    to { right: 20px; }
+}
+
+.milo-cat {
+    position: fixed;
+    bottom: 20px;
+    right: -150px;
+    font-size: 40px;
+    z-index: 9000;
+    filter: drop-shadow(0 0 10px #ff9900);
+}
+
+/* Red Screen Of Death (Kernel Panic) */
+#kernelPanicScreen {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: #aa0000;
+    color: #ffffff;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.5em;
+    padding: 30px;
+    z-index: 999999;
+    overflow: hidden;
 }
 </style>
 </head>
 <body>
 
+<div class="controls-header">
+    <button class="readability-btn" id="toggleReadability" aria-label="Toggle High Readability Mode">Reading Mode: OFF</button>
+</div>
+
 <header id="mainHeader">
-    <h1>Systems Specialist & Network Infrastructure</h1>
+    <h1><span id="typewriterText"></span><span class="blinking-cursor">_</span></h1>
 </header>
 
 <section>
@@ -440,10 +574,10 @@ canvas:focus {
     <h2>Live Infrastructure Status</h2>
     <p>Monitoring critical node uptime across local and remote environments.</p>
     <div class="status-grid">
-        <div class="status-item"><span class="status-dot" id="status-proxmox"></span> Proxmox Node 01</div>
-        <div class="status-item"><span class="status-dot" id="status-vpn"></span> WireGuard VPN</div>
         <div class="status-item"><span class="status-dot" id="status-adguard"></span> AdGuard Home</div>
+        <div class="status-item"><span class="status-dot" id="status-omv"></span> OpenMediaVault</div>
         <div class="status-item"><span class="status-dot" id="status-ha"></span> Home Assistant</div>
+        <div class="status-item"><span class="status-dot" id="status-proxmox"></span> Proxmox VE</div>
     </div>
 </section>
 
@@ -451,7 +585,6 @@ canvas:focus {
     <h2 id="gameTitle">Cyber Runner Game</h2>
 
     <div class="game-screen-wrapper" id="gameScreenWrapper">
-        <div class="crt-overlay" id="crtOverlayElement"></div>
         <canvas id="jumpGame" width="400" height="200" tabindex="0" aria-label="Cyber Runner Game"></canvas>
         <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;" tabindex="0" aria-label="Matrix Target Simulator Game"></canvas>
         <canvas id="tetrisGame" width="400" height="400" style="display: none;" tabindex="0" aria-label="Tetris Game"></canvas>
@@ -477,30 +610,61 @@ canvas:focus {
 <section>
     <h2>Request Service</h2>
     <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
-        <input type="text" name="name" id="formName" placeholder="Your Name" aria-label="Your Name" required>
-        <input type="email" name="email" id="formEmail" placeholder="Your Email Address" aria-label="Your Email Address" required>
-        <input type="tel" name="phone" placeholder="Phone Number (Optional)" aria-label="Your Phone Number">
-        <select name="service" aria-label="Select a Service" required>
-            <option value="">Select a Service...</option>
-            <option value="pc">PC Repair (Windows)</option>
-            <option value="mac">MacBook / Apple Repair</option>
-            <option value="mobile">Mobile Device Repair</option>
-            <option value="homelab">Home Lab / Server Setup</option>
-            <option value="network">Network Security / VPN</option>
-        </select>
-        <input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" aria-label="Your Device Model" required>
-        <textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." aria-label="Describe your issue" required></textarea>
+        <div class="form-group">
+            <label for="formName">Full Name</label>
+            <input type="text" name="name" id="formName" aria-label="Your Name" required>
+        </div>
+        <div class="form-group">
+            <label for="formEmail">Email Address</label>
+            <input type="email" name="email" id="formEmail" aria-label="Your Email Address" required>
+        </div>
+        <div class="form-group">
+            <label for="formPhone">Phone Number</label>
+            <input type="tel" name="phone" id="formPhone" aria-label="Your Phone Number">
+        </div>
+        <div class="form-group">
+            <label for="formService">Requested Service</label>
+            <select name="service" id="formService" aria-label="Select a Service" required>
+                <option value="">Select a Service...</option>
+                <option value="pc">PC Repair (Windows)</option>
+                <option value="mac">MacBook / Apple Repair</option>
+                <option value="mobile">Mobile Device Repair</option>
+                <option value="homelab">Home Lab / Server Setup</option>
+                <option value="network">Network Security / VPN</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="formModel">Device Model</label>
+            <input type="text" name="device_model" id="formModel" aria-label="Your Device Model" required>
+        </div>
+        <div class="form-group">
+            <label for="formMessage">Issue Description</label>
+            <textarea name="message" id="formMessage" rows="5" aria-label="Describe your issue" required></textarea>
+        </div>
         <input type="text" name="_gotcha" aria-label="Hidden Honeypot Field" style="display:none">
-        <button type="submit" aria-label="Send Message">Send Message</button>
+        <button type="submit" aria-label="Send Message" id="submitBtn">Send Message</button>
     </form>
 </section>
 
 <footer>
-    <p><b>Xavier Scott :3</b></p>
+    <p><b class="scramble-text">Xavier Scott :3</b></p>
 </footer>
 
 <div id="terminalOverlay">
     <div id="terminalText"></div>
+</div>
+
+<div id="kernelPanicScreen">
+    <p>KERNEL PANIC - NOT SYNCING: FATAL HARDWARE EXCEPTION</p>
+    <p>CPU: 0 PID: 1 Comm: systemd</p>
+    <p>Hardware name: Proxmox VE Node 01</p>
+    <br>
+    <p>Call Trace:</p>
+    <p> [error] fs/ext4/super.c: Mount failed</p>
+    <p> [error] block/blk-core.c: Critical I/O fault</p>
+    <p> [error] net/wireguard/device.c: Interface dropped</p>
+    <br>
+    <p class="blinking-cursor">SYSTEM HALTED.</p>
 </div>
 
 <div id="modMenu">
@@ -577,11 +741,10 @@ canvas:focus {
         <input type="checkbox" id="modAimbot" style="transform: scale(1.5);">
     </div>
 
-    <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
-    <button id="nukeToggle" class="nuke-btn">NUKE THIS PAGE ;)</button>
-    <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
+    <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px; box-shadow: 0 4px 0 #cc6600;">RESET ALL PROGRESS</button>
+    <button id="nukeToggle" class="nuke-btn">INITIATE KERNEL PANIC</button>
+    <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px; box-shadow: 0 4px 0 #222; transition: all 0.1s;">Close Menu</button>
 </div>
-
 <script>
 // ==========================================================================
 // 1. GLOBAL VARIABLES & STATE DECLARATIONS
@@ -600,11 +763,7 @@ let gameFrame = 0;
 
 // Web Audio API Context for Nuke Mode
 let audioCtx = null;
-
-// Death cooldown trackers 
-let runnerDeathTime = 0;
-let targetDeathTime = 0;
-let tetrisDeathTime = 0;
+let osc = null; 
 
 // High Score Memory 
 let runnerHighScore = 0;
@@ -615,7 +774,6 @@ try { runnerHighScore = parseInt(localStorage.getItem('cyberRunnerHighScore')) |
 try { targetHighScore = parseInt(localStorage.getItem('matrixTargetHighScore')) || 0; } catch(e) {}
 try { tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; } catch(e) {}
 
-// Global Mods
 let shakeEnabled = true;
 
 // Custom Crash Messages
@@ -638,33 +796,21 @@ let gameStarted = false;
 let currentSpeed = 3.5;
 let currentRunnerCrash = "";
 let runnerObstacles = [];
+let runnerDeathTime = 0;
 
 // Target Simulator Variables
-let targetState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
+let targetState = 'START';
 let targetScore = 0;
-let targetSpeedMult = 8; // Normal default
+let targetSpeedMult = 8;
 let targetSize = 30;
 let aimbotEnabled = false;
 let targetFreeze = false;
-let duckX = 0;
-let duckY = 0;
-let duckActive = false;
-let duckVelX = 0;
-let duckVelY = 0;
-let duckTimer = 0; 
-
-// Golden Target Variables (Secret +2 Multiplier)
-let goldenActive = false;
-let goldenX = 0;
-let goldenY = 0;
-let goldenVx = 0;
-let goldenVy = 0;
-let goldenTimer = 0;
-
-let maxLives = 6;
-let targetLives = 6;
+let duckX = 0, duckY = 0, duckActive = false, duckVelX = 0, duckVelY = 0, duckTimer = 0; 
+let goldenActive = false, goldenX = 0, goldenY = 0, goldenVx = 0, goldenVy = 0, goldenTimer = 0;
+let maxLives = 6, targetLives = 6;
 let currentTargetCrash = "";
 let targetFloatingScores = []; 
+let targetDeathTime = 0;
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
 let currentDuckColor = rainbowColors[0];
 
@@ -672,6 +818,7 @@ let currentDuckColor = rainbowColors[0];
 let tetrisGrid = [];
 let tetrisScore = 0;
 let tetrisGameOver = false;
+let tetrisDeathTime = 0;
 let currentPiece = null;
 let tetrisDropCounter = 0;
 let tetrisSpeedMod = 5;
@@ -693,13 +840,10 @@ const T_SHAPES = [
     [[7,7,0],[0,7,7],[0,0,0]] 
 ];
 
-// Context Setup
 const canvas = document.getElementById("jumpGame"); 
 const ctx = canvas ? canvas.getContext("2d") : null;
-
 const targetCanvas = document.getElementById("targetGame"); 
 const ctxTarget = targetCanvas ? targetCanvas.getContext("2d") : null;
-
 const tetrisCanvas = document.getElementById("tetrisGame"); 
 const ctxTetris = tetrisCanvas ? tetrisCanvas.getContext("2d") : null;
 
@@ -708,114 +852,96 @@ const neonColor = style.getPropertyValue('--neon-color').trim() || '#ff00ff';
 const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
 
 // ==========================================================================
-// 2. EXPLOSION AUDIO GENERATOR (NUKE MODE)
+// 2. CORE FUNCTIONS & API
 // ==========================================================================
-function playExplosionSound() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
-    }
-    
-    const bufferSize = audioCtx.sampleRate * 2; 
-    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1; 
-    }
-    
-    const noise = audioCtx.createBufferSource();
-    noise.buffer = buffer;
-    
-    const filter = audioCtx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 800; 
-    
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(2, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); 
-    
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(audioCtx.destination);
-    
-    noise.start();
-}
 
-// ==========================================================================
-// 3. SHAKE FUNCTION (Safe Toggle)
-// ==========================================================================
 function triggerShake() {
     if (!shakeEnabled) return;
-    
     const gameArea = document.getElementById("gameArea");
-    if (gameArea) {
-        gameArea.classList.remove("shake-effect");
+    if (gameArea) { 
+        gameArea.classList.remove("shake-effect"); 
         void gameArea.offsetWidth; 
-        gameArea.classList.add("shake-effect");
-        setTimeout(() => { gameArea.classList.remove("shake-effect"); }, 400);
+        gameArea.classList.add("shake-effect"); 
+        setTimeout(() => { gameArea.classList.remove("shake-effect"); }, 400); 
     }
 }
 
-// ==========================================================================
-// 4. INITIALIZATION & UPTIME
-// ==========================================================================
+function typeWriter(text, i, fnCallback) {
+    if (i < text.length) { 
+        document.getElementById("typewriterText").innerHTML = text.substring(0, i+1); 
+        setTimeout(function() { typeWriter(text, i + 1, fnCallback) }, 60); 
+    }
+    else if (typeof fnCallback == 'function') {
+        setTimeout(fnCallback, 700);
+    }
+}
+
 async function fetchUptimeStatus() {
-    const setOnline = () => {
-        document.querySelectorAll('.status-dot').forEach(dot => {
-            dot.classList.remove('status-offline');
-            dot.classList.add('status-online');
-        });
-    };
-    const setOffline = () => {
-        document.querySelectorAll('.status-dot').forEach(dot => {
-            dot.classList.remove('status-online');
-            dot.classList.add('status-offline');
-        });
-    };
-
-    try {
-        let response = await fetch('https://uptime.thyfwxit.com/api/status-page/status');
-        if (response.ok) {
-            setOnline();
-        } else { 
-            setOffline(); 
+    const setStatus = (id, isUp) => {
+        const dot = document.getElementById(id);
+        if(dot) { 
+            dot.classList.remove('status-online', 'status-offline'); 
+            dot.classList.add(isUp ? 'status-online' : 'status-offline'); 
         }
-    } catch (e) {
-        setOffline(); 
+    };
+    ['status-adguard', 'status-omv', 'status-ha', 'status-proxmox'].forEach(id => setStatus(id, false));
+    try {
+        let response = await fetch('https://uptime.thyfwxit.com/status/status', { mode: 'cors' });
+        if (response.ok) {
+            let data = (await response.text()).toLowerCase();
+            if(data.includes("adguard")) setStatus('status-adguard', true);
+            if(data.includes("openmediavault") || data.includes("omv")) setStatus('status-omv', true);
+            if(data.includes("ha") || data.includes("home assistant")) setStatus('status-ha', true);
+            if(data.includes("proxmox")) setStatus('status-proxmox', true);
+        }
+    } catch (e) { 
+        console.log("Public Status API not reachable. Showing offline."); 
     }
 }
+
+// ==========================================================================
+// 3. INITIALIZATION ON LOAD
+// ==========================================================================
 
 window.onload = () => {
+    typeWriter("Systems Specialist & Network Infrastructure", 0);
     fetchUptimeStatus(); 
-    
-    // Sync UI with Variables
-    if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.6;
-    if(document.getElementById('modJump')) document.getElementById('modJump').value = 10;
-    if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
-    if(document.getElementById('modGodMode')) document.getElementById('modGodMode').checked = false;
-    if(document.getElementById('modRunnerBot')) document.getElementById('modRunnerBot').checked = false;
-    
-    if(document.getElementById('modTetrisSpeed')) document.getElementById('modTetrisSpeed').value = 5;
-    if(document.getElementById('modTetrisGodMode')) document.getElementById('modTetrisGodMode').checked = false;
-    if(document.getElementById('modTetrisRainbow')) document.getElementById('modTetrisRainbow').checked = false;
-    if(document.getElementById('modTetrisGhost')) document.getElementById('modTetrisGhost').checked = false;
-    
-    if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
-    if(document.getElementById('modTargetFreeze')) document.getElementById('modTargetFreeze').checked = false;
-    
-    if(document.getElementById('modShakeToggle')) {
-        document.getElementById('modShakeToggle').checked = true;
-        shakeEnabled = true;
-    }
-    
     if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
+    
+    document.getElementById('toggleReadability')?.addEventListener('click', function() {
+        document.body.classList.toggle('reading-mode');
+        this.innerText = document.body.classList.contains('reading-mode') ? "Reading Mode: ON" : "Reading Mode: OFF";
+    });
+
+    document.getElementById('secureContactForm')?.addEventListener('submit', function(e) {
+        const btn = document.getElementById('submitBtn');
+        if(btn.innerText !== "Send Message") { e.preventDefault(); return; }
+        e.preventDefault(); 
+        const form = this; 
+        let msgs = ["ENCRYPTING DATA...", "BYPASSING FIREWALL...", "ROUTING PAYLOAD..."], step = 0;
+        let intv = setInterval(() => { 
+            if (step < msgs.length) { btn.innerText = msgs[step]; step++; } 
+            else { clearInterval(intv); form.submit(); } 
+        }, 500);
+    });
+
+    const scrambler = document.querySelector('.scramble-text');
+    if (scrambler) {
+        const originalName = "Xavier Scott :3", chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*";
+        scrambler.addEventListener("mouseenter", () => {
+            let iterations = 0;
+            const interval = setInterval(() => {
+                scrambler.innerText = originalName.split("").map((letter, index) => {
+                    if(index < iterations) return originalName[index]; 
+                    return chars[Math.floor(Math.random() * chars.length)];
+                }).join("");
+                if(iterations >= originalName.length) clearInterval(interval);
+                iterations += 1 / 3;
+            }, 30);
+        });
+    }
 };
 
-// ==========================================================================
-// 5. DYNAMIC TEXT GENERATION (EXPANDED LIST)
-// ==========================================================================
 document.addEventListener("DOMContentLoaded", () => {
     const techTips = [
         "Isolate your smart home devices on a separate <b>VLAN</b> (virtual local area network) to prevent them from accessing your private computers.",
@@ -829,10 +955,9 @@ document.addEventListener("DOMContentLoaded", () => {
         "Configure <b>Fail2Ban</b> on your reverse proxy to permanently block IPs that repeatedly fail authentication.",
         "Implement a <b>3-2-1 backup strategy</b>: 3 copies of data, 2 different media types, 1 offsite."
     ];
-
     const tipElement = document.getElementById("techTipText");
     if (tipElement) tipElement.innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
-
+    
     const jokes = [
         "I would tell you a UDP joke, but you might not get it.",
         "There are 10 types of people: those who understand binary, and those who don't.",
@@ -841,81 +966,53 @@ document.addEventListener("DOMContentLoaded", () => {
         "Hardware is the part of a computer you can kick; software is what you yell at.",
         "Why did the IT tech cross the road? To troubleshoot the other side."
     ];
-
     const footer = document.querySelector("footer");
     if (footer) {
-        const jokeElement = document.createElement("p");
-        jokeElement.style.fontSize = "0.8em";
-        jokeElement.style.color = "#888";
+        const jokeElement = document.createElement("p"); 
+        jokeElement.style.fontSize = "0.8em"; 
+        jokeElement.style.color = "#888"; 
         jokeElement.style.marginTop = "10px";
-        jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)];
+        jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)]; 
         footer.appendChild(jokeElement);
     }
 });
 
 // ==========================================================================
-// 6. MOD MENU DRAG AND DROP
+// 4. MOD MENU UI
 // ==========================================================================
+
 let headerTapCount = 0;
 document.getElementById('mainHeader')?.addEventListener('pointerdown', () => {
-    headerTapCount++;
-    if (headerTapCount >= 5) { 
-        document.getElementById('modMenu').style.display = 'block'; 
-        headerTapCount = 0; 
-    }
+    headerTapCount++; 
+    if (headerTapCount >= 5) { document.getElementById('modMenu').style.display = 'block'; headerTapCount = 0; }
     setTimeout(() => { headerTapCount = 0; }, 1500);
 });
 
-const dragMenu = document.getElementById("modMenu");
-const dragHeader = document.getElementById("modMenuHeader");
-let isDraggingMenu = false;
-let dragOffsetX = 0;
-let dragOffsetY = 0;
+const dragMenu = document.getElementById("modMenu"), dragHeader = document.getElementById("modMenuHeader");
+let isDraggingMenu = false, dragOffsetX = 0, dragOffsetY = 0;
 
 if (dragHeader) {
-    dragHeader.addEventListener("mousedown", (e) => {
-        isDraggingMenu = true;
-        const rect = dragMenu.getBoundingClientRect();
-        dragOffsetX = e.clientX - rect.left; 
-        dragOffsetY = e.clientY - rect.top;
-        dragMenu.style.margin = "0"; 
+    dragHeader.addEventListener("mousedown", (e) => { 
+        isDraggingMenu = true; const rect = dragMenu.getBoundingClientRect(); 
+        dragOffsetX = e.clientX - rect.left; dragOffsetY = e.clientY - rect.top; dragMenu.style.margin = "0"; 
     });
-
-    dragHeader.addEventListener("touchstart", (e) => {
-        isDraggingMenu = true;
-        const rect = dragMenu.getBoundingClientRect();
-        dragOffsetX = e.touches[0].clientX - rect.left; 
-        dragOffsetY = e.touches[0].clientY - rect.top;
-        dragMenu.style.margin = "0"; 
-    }, {passive: false});
 }
-
-document.addEventListener("mousemove", (e) => {
-    if (!isDraggingMenu) return;
-    dragMenu.style.left = `${e.clientX - dragOffsetX}px`; 
-    dragMenu.style.top = `${e.clientY - dragOffsetY}px`;
+document.addEventListener("mousemove", (e) => { 
+    if (!isDraggingMenu) return; 
+    dragMenu.style.left = `${e.clientX - dragOffsetX}px`; dragMenu.style.top = `${e.clientY - dragOffsetY}px`; 
 });
-
-document.addEventListener("touchmove", (e) => {
-    if (!isDraggingMenu) return;
-    dragMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`; 
-    dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`;
-}, {passive: false});
-
 document.addEventListener("mouseup", () => { isDraggingMenu = false; });
-document.addEventListener("touchend", () => { isDraggingMenu = false; });
 
 // ==========================================================================
-// 7. MASTER GAME SWITCHER
+// 5. GAME SWITCHER & MOD SYNC
 // ==========================================================================
+
 window.switchGame = function(mode) {
-    targetGameActive = false; 
-    tetrisActive = false;
-    
+    targetGameActive = false; tetrisActive = false;
     if (runnerAnimId) cancelAnimationFrame(runnerAnimId); 
     if (targetAnimId) cancelAnimationFrame(targetAnimId); 
     if (tetrisAnimId) cancelAnimationFrame(tetrisAnimId);
-
+    
     document.getElementById('jumpGame').style.display = 'none'; 
     document.getElementById('targetGame').style.display = 'none'; 
     document.getElementById('tetrisGame').style.display = 'none';
@@ -924,197 +1021,132 @@ window.switchGame = function(mode) {
 
     if (mode === 'runner') {
         document.getElementById('jumpGame').style.display = 'block'; 
-        document.getElementById('jumpGame').focus();
+        document.getElementById('jumpGame').focus(); 
         document.getElementById('runnerControls').style.display = 'flex'; 
-        document.getElementById('gamePrompt').style.display = 'block'; 
-        document.getElementById('secretText').style.display = 'block';
         document.getElementById('gameTitle').innerText = "Cyber Runner Game"; 
         document.getElementById('gameTitle').style.color = "var(--neon-color)";
-        
-        gameStarted = false; 
-        gameOver = false; 
-        playerY = 150; 
-        velocity = 0; 
-        runnerObstacles = []; 
-        score = 0;
-        
+        gameStarted = false; gameOver = false; playerY = 150; velocity = 0; runnerObstacles = []; score = 0; 
         runnerAnimId = requestAnimationFrame(updateRunner);
-        
     } else if (mode === 'target') {
-        targetGameActive = true; 
-        targetState = 'START';
-        
+        targetGameActive = true; targetState = 'START';
         document.getElementById('targetGame').style.display = 'block'; 
-        document.getElementById('targetGame').focus();
+        document.getElementById('targetGame').focus(); 
         document.getElementById('publicDifficulty').style.display = 'block'; 
-        document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "Matrix Target Simulator"; 
-        document.getElementById('gameTitle').style.color = "red";
-        
+        document.getElementById('gameTitle').style.color = "red"; 
         targetAnimId = requestAnimationFrame(updateTargetGame);
-        
     } else if (mode === 'tetris') {
-        tetrisActive = true;
-        
+        tetrisActive = true; 
         document.getElementById('tetrisGame').style.display = 'block'; 
         document.getElementById('tetrisGame').focus();
-        document.getElementById('gamePrompt').style.display = 'none';
         document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; 
         document.getElementById('gameTitle').style.color = "cyan";
-        
-        initTetris(); 
-        tetrisAnimId = requestAnimationFrame(updateTetris);
+        initTetris(); tetrisAnimId = requestAnimationFrame(updateTetris);
     }
 }
 
-// ==========================================================================
-// 8. MOD MENU LINKAGE
-// ==========================================================================
-document.getElementById('modGravity')?.addEventListener('input', (e) => { 
-    currentGravity = parseFloat(e.target.value); 
-    document.getElementById('gravVal').innerText = currentGravity; 
-});
-document.getElementById('modJump')?.addEventListener('input', (e) => { 
-    currentJumpPower = parseInt(e.target.value); 
-    document.getElementById('jumpVal').innerText = currentJumpPower; 
-});
-document.getElementById('modSpeed')?.addEventListener('input', (e) => { 
-    currentBaseSpeed = parseFloat(e.target.value); 
-    document.getElementById('speedVal').innerText = currentBaseSpeed; 
-});
-document.getElementById('modGodMode')?.addEventListener('change', (e) => { 
-    runnerGodMode = e.target.checked; 
-});
-document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { 
-    runnerAutoBot = e.target.checked; 
-});
-
-document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { 
-    shakeEnabled = e.target.checked;
-});
-
-// Remove unused mod sliders for Target Speed/Size since we are scaling dynamically now
-document.getElementById('modAimbot')?.addEventListener('change', (e) => { 
-    aimbotEnabled = e.target.checked; 
-});
-document.getElementById('modTargetFreeze')?.addEventListener('change', (e) => { 
-    targetFreeze = e.target.checked; 
-});
-
-document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { 
-    tetrisSpeedMod = parseInt(e.target.value); 
-    document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; 
-});
-document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { 
-    tetrisGodMode = e.target.checked; 
-});
-document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => { 
-    tetrisRainbow = e.target.checked; 
-});
-document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { 
-    tetrisGhost = e.target.checked; 
-});
-
-// Difficulty updating (Syncs both menus)
-document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
-    document.getElementById('modDifficulty').value = e.target.value; 
-    maxLives = parseInt(e.target.value); 
-});
-document.getElementById('modDifficulty')?.addEventListener('change', (e) => { 
-    document.getElementById('publicDiffSelect').value = e.target.value; 
-    maxLives = parseInt(e.target.value); 
-});
+document.getElementById('modGravity')?.addEventListener('input', (e) => { currentGravity = parseFloat(e.target.value); });
+document.getElementById('modJump')?.addEventListener('input', (e) => { currentJumpPower = parseInt(e.target.value); });
+document.getElementById('modSpeed')?.addEventListener('input', (e) => { currentBaseSpeed = parseFloat(e.target.value); });
+document.getElementById('modGodMode')?.addEventListener('change', (e) => { runnerGodMode = e.target.checked; });
+document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { runnerAutoBot = e.target.checked; });
+document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { shakeEnabled = e.target.checked; });
+document.getElementById('modAimbot')?.addEventListener('change', (e) => { aimbotEnabled = e.target.checked; });
+document.getElementById('modTargetFreeze')?.addEventListener('change', (e) => { targetFreeze = e.target.checked; });
+document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { tetrisSpeedMod = parseInt(e.target.value); });
+document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { tetrisGodMode = e.target.checked; });
+document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => { tetrisRainbow = e.target.checked; });
+document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { tetrisGhost = e.target.checked; });
+document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { document.getElementById('modDifficulty').value = e.target.value; maxLives = parseInt(e.target.value); });
+document.getElementById('modDifficulty')?.addEventListener('change', (e) => { document.getElementById('publicDiffSelect').value = e.target.value; maxLives = parseInt(e.target.value); });
 
 document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
-    try { 
-        localStorage.removeItem('cyberRunnerHighScore'); 
-        localStorage.removeItem('matrixTargetHighScore'); 
-        localStorage.removeItem('tetrisHighScore'); 
-    } catch(e) {}
-    
-    runnerHighScore = 0; 
-    targetHighScore = 0; 
-    tetrisHighScore = 0; 
-    
+    localStorage.clear(); 
+    runnerHighScore = 0; targetHighScore = 0; tetrisHighScore = 0; 
     alert("SYSTEM PURGED: All local high scores have been wiped.");
 });
 
 // ==========================================================================
-// MASSIVE NUKE MODE UPGRADE (JUMP SCARE & EXPLOSIONS)
+// 6. KERNEL PANIC NUKE SEQUENCE
 // ==========================================================================
+
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
-    nukeModeActive = true; 
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    osc = audioCtx.createOscillator(); 
+    const gainNode = audioCtx.createGain();
+    osc.type = 'square'; 
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+    osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.5);
+    osc.connect(gainNode); 
+    gainNode.connect(audioCtx.destination); 
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+    osc.start();
     
-    // Jump Scare Flash
-    document.body.classList.add("nuke-flash");
-    
-    // Change background to a dark red warning grid
-    document.body.style.backgroundColor = "#0a0000";
-    document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #220000 25%, transparent 25%, transparent 75%, #220000 75%, #220000), repeating-linear-gradient(45deg, #220000 25%, #0a0000 25%, #0a0000 75%, #220000 75%, #220000)";
-    document.body.style.backgroundPosition = "0 0, 10px 10px";
-    document.body.style.backgroundSize = "20px 20px";
-    document.body.style.cursor = "crosshair";
+    setInterval(() => { 
+        if(osc) { 
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+            osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.5); 
+        } 
+    }, 1000);
 
-    e.target.style.background = "#ff0000"; 
-    e.target.style.color = "#000"; 
-    e.target.innerText = "WARNING: SYSTEM NUKED. CLICK TO PURGE DATA."; 
-    e.target.style.pointerEvents = "none";
+    document.body.style.filter = "invert(1) hue-rotate(180deg)";
+    document.getElementById('modMenu').style.display = 'none'; 
+    nukeModeActive = true;
     
-    // Add permanent un-deletable background warning text
-    const doomText = document.createElement("div");
-    doomText.style.position = "fixed";
-    doomText.style.top = "50%";
-    doomText.style.left = "50%";
-    doomText.style.transform = "translate(-50%, -50%)";
-    doomText.style.color = "rgba(255, 0, 0, 0.15)";
-    doomText.style.fontSize = "5vw";
-    doomText.style.fontFamily = "monospace";
-    doomText.style.fontWeight = "bold";
-    doomText.style.pointerEvents = "none"; // Make it un-clickable
-    doomText.style.zIndex = "-1"; // Keep it strictly in the background
-    doomText.style.textAlign = "center";
-    doomText.innerHTML = "SYSTEM PURGE ACTIVE<br>NO RECOVERY POSSIBLE";
-    document.body.appendChild(doomText);
+    const allTextElements = document.querySelectorAll('h1, h2, h3, p, li, label, button');
+    const chars = "01#$%&@^*!~";
+    const scrambleInt = setInterval(() => {
+        allTextElements.forEach(el => {
+            if(el.innerText && el.innerText.length > 0 && Math.random() > 0.5) {
+                let scrambled = ""; 
+                for(let i=0; i<el.innerText.length; i++) scrambled += chars[Math.floor(Math.random() * chars.length)]; 
+                el.innerText = scrambled;
+            }
+        });
+        document.body.style.transform = `translate(${(Math.random() - 0.5) * 10}px, ${(Math.random() - 0.5) * 10}px)`;
+    }, 100);
 
-    triggerShake();
-    setTimeout(triggerShake, 500);
+    setTimeout(() => {
+        clearInterval(scrambleInt); 
+        document.body.style.transform = 'none'; 
+        document.body.style.filter = 'none';
+        if (osc) { osc.stop(); osc.disconnect(); osc = null; }
+        document.getElementById('kernelPanicScreen').style.display = 'block'; 
+        document.body.style.overflow = 'hidden'; 
+    }, 5000);
 });
 
 document.addEventListener('click', (e) => {
-    // Prevent breaking the core DOM structure (body/html) so the void background stays
     if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') return;
-    
-    playExplosionSound(); 
-    
-    if (shakeEnabled) {
-        document.body.style.transform = `translate(${(Math.random() - 0.5) * 20}px, ${(Math.random() - 0.5) * 20}px)`;
-        setTimeout(() => { document.body.style.transform = 'none'; }, 100);
+    if (shakeEnabled) { 
+        document.body.style.transform = `translate(${(Math.random() - 0.5) * 20}px, ${(Math.random() - 0.5) * 20}px)`; 
+        setTimeout(() => { document.body.style.transform = 'none'; }, 100); 
     }
     
-    // Massive Deletion Particle Effect
-    for (let i = 0; i < 50; i++) {
-        const pixel = document.createElement('div');
+    const existingParticles = document.querySelectorAll('.nuke-particle').length;
+    const particlesToCreate = Math.min(15, 60 - existingParticles);
+    
+    for (let i = 0; i < particlesToCreate; i++) {
+        const pixel = document.createElement('div'); 
+        pixel.className = 'nuke-particle';
         pixel.style.position = 'fixed'; 
         pixel.style.left = e.clientX + 'px'; 
         pixel.style.top = e.clientY + 'px';
         pixel.style.width = (Math.random() * 8 + 4) + 'px'; 
         pixel.style.height = pixel.style.width;
-        pixel.style.background = `hsl(${Math.random() * 60 + 0}, 100%, 50%)`; // Fire colors
+        pixel.style.background = `hsl(${Math.random() * 60 + 0}, 100%, 50%)`; 
         pixel.style.pointerEvents = 'none'; 
         pixel.style.zIndex = 10001;
-        
-        const vx = (Math.random() - 0.5) * 600;
-        const vy = (Math.random() - 0.5) * 600;
-        pixel.animate([
+        const vx = (Math.random() - 0.5) * 600, vy = (Math.random() - 0.5) * 600;
+        pixel.animate([ 
             { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 }, 
-            { transform: `translate(${vx}px, ${vy}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 }
+            { transform: `translate(${vx}px, ${vy}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 } 
         ], { duration: 800, easing: 'ease-out' });
         
         document.body.appendChild(pixel); 
         setTimeout(() => pixel.remove(), 800);
     }
-    
-    // Physically delete the element you clicked
     e.target.style.transition = 'all 0.1s'; 
     e.target.style.transform = 'scale(0)'; 
     e.target.style.opacity = '0';
@@ -1122,922 +1154,371 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================================================
-// 9. UNIVERSAL INPUT ROUTER & MOBILE SWIPE LOGIC
+// 7. KEYBOARD CONTROLS & CHEATS
 // ==========================================================================
 
-// Global Keydown (Listens Everywhere, even in Contact Form for cheats)
 window.addEventListener("keydown", function(e) {
-    
-    // 1. Cheat Code Buffer (Tracked ALWAYS, so mobile users can type in the form)
     if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
         keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
-        if (keyBuffer.endsWith("sudo")) { document.getElementById('terminalOverlay').style.display = 'block'; }
-        if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'block'; }
-        if (keyBuffer.endsWith("duck")) { window.switchGame('target'); }
-        if (keyBuffer.endsWith("tetr")) { window.switchGame('tetris'); }
-        if (keyBuffer.endsWith("runn")) { window.switchGame('runner'); }
+        
+        if (keyBuffer.endsWith("sudo")) { 
+            const overlay = document.getElementById('terminalOverlay'); 
+            overlay.style.display = 'block'; 
+            const term = document.getElementById('terminalText'); 
+            term.innerHTML = "";
+            const logs = [ 
+                "[OK] Mounted Root File System", 
+                "[OK] Started Proxmox VE node", 
+                "[OK] Initializing WireGuard Interface wg0", 
+                "[OK] Started Home Assistant Core", 
+                "Loading AdGuard DNS rules... Done.", 
+                "Waiting for user payload..." 
+            ];
+            let i = 0; 
+            const logInt = setInterval(() => { 
+                if(i < logs.length) { term.innerHTML += logs[i] + "<br>"; i++; } 
+                else { clearInterval(logInt); term.innerHTML += "<span class='blinking-cursor'>_</span>"; } 
+            }, 300);
+        }
+        if (keyBuffer.endsWith("hack")) document.getElementById('modMenu').style.display = 'block';
+        if (keyBuffer.endsWith("duck")) window.switchGame('target');
+        if (keyBuffer.endsWith("milo")) { 
+            const cat = document.createElement('div'); 
+            cat.className = 'milo-cat'; 
+            cat.innerHTML = "🐈 <span style='font-size:15px;color:#fff;'>Zzz...</span>"; 
+            cat.style.animation = "slideInCat 1.5s forwards"; 
+            document.body.appendChild(cat); 
+        }
     }
 
-    // 2. Stop executing game controls if actually typing in a form
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-    }
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") e.preventDefault();
 
-    // 3. Block page scrolling for game keys
-    if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") {
-        e.preventDefault();
-    }
-
-    // 4. Pass inputs to active games
     if (tetrisActive) {
         if (tetrisGameOver) { 
-            if (e.code === "Space" || e.code === "Enter" || e.key === " ") {
-                if (Date.now() - tetrisDeathTime < 1000) return; 
-                initTetris(); 
-            }
+            if (e.code === "Space" || e.code === "Enter" || e.key === " ") { 
+                if (Date.now() - tetrisDeathTime > 1000) initTetris(); 
+            } 
             return; 
         }
-        if (e.code === "ArrowLeft" || e.code === "KeyA") { tMove(-1); }
-        if (e.code === "ArrowRight" || e.code === "KeyD") { tMove(1); }
-        if (e.code === "ArrowDown" || e.code === "KeyS") { tDrop(); }
-        if (e.code === "ArrowUp" || e.code === "KeyW") { tRotate(); }
+        if (e.code === "ArrowLeft" || e.code === "KeyA") tMove(-1);
+        if (e.code === "ArrowRight" || e.code === "KeyD") tMove(1);
+        if (e.code === "ArrowDown" || e.code === "KeyS") tDrop();
+        if (e.code === "ArrowUp" || e.code === "KeyW") tRotate();
         if (e.code === "Space" || e.key === " ") { 
-            while(!tCollide(tetrisGrid, currentPiece)) { 
-                currentPiece.pos.y++; 
-            } 
+            while(!tCollide(tetrisGrid, currentPiece)) currentPiece.pos.y++; 
             currentPiece.pos.y--; 
-            tMerge(); 
-            tReset(); 
-            tSweep(); 
+            tMerge(); tReset(); tSweep(); 
         }
-        
     } else if (targetGameActive) {
-        if (targetState === 'GAMEOVER' && (e.code === "Space" || e.code === "Enter" || e.key === " ")) {
-            if (Date.now() - targetDeathTime < 1000) return; 
-            targetState = 'START';
+        if (targetState === 'GAMEOVER' && (e.code === "Space" || e.code === "Enter" || e.key === " ")) { 
+            if (Date.now() - targetDeathTime > 1000) targetState = 'START'; 
         }
     } else {
-        if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
-            jump(); 
-        } 
+        if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") jump(); 
     }
 }, { passive: false });
 
 window.addEventListener("keyup", e => { 
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-        return;
-    }
-    if (!targetGameActive && !tetrisActive) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    if (!targetGameActive && !tetrisActive) { 
         if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
             if (velocity < -4) velocity = -4; 
         } 
     }
 });
 
-// Canvas Tap-to-Start Listeners
-if (canvas) {
-    canvas.addEventListener("pointerdown", (e) => { 
-        e.preventDefault(); 
-        jump(); 
-    });
+// ==========================================================================
+// 8. GAME INTERACTION LOGIC
+// ==========================================================================
+
+if (canvas) { 
+    canvas.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); }); 
 }
 
 if (targetCanvas) {
     targetCanvas.addEventListener("pointerdown", (e) => { 
         e.preventDefault();
-        
         if (targetState === 'GAMEOVER') { 
-            if (Date.now() - targetDeathTime < 1000) return; 
-            targetState = 'START';
+            if (Date.now() - targetDeathTime > 1000) targetState = 'START';
         } else if (targetState === 'START') {
-            targetState = 'PLAYING';
-            targetScore = 0;
-            targetFloatingScores = [];
-            goldenActive = false;
-            
-            // Set rigorous base speeds based on difficulty selected
-            maxLives = parseInt(document.getElementById('modDifficulty').value) || 6;
+            targetState = 'PLAYING'; targetScore = 0; targetFloatingScores = []; goldenActive = false;
+            maxLives = parseInt(document.getElementById('modDifficulty').value) || 6; 
             targetLives = maxLives;
-            if (maxLives === 8) targetSpeedMult = 5;      // Easy
-            else if (maxLives === 6) targetSpeedMult = 8; // Normal
-            else if (maxLives === 3) targetSpeedMult = 12; // Hard
-            
+            if (maxLives === 8) targetSpeedMult = 5; 
+            else if (maxLives === 6) targetSpeedMult = 8; 
+            else targetSpeedMult = 12; 
             spawnDuck();
         } else if (targetState === 'PLAYING') {
-            const rect = targetCanvas.getBoundingClientRect();
-            const scaleX = targetCanvas.width / rect.width;
-            const scaleY = targetCanvas.height / rect.height;
-            const clickX = (e.clientX - rect.left) * scaleX;
-            const clickY = (e.clientY - rect.top) * scaleY;
-            
-            let hitNormal = false;
-            let hitGolden = false;
+            const rect = targetCanvas.getBoundingClientRect(), clickX = (e.clientX - rect.left) * (targetCanvas.width / rect.width), clickY = (e.clientY - rect.top) * (targetCanvas.height / rect.height);
+            let hitNormal = false, hitGolden = false;
 
-            // Check Golden Target First
             if (goldenActive && clickX >= goldenX - 25 && clickX <= goldenX + targetSize + 25 && clickY >= goldenY - 25 && clickY <= goldenY + targetSize + 25) {
-                hitGolden = true;
-                targetScore += 2; // Secret Multiplier
+                hitGolden = true; targetScore += 2; 
                 targetFloatingScores.push({x: clickX + 15, y: clickY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
                 if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
                 goldenActive = false; 
-            }
-            // Check Normal Target Second
-            else if (duckActive && clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
-                hitNormal = true;
-                targetScore++; 
+            } else if (duckActive && clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
+                hitNormal = true; targetScore++; 
                 targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
-                
-                // Ramp up speed aggressively every 5 points!
                 if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1; 
-                
                 if (targetScore > targetHighScore) { targetHighScore = targetScore; try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} }
                 duckActive = false; 
             }
-
-            if (hitNormal || hitGolden) {
-                ctxTarget.fillStyle = "white"; 
-                ctxTarget.fillRect(0,0,400,200);
-            }
+            if (hitNormal || hitGolden) { ctxTarget.fillStyle = "white"; ctxTarget.fillRect(0,0,400,200); }
         }
     });
 }
-
-// TETRIS MOBILE SWIPE ENGINE
-let tPointerStartX = 0;
-let tPointerStartY = 0;
-let tPointerHandled = false;
-
-if (tetrisCanvas) {
-    tetrisCanvas.addEventListener("touchstart", (e) => { 
-        e.preventDefault(); 
-        if (tetrisGameOver) { 
-            if (Date.now() - tetrisDeathTime > 1000) initTetris(); 
-            return; 
-        }
-        tPointerStartX = e.touches[0].clientX;
-        tPointerStartY = e.touches[0].clientY;
-        tPointerHandled = false;
-    }, {passive: false});
-
-    tetrisCanvas.addEventListener("touchmove", (e) => { 
-        e.preventDefault(); 
-        if (!tetrisActive || tetrisGameOver) return;
-        
-        let dx = e.touches[0].clientX - tPointerStartX;
-        let dy = e.touches[0].clientY - tPointerStartY;
-        
-        if (Math.abs(dx) > 30) {
-            tMove(dx > 0 ? 1 : -1);
-            tPointerStartX = e.touches[0].clientX; // Reset to allow smooth dragging
-            tPointerHandled = true;
-        } else if (dy > 40) {
-            tDrop(); // Swipe down to fast drop
-            tPointerStartY = e.touches[0].clientY;
-            tPointerHandled = true;
-        }
-    }, {passive: false});
-
-    tetrisCanvas.addEventListener("touchend", (e) => {
-        e.preventDefault();
-        if (!tPointerHandled && tetrisActive && !tetrisGameOver) {
-            tRotate(); // Simple tap to rotate
-        }
-    }, {passive: false});
-    
-    // Also allow mouse clicks for desktop if they just want to tap
-    tetrisCanvas.addEventListener("mousedown", (e) => {
-        e.preventDefault();
-        if (tetrisGameOver) {
-            if (Date.now() - tetrisDeathTime > 1000) initTetris();
-        } else if (tetrisActive) {
-            tRotate();
-        }
-    });
-}
-
-// Mobile specific Runner controls
-document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) => { 
-    e.preventDefault(); 
-    jump(); 
-});
+document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) => { e.preventDefault(); jump(); });
 
 // ==========================================================================
-// 10. RUNNER GAME ENGINE (PURE JUMPING)
+// 9. CYBER RUNNER
 // ==========================================================================
+
 function jump() {
     if (targetGameActive || tetrisActive) return; 
-    
-    if (!gameStarted) { 
-        gameStarted = true; 
-        runnerObstacles = []; 
-        score = 0; 
-        isJumping = false; 
-        gameOver = false; 
-    } else if (gameOver) { 
-        if (Date.now() - runnerDeathTime < 1000) return; // 1 second lock
-        runnerObstacles = []; 
-        playerY = 150; 
-        score = 0; 
-        gameOver = false; 
-        velocity = 0; 
-        isJumping = false; 
+    if (!gameStarted) { gameStarted = true; runnerObstacles = []; score = 0; isJumping = false; gameOver = false; } 
+    else if (gameOver) { 
+        if (Date.now() - runnerDeathTime < 1000) return; 
+        runnerObstacles = []; playerY = 150; score = 0; gameOver = false; velocity = 0; isJumping = false; 
     }
-    
-    if (!isJumping && !gameOver) { 
-        isJumping = true; 
-        velocity = -currentJumpPower; 
-    }
+    if (!isJumping && !gameOver) { isJumping = true; velocity = -currentJumpPower; }
 }
 
 function drawDino(ctx, x, y, frame) {
     ctx.fillStyle = neonColor; 
     if (runnerGodMode) ctx.fillStyle = "#fff";
-    
-    ctx.fillRect(x + 6, y + 4, 12, 16); 
-    ctx.fillRect(x + 14, y, 12, 10); 
-    ctx.fillRect(x, y + 10, 6, 8); 
-    ctx.fillRect(x + 18, y + 10, 4, 4); 
-    
-    if (frame % 10 < 5 && !isJumping) {
-        ctx.fillRect(x + 8, y + 20, 4, 6);
-    } else if (!isJumping) {
-        ctx.fillRect(x + 14, y + 20, 4, 6);
-    } else { 
-        ctx.fillRect(x + 8, y + 20, 4, 4); 
-        ctx.fillRect(x + 14, y + 20, 4, 4); 
-    }
+    ctx.fillRect(x + 6, y + 4, 12, 16); ctx.fillRect(x + 14, y, 12, 10); ctx.fillRect(x, y + 10, 6, 8); ctx.fillRect(x + 18, y + 10, 4, 4); 
+    if (frame % 10 < 5 && !isJumping) ctx.fillRect(x + 8, y + 20, 4, 6); 
+    else if (!isJumping) ctx.fillRect(x + 14, y + 20, 4, 6); 
+    else { ctx.fillRect(x + 8, y + 20, 4, 4); ctx.fillRect(x + 14, y + 20, 4, 4); }
 }
 
 function updateRunner() {
-    if (!ctx) return;
-    if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
+    if (!ctx) return; 
+    if (runnerAnimId) cancelAnimationFrame(runnerAnimId); 
     if (targetGameActive || tetrisActive) return; 
-
-    gameFrame++;
-    ctx.clearRect(0, 0, 400, 200);
-    ctx.strokeStyle = gridColor;
     
-    for (let i = 0; i <= 400; i += 20) { 
-        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); 
-    }
-    for (let i = 0; i <= 200; i += 20) { 
-        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); 
-    }
-
+    gameFrame++; ctx.clearRect(0, 0, 400, 200); ctx.strokeStyle = gridColor;
+    for (let i = 0; i <= 400; i += 20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); }
+    for (let i = 0; i <= 200; i += 20) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke(); }
+    
     if (gameStarted && !gameOver) {
-        velocity += currentGravity; 
-        playerY += velocity;
+        velocity += currentGravity; playerY += velocity; 
+        if (playerY >= 150) { playerY = 150; isJumping = false; velocity = 0; }
         
-        if (playerY >= 150) { 
-            playerY = 150; 
-            isJumping = false; 
-            velocity = 0; 
-        }
-
         currentSpeed = currentBaseSpeed + (Math.floor(score / 20) * 1.0); 
         let minGap = 350 + (currentSpeed * 20); 
-
-        let lastObs = runnerObstacles[runnerObstacles.length - 1];
-        if (!lastObs || lastObs.x < (400 - minGap)) {
-            // Only spawn cactuses 
+        if (!runnerObstacles[runnerObstacles.length - 1] || runnerObstacles[runnerObstacles.length - 1].x < (400 - minGap)) {
             runnerObstacles.push({x: 400, passed: false});
         }
         
-        // Auto-Bot Logic
-        if (runnerAutoBot && runnerObstacles.length > 0) {
-            let nextObs = runnerObstacles[0];
-            if (nextObs.passed && runnerObstacles.length > 1) {
-                nextObs = runnerObstacles[1];
-            }
-            if (nextObs.x < 70 && nextObs.x > 30) {
-                if (!isJumping) {
-                    isJumping = true;
-                    velocity = -currentJumpPower;
-                }
-            }
+        if (runnerAutoBot && runnerObstacles.length > 0) { 
+            let nextObs = runnerObstacles[0].passed && runnerObstacles.length > 1 ? runnerObstacles[1] : runnerObstacles[0]; 
+            if (nextObs.x < 70 && nextObs.x > 30 && !isJumping) { isJumping = true; velocity = -currentJumpPower; } 
         }
         
         for (let i = 0; i < runnerObstacles.length; i++) {
-            let obs = runnerObstacles[i];
-            obs.x -= currentSpeed;
-            
-            if (!obs.passed && obs.x + 20 < 20) { 
-                obs.passed = true; 
-                score++; 
-            }
-
-            let px = 20, pw = 25, py = playerY - 10, ph = 30; 
-            let ox = obs.x, oy = 150, ow = 15, oh = 20; 
-            
-            if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode) {
-                if (!gameOver) { 
-                    gameOver = true; 
-                    runnerDeathTime = Date.now(); 
-                    currentRunnerCrash = runnerCrashMessages[Math.floor(Math.random() * runnerCrashMessages.length)];
-                    triggerShake(); 
-                    
-                    if (score > runnerHighScore) { 
-                        runnerHighScore = score; 
-                        try { localStorage.setItem('cyberRunnerHighScore', runnerHighScore); } catch(e){} 
-                    }
-                }
+            let obs = runnerObstacles[i]; obs.x -= currentSpeed; 
+            if (!obs.passed && obs.x + 20 < 20) { obs.passed = true; score++; }
+            if (20 < obs.x + 15 && 45 > obs.x && playerY - 10 < 170 && playerY + 20 > 150 && !runnerGodMode && !gameOver) {
+                gameOver = true; runnerDeathTime = Date.now(); 
+                currentRunnerCrash = runnerCrashMessages[Math.floor(Math.random() * runnerCrashMessages.length)]; 
+                triggerShake(); 
+                if (score > runnerHighScore) { runnerHighScore = score; try { localStorage.setItem('cyberRunnerHighScore', runnerHighScore); } catch(e){} }
             }
         }
-        
         runnerObstacles = runnerObstacles.filter(o => o.x + 30 > -10);
     }
-
+    
     if (gameOver) { 
-        // Animated Glitch Screen Background
-        ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; 
-        ctx.fillRect(0, 0, 400, 200);
-        
-        for (let i = 0; i < 15; i++) {
-            ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.4})`;
-            ctx.fillRect(Math.random() * 400, Math.random() * 200, Math.random() * 200 + 50, Math.random() * 5 + 1);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.85)"; ctx.fillRect(0, 0, 400, 200);
+        for (let i = 0; i < 15; i++) { 
+            ctx.fillStyle = `rgba(255, 0, 0, ${Math.random() * 0.4})`; 
+            ctx.fillRect(Math.random() * 400, Math.random() * 200, Math.random() * 200 + 50, Math.random() * 5 + 1); 
         }
-    } else { 
-        drawDino(ctx, 20, playerY, gameFrame); 
-    }
-
-    if (gameStarted && !gameOver) { 
-        runnerObstacles.forEach(obs => {
-            ctx.fillStyle = "#00ff00"; 
-            ctx.fillRect(obs.x, 150, 10, 20); 
-            ctx.fillRect(obs.x - 5, 160, 5, 10); 
-            ctx.fillRect(obs.x + 10, 155, 5, 10); 
-        }); 
-    }
-
-    ctx.fillStyle = "#444"; 
-    ctx.fillRect(0, 170, 400, 30);
+    } else drawDino(ctx, 20, playerY, gameFrame); 
     
-    ctx.fillStyle = "#fff"; 
-    ctx.font = "bold 14px 'Courier New', monospace"; 
-    ctx.fillText("SCORE: " + score, 10, 20); 
-    ctx.fillText("HIGH: " + runnerHighScore, 10, 40);
-
+    if (gameStarted && !gameOver) {
+        runnerObstacles.forEach(obs => { ctx.fillStyle = "#00ff00"; ctx.fillRect(obs.x, 150, 10, 20); ctx.fillRect(obs.x - 5, 160, 5, 10); ctx.fillRect(obs.x + 10, 155, 5, 10); }); 
+    }
+    
+    ctx.fillStyle = "#444"; ctx.fillRect(0, 170, 400, 30); 
+    ctx.fillStyle = "#fff"; ctx.font = "bold 14px monospace"; ctx.fillText("SCORE: " + score, 10, 20); ctx.fillText("HIGH: " + runnerHighScore, 10, 40);
+    
     if (!gameStarted) { 
-        ctx.textAlign = "center"; 
-        ctx.fillText("Tap to Start", 200, 100); 
-        ctx.textAlign = "left"; 
+        ctx.textAlign = "center"; ctx.fillText("Tap to Start", 200, 100); ctx.textAlign = "left"; 
     } else if (gameOver) { 
-        ctx.fillStyle = "#ff0000"; 
-        ctx.font = "bold 24px 'Courier New', monospace"; 
-        ctx.textAlign = "center"; 
-        ctx.fillText(currentRunnerCrash, 200, 80); 
-        
-        ctx.fillStyle = "#fff"; 
-        ctx.font = "bold 16px 'Courier New', monospace"; 
-        ctx.fillText("Final Score: " + score, 200, 110); 
-        
-        if (Date.now() - runnerDeathTime > 1000) {
-            let pulse = Math.floor(Date.now() / 300) % 2 === 0;
-            ctx.shadowBlur = pulse ? 10 : 0; 
-            ctx.shadowColor = neonColor; 
-            ctx.fillStyle = pulse ? "#222" : neonColor; 
-            ctx.fillRect(100, 130, 200, 30);
-            ctx.shadowBlur = 0; 
-            ctx.fillStyle = pulse ? neonColor : "#000"; 
-            ctx.font = "bold 16px 'Courier New', monospace"; 
-            ctx.fillText("PLAY AGAIN", 200, 150);
-        }
+        ctx.fillStyle = "#ff0000"; ctx.font = "bold 24px monospace"; ctx.textAlign = "center"; ctx.fillText(currentRunnerCrash, 200, 80); 
+        ctx.fillStyle = "#fff"; ctx.font = "bold 16px monospace"; ctx.fillText("Final Score: " + score, 200, 110); 
+        if (Date.now() - runnerDeathTime > 1000) { 
+            ctx.fillStyle = neonColor; ctx.fillRect(100, 130, 200, 30); 
+            ctx.fillStyle = "#000"; ctx.fillText("PLAY AGAIN", 200, 150); 
+        } 
         ctx.textAlign = "left"; 
     }
-    
     runnerAnimId = requestAnimationFrame(updateRunner);
 }
 
 // ==========================================================================
-// 11. TARGET SIMULATOR ENGINE (GOLDEN TARGET + INFINITE LOGO)
+// 10. MATRIX TARGET SIMULATOR
 // ==========================================================================
+
 function spawnDuck() {
-    duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
-    duckY = Math.floor(Math.random() * (150 - targetSize)); 
-    
-    // Randomize direction using speed mult
-    duckVelX = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult; 
-    duckVelY = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult;
-    
-    // Faster targets disappear faster!
-    duckTimer = Math.max(60, 180 - (targetSpeedMult * 5)); 
-    currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)]; 
-    duckActive = true;
-    
-    // 15% Chance to spawn a golden secret target concurrently
-    if (Math.random() < 0.15 && !goldenActive) {
-        spawnGoldenDuck();
-    }
+    duckX = Math.floor(Math.random() * (300 - targetSize)) + 50; duckY = Math.floor(Math.random() * (150 - targetSize)); 
+    duckVelX = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult; duckVelY = (Math.random() > 0.5 ? 1 : -1) * targetSpeedMult;
+    duckTimer = Math.max(60, 180 - (targetSpeedMult * 5)); currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)]; duckActive = true;
+    if (Math.random() < 0.15 && !goldenActive) spawnGoldenDuck();
 }
 
 function spawnGoldenDuck() {
-    goldenX = Math.floor(Math.random() * (300 - targetSize)) + 50; 
-    goldenY = Math.floor(Math.random() * (150 - targetSize)); 
-    let gSpeed = targetSpeedMult * 1.5; 
-    goldenVx = (Math.random() > 0.5 ? 1 : -1) * gSpeed; 
-    goldenVy = (Math.random() > 0.5 ? 1 : -1) * gSpeed;
-    goldenTimer = Math.max(40, 120 - (targetSpeedMult * 4)); 
-    goldenActive = true;
+    goldenX = Math.floor(Math.random() * (300 - targetSize)) + 50; goldenY = Math.floor(Math.random() * (150 - targetSize)); 
+    goldenVx = (Math.random() > 0.5 ? 1 : -1) * (targetSpeedMult * 1.5); goldenVy = (Math.random() > 0.5 ? 1 : -1) * (targetSpeedMult * 1.5);
+    goldenTimer = Math.max(40, 120 - (targetSpeedMult * 4)); goldenActive = true;
 }
 
 function updateTargetGame() {
-    if (!ctxTarget) return;
-    if (targetAnimId) cancelAnimationFrame(targetAnimId);
+    if (!ctxTarget) return; 
+    if (targetAnimId) cancelAnimationFrame(targetAnimId); 
     if (!targetGameActive) return;
     
     ctxTarget.clearRect(0, 0, 400, 200);
     
-    // START MENU LOGIC
     if (targetState === 'START') {
-        ctxTarget.fillStyle = "#050510"; 
-        ctxTarget.fillRect(0, 0, 400, 200);
-        
-        ctxTarget.strokeStyle = "rgba(0, 255, 255, 0.2)";
-        ctxTarget.lineWidth = 2;
-        for(let i = 0; i <= 400; i += 40) { ctxTarget.beginPath(); ctxTarget.moveTo(i, 0); ctxTarget.lineTo(i, 200); ctxTarget.stroke(); }
-        for(let i = 0; i <= 200; i += 40) { ctxTarget.beginPath(); ctxTarget.moveTo(0, i); ctxTarget.lineTo(400, i); ctxTarget.stroke(); }
-
-        ctxTarget.fillStyle = "rgba(0, 0, 0, 0.7)";
-        ctxTarget.fillRect(0,0,400,200);
-
-        ctxTarget.fillStyle = "#fff";
-        ctxTarget.font = "bold 20px 'Courier New', monospace";
-        ctxTarget.textAlign = "center";
-        ctxTarget.fillText("MATRIX TARGET SIMULATOR", 200, 80);
-        
-        let pulse = Math.floor(Date.now() / 400) % 2 === 0;
-        ctxTarget.fillStyle = pulse ? "#00ff00" : "#fff";
-        ctxTarget.font = "bold 14px 'Courier New', monospace";
-        ctxTarget.fillText("Select Difficulty below, then Tap to Start", 200, 120);
-        ctxTarget.textAlign = "left";
-        
-        targetAnimId = requestAnimationFrame(updateTargetGame);
-        return;
-    }
-
-    if (targetState === 'GAMEOVER') {
-        // Animated Target System Failure Background
-        ctxTarget.fillStyle = "rgba(50, 0, 0, 0.85)"; 
-        ctxTarget.fillRect(0, 0, 400, 200);
-        
-        for (let i = 0; i < 20; i++) {
-            ctxTarget.strokeStyle = `rgba(255, 0, 0, ${Math.random() * 0.5})`;
-            ctxTarget.strokeRect(Math.random() * 400, Math.random() * 200, Math.random() * 40, Math.random() * 40);
-        }
-        
-        ctxTarget.fillStyle = "#ff0000"; 
-        ctxTarget.font = "bold 24px 'Courier New', monospace"; 
-        ctxTarget.textAlign = "center"; 
-        ctxTarget.fillText(currentTargetCrash, 200, 80);
-        
-        ctxTarget.fillStyle = "#fff"; 
-        ctxTarget.font = "bold 16px 'Courier New', monospace"; 
-        ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
-        
-        if (Date.now() - targetDeathTime > 1000) {
-            let pulse = Math.floor(Date.now() / 300) % 2 === 0;
-            ctxTarget.shadowBlur = pulse ? 10 : 0; 
-            ctxTarget.shadowColor = neonColor; 
-            ctxTarget.fillStyle = pulse ? "#222" : neonColor; 
-            ctxTarget.fillRect(100, 130, 200, 30);
-            ctxTarget.shadowBlur = 0; 
-            ctxTarget.fillStyle = pulse ? neonColor : "#000"; 
-            ctxTarget.font = "bold 16px 'Courier New', monospace"; 
-            ctxTarget.fillText("PLAY AGAIN", 200, 150);
-        }
-        
-        ctxTarget.textAlign = "left";
+        ctxTarget.fillStyle = "#050510"; ctxTarget.fillRect(0, 0, 400, 200); 
+        ctxTarget.fillStyle = "#fff"; ctxTarget.font = "bold 20px monospace"; ctxTarget.textAlign = "center"; ctxTarget.fillText("MATRIX TARGET SIMULATOR", 200, 80);
+        ctxTarget.font = "bold 14px monospace"; ctxTarget.fillText("Select Difficulty below, then Tap to Start", 200, 120); ctxTarget.textAlign = "left"; 
         targetAnimId = requestAnimationFrame(updateTargetGame); 
         return;
     }
-
-    // Moving Cyber Grid Background
-    ctxTarget.fillStyle = "#050510"; 
-    ctxTarget.fillRect(0, 0, 400, 200);
-
-    ctxTarget.strokeStyle = "rgba(0, 255, 255, 0.2)";
-    ctxTarget.lineWidth = 2;
-    let timeOffset = (Date.now() / 20) % 40;
     
-    // Horizontal lines moving down
-    for(let i = -40; i < 200; i += 40) {
-        ctxTarget.beginPath(); 
-        ctxTarget.moveTo(0, i + timeOffset); 
-        ctxTarget.lineTo(400, i + timeOffset); 
-        ctxTarget.stroke();
+    if (targetState === 'GAMEOVER') {
+        ctxTarget.fillStyle = "rgba(50, 0, 0, 0.85)"; ctxTarget.fillRect(0, 0, 400, 200); 
+        ctxTarget.fillStyle = "#ff0000"; ctxTarget.font = "bold 24px monospace"; ctxTarget.textAlign = "center"; ctxTarget.fillText(currentTargetCrash, 200, 80);
+        ctxTarget.fillStyle = "#fff"; ctxTarget.font = "bold 16px monospace"; ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
+        if (Date.now() - targetDeathTime > 1000) { 
+            ctxTarget.fillStyle = neonColor; ctxTarget.fillRect(100, 130, 200, 30); 
+            ctxTarget.fillStyle = "#000"; ctxTarget.fillText("PLAY AGAIN", 200, 150); 
+        }
+        ctxTarget.textAlign = "left"; targetAnimId = requestAnimationFrame(updateTargetGame); 
+        return;
     }
-    // Vertical lines
-    for(let i = 0; i <= 400; i += 40) {
-        ctxTarget.beginPath(); 
-        ctxTarget.moveTo(i, 0); 
-        ctxTarget.lineTo(i, 200); 
-        ctxTarget.stroke();
-    }
-
-    // Normal Target Logic (Bullseye)
+    
+    ctxTarget.fillStyle = "#050510"; ctxTarget.fillRect(0, 0, 400, 200);
+    
     if (duckActive) {
-        duckX += duckVelX; 
-        duckY += duckVelY;
-        
+        duckX += duckVelX; duckY += duckVelY; 
         if (duckX <= 0 || duckX + targetSize >= 400) duckVelX *= -1; 
         if (duckY <= 0 || duckY + targetSize >= 200) duckVelY *= -1;
         
-        let radius = targetSize / 2;
-        let centerX = duckX + radius;
-        let centerY = duckY + radius;
+        let cX = duckX + targetSize/2, cY = duckY + targetSize/2; 
+        ctxTarget.fillStyle = currentDuckColor; ctxTarget.beginPath(); ctxTarget.arc(cX, cY, targetSize/2, 0, Math.PI*2); ctxTarget.fill();
+        ctxTarget.fillStyle = "#000"; ctxTarget.beginPath(); ctxTarget.arc(cX, cY, targetSize*0.3, 0, Math.PI*2); ctxTarget.fill();
         
-        ctxTarget.fillStyle = currentDuckColor;
-        ctxTarget.beginPath(); ctxTarget.arc(centerX, centerY, radius, 0, Math.PI*2); ctxTarget.fill();
-        ctxTarget.fillStyle = "#000";
-        ctxTarget.beginPath(); ctxTarget.arc(centerX, centerY, radius * 0.6, 0, Math.PI*2); ctxTarget.fill();
-        ctxTarget.fillStyle = currentDuckColor;
-        ctxTarget.beginPath(); ctxTarget.arc(centerX, centerY, radius * 0.2, 0, Math.PI*2); ctxTarget.fill();
-        
-        if (!targetFreeze) {
-            duckTimer--;
-        }
-        
+        if (!targetFreeze) duckTimer--; 
         if (duckTimer <= 0) { 
-            duckActive = false; 
-            targetLives--; 
-            
-            if (targetLives <= 0) { 
-                if (targetState !== 'GAMEOVER') { 
-                    targetState = 'GAMEOVER'; 
-                    targetDeathTime = Date.now(); 
-                    currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)]; 
-                    triggerShake(); 
-                }
+            duckActive = false; targetLives--; 
+            if (targetLives <= 0 && targetState !== 'GAMEOVER') { 
+                targetState = 'GAMEOVER'; targetDeathTime = Date.now(); 
+                currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)]; 
+                triggerShake(); 
             } 
         }
-        
-        if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
-            targetScore++; 
-            targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
-            
-            if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1; 
-            
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
-            
-            duckActive = false; 
-            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
-            ctxTarget.fillRect(0, 0, 400, 200);
-        }
-    } else { 
-        if (Math.random() < 0.05) spawnDuck(); // Slightly faster spawn rate
-    }
+        if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) { targetScore++; if (targetScore % 5 === 0) targetSpeedMult++; duckActive = false; }
+    } else if (Math.random() < 0.05) spawnDuck();
     
-    // Golden Target Logic
     if (goldenActive) {
-        goldenX += goldenVx; 
-        goldenY += goldenVy;
-        
+        goldenX += goldenVx; goldenY += goldenVy; 
         if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1; 
         if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
         
-        let gRadius = targetSize / 2;
-        let gCx = goldenX + gRadius;
-        let gCy = goldenY + gRadius;
-
-        ctxTarget.shadowBlur = 15;
-        ctxTarget.shadowColor = "#FFD700";
-        ctxTarget.fillStyle = "#FFD700";
-        ctxTarget.beginPath(); ctxTarget.arc(gCx, gCy, gRadius, 0, Math.PI*2); ctxTarget.fill();
-        ctxTarget.fillStyle = "#fff";
-        ctxTarget.beginPath(); ctxTarget.arc(gCx, gCy, gRadius * 0.6, 0, Math.PI*2); ctxTarget.fill();
-        ctxTarget.fillStyle = "#FFD700";
-        ctxTarget.beginPath(); ctxTarget.arc(gCx, gCy, gRadius * 0.2, 0, Math.PI*2); ctxTarget.fill();
-        ctxTarget.shadowBlur = 0;
+        ctxTarget.fillStyle = "#FFD700"; ctxTarget.beginPath(); ctxTarget.arc(goldenX + targetSize/2, goldenY + targetSize/2, targetSize/2, 0, Math.PI*2); ctxTarget.fill();
         
-        if (!targetFreeze) {
-            goldenTimer--;
-        }
-        
-        if (goldenTimer <= 0) { 
-            goldenActive = false; // Disappears, but no life penalty
-        }
-        
-        if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
-            targetScore += 2; 
-            targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
-            
-            if (targetScore > targetHighScore) { 
-                targetHighScore = targetScore; 
-                try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-            }
-            
-            goldenActive = false; 
-            ctxTarget.fillStyle = "rgba(255, 255, 255, 0.5)"; 
-            ctxTarget.fillRect(0, 0, 400, 200);
-        }
+        if (!targetFreeze) goldenTimer--; 
+        if (goldenTimer <= 0) goldenActive = false; 
+        if (aimbotEnabled) { targetScore += 2; goldenActive = false; }
     }
-
-    // Render Floating Scores (RGB mapped)
+    
     for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
-        let f = targetFloatingScores[i];
-        ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`;
-        ctxTarget.font = "bold 16px 'Courier New', monospace";
-        ctxTarget.fillText(f.text, f.x, f.y);
-        f.y -= 1; 
-        f.alpha -= 0.02;
-        if (f.alpha <= 0) {
-            targetFloatingScores.splice(i, 1);
-        }
+        let f = targetFloatingScores[i]; 
+        ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`; 
+        ctxTarget.font = "bold 16px monospace"; ctxTarget.fillText(f.text, f.x, f.y);
+        f.y -= 1; f.alpha -= 0.02; 
+        if (f.alpha <= 0) targetFloatingScores.splice(i, 1);
     }
-
-    ctxTarget.fillStyle = "#fff"; 
-    ctxTarget.font = "bold 14px 'Courier New', monospace"; 
-    ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
-    ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
     
-    // Check infinite freeze mod logic for UI
+    ctxTarget.fillStyle = "#fff"; ctxTarget.font = "bold 14px monospace"; ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
     ctxTarget.fillText("LIVES: " + (targetFreeze ? "∞" : targetLives), 320, 20);
-    
     targetAnimId = requestAnimationFrame(updateTargetGame);
 }
 
 // ==========================================================================
-// 12. TETRIS GAME ENGINE
+// 11. TETRIS ENGINE
 // ==========================================================================
-function createMatrix(w, h) { 
-    const matrix = []; 
-    while (h--) { 
-        matrix.push(new Array(w).fill(0)); 
-    } 
-    return matrix; 
-}
-
-function tCollide(board, player) { 
-    const m = player.matrix;
-    const o = player.pos; 
-    for (let y = 0; y < m.length; ++y) {
-        for (let x = 0; x < m[y].length; ++x) {
-            if (m[y][x] !== 0 && (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
-                return true; 
-            }
+function createMatrix(w, h) { const m = []; while (h--) m.push(new Array(w).fill(0)); return m; }
+function tCollide(b, p) { 
+    for (let y=0; y<p.matrix.length; ++y) {
+        for (let x=0; x<p.matrix[y].length; ++x) {
+            if (p.matrix[y][x] !== 0 && (b[y + p.pos.y] && b[y + p.pos.y][x + p.pos.x]) !== 0) return true; 
         }
     }
     return false; 
 }
-
-function tMerge() { 
-    currentPiece.matrix.forEach((row, y) => { 
-        row.forEach((value, x) => { 
-            if (value !== 0) {
-                tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value; 
-            }
-        }); 
-    }); 
-}
-
+function tMerge() { currentPiece.matrix.forEach((r, y) => r.forEach((v, x) => { if (v !== 0) tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = v; })); }
+function tDrop() { currentPiece.pos.y++; if (tCollide(tetrisGrid, currentPiece)) { currentPiece.pos.y--; tMerge(); tReset(); tSweep(); } tetrisDropCounter = 0; }
+function tMove(dir) { currentPiece.pos.x += dir; if (tCollide(tetrisGrid, currentPiece)) currentPiece.pos.x -= dir; }
 function tRotate() { 
-    const pos = currentPiece.pos.x; 
-    let offset = 1; 
-    for (let y = 0; y < currentPiece.matrix.length; ++y) {
-        for (let x = 0; x < y; ++x) {
-            [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]];
-        }
-    }
-    currentPiece.matrix.forEach(row => row.reverse()); 
-    
-    while (tCollide(tetrisGrid, currentPiece)) { 
-        currentPiece.pos.x += offset; 
-        offset = -(offset + (offset > 0 ? 1 : -1)); 
-        if (offset > currentPiece.matrix[0].length) { 
-            currentPiece.matrix.forEach(row => row.reverse()); 
-            for (let y = 0; y < currentPiece.matrix.length; ++y) {
-                for (let x = 0; x < y; ++x) {
-                    [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]]; 
-                }
-            }
-            currentPiece.pos.x = pos; 
-            return; 
+    const p = currentPiece.pos.x; let offset = 1; 
+    for (let y=0; y<currentPiece.matrix.length; ++y) for (let x=0; x<y; ++x) [currentPiece.matrix[x][y], currentPiece.matrix[y][x]] = [currentPiece.matrix[y][x], currentPiece.matrix[x][y]]; 
+    currentPiece.matrix.forEach(r => r.reverse()); 
+    while(tCollide(tetrisGrid, currentPiece)) { 
+        currentPiece.pos.x += offset; offset = -(offset + (offset > 0 ? 1 : -1)); 
+        if (offset > currentPiece.matrix[0].length) return; 
+    } 
+}
+function tReset() { 
+    currentPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[parseInt('1234567'[Math.floor(Math.random()*7)])])), pos: {x: 3, y: 0} }; 
+    if (tCollide(tetrisGrid, currentPiece)) { 
+        if(tetrisGodMode) { 
+            tetrisGrid.splice(15, 5); for(let i=0; i<5; i++) tetrisGrid.unshift(new Array(10).fill(0)); 
+        } else if(!tetrisGameOver) { 
+            tetrisGameOver = true; tetrisDeathTime = Date.now(); tetrisCrashMsg = tetrisCrashMessages[0]; triggerShake(); 
         } 
     } 
 }
-
-function tMove(dir) { 
-    currentPiece.pos.x += dir; 
-    if (tCollide(tetrisGrid, currentPiece)) {
-        currentPiece.pos.x -= dir; 
-    }
-}
-
-function tDrop() { 
-    currentPiece.pos.y++; 
-    if (tCollide(tetrisGrid, currentPiece)) { 
-        currentPiece.pos.y--; 
-        tMerge(); 
-        tReset(); 
-        tSweep(); 
-    } 
-    tetrisDropCounter = 0; 
-}
-
-function tReset() {
-    const pieces = '1234567'; 
-    let type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
-    currentPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[type])), pos: {x: 3, y: 0} };
-    
-    if (tCollide(tetrisGrid, currentPiece)) {
-        if (tetrisGodMode) { 
-            tetrisGrid.splice(15, 5); 
-            for(let i = 0; i < 5; i++) {
-                tetrisGrid.unshift(new Array(10).fill(0)); 
-            }
-        } else { 
-            if (!tetrisGameOver) {
-                tetrisGameOver = true; 
-                tetrisDeathTime = Date.now(); 
-                tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)]; 
-                if (tetrisScore > tetrisHighScore) { 
-                    tetrisHighScore = tetrisScore; 
-                    try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){} 
-                } 
-                triggerShake(); 
-            }
-        }
-    }
-}
-
 function tSweep() { 
-    let rowCount = 1; 
-    let clearedLines = 0;
-    
-    outer: for (let y = tetrisGrid.length - 1; y > 0; --y) { 
-        for (let x = 0; x < tetrisGrid[y].length; ++x) {
-            if (tetrisGrid[y][x] === 0) continue outer; 
-        }
-        
-        const row = tetrisGrid.splice(y, 1)[0].fill(0); 
-        tetrisGrid.unshift(row); 
-        ++y; 
-        
-        let pts = rowCount * 10;
-        tetrisScore += pts; 
-        rowCount *= 2; 
-        clearedLines++;
-        
-        // Spawn floating text animation
-        tetrisFloaters.push({
-            x: 200, 
-            y: y * 20, 
-            alpha: 1.0, 
-            text: "+" + pts
-        });
+    let rc = 1; 
+    outer: for (let y=tetrisGrid.length-1; y>0; --y) { 
+        for (let x=0; x<tetrisGrid[y].length; ++x) if (tetrisGrid[y][x] === 0) continue outer; 
+        const r = tetrisGrid.splice(y, 1)[0].fill(0); tetrisGrid.unshift(r); ++y; tetrisScore += rc*10; rc *= 2; 
     } 
 }
-
-function initTetris() { 
-    tetrisGrid = createMatrix(10, 20); 
-    tetrisScore = 0; 
-    tetrisGameOver = false; 
-    tetrisFloaters = [];
-    tReset(); 
-}
+function initTetris() { tetrisGrid = createMatrix(10, 20); tetrisScore = 0; tetrisGameOver = false; tReset(); }
 
 function updateTetris() {
-    if (!ctxTetris) return;
+    if (!ctxTetris) return; 
     if (tetrisAnimId) cancelAnimationFrame(tetrisAnimId); 
     if (!tetrisActive) return;
     
-    // Deep Space Starfield Background
-    ctxTetris.fillStyle = '#000000'; 
-    ctxTetris.fillRect(0, 0, 400, 400);
-    
-    ctxTetris.fillStyle = 'rgba(255, 255, 255, 0.4)';
-    tetrisStars.forEach(star => {
-        star.y += star.v;
-        if (star.y > 400) { 
-            star.y = 0; 
-            star.x = Math.random() * 400; 
-        }
-        ctxTetris.fillRect(star.x, star.y, star.s, star.s);
-    });
-
+    ctxTetris.fillStyle = '#000'; ctxTetris.fillRect(0, 0, 400, 400);
     if (tetrisGameOver) {
-        ctxTetris.fillStyle = "rgba(0, 20, 20, 0.85)"; 
-        ctxTetris.fillRect(0, 0, 400, 400);
-        
-        for(let i = 0; i < 20; i++) { 
-            ctxTetris.fillStyle = `rgba(0, 255, 255, ${Math.random() * 0.3})`; 
-            ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20); 
-        }
-        
-        ctxTetris.fillStyle = "cyan"; 
-        ctxTetris.font = "bold 24px 'Courier New', monospace"; 
-        ctxTetris.textAlign = "center"; 
-        ctxTetris.fillText(tetrisCrashMsg, 200, 160); 
-        
-        ctxTetris.fillStyle = "white"; 
-        ctxTetris.font = "bold 16px 'Courier New', monospace"; 
-        ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200); 
-        
-        if (Date.now() - tetrisDeathTime > 1000) { 
-            let pulse = Math.floor(Date.now() / 300) % 2 === 0;
-            ctxTetris.shadowBlur = pulse ? 10 : 0; 
-            ctxTetris.shadowColor = neonColor; 
-            ctxTetris.fillStyle = pulse ? "#222" : neonColor; 
-            ctxTetris.fillRect(100, 240, 200, 30);
-            ctxTetris.shadowBlur = 0; 
-            ctxTetris.fillStyle = pulse ? neonColor : "#000"; 
-            ctxTetris.font = "bold 16px 'Courier New', monospace"; 
-            ctxTetris.fillText("PLAY AGAIN", 200, 260); 
-        }
-        
-        ctxTetris.textAlign = "left"; 
-        tetrisAnimId = requestAnimationFrame(updateTetris); 
-        return;
-    }
-
-    // High Visibility Grid Lines
-    ctxTetris.strokeStyle = 'rgba(255, 255, 255, 0.4)'; 
-    ctxTetris.lineWidth = 1;
-    for(let i = 100; i <= 300; i += 20) { 
-        ctxTetris.beginPath(); ctxTetris.moveTo(i, 0); ctxTetris.lineTo(i, 400); ctxTetris.stroke(); 
-    } 
-    for(let i = 0; i <= 400; i += 20) { 
-        ctxTetris.beginPath(); ctxTetris.moveTo(100, i); ctxTetris.lineTo(300, i); ctxTetris.stroke(); 
-    }
-
-    let time = Date.now() / 5; 
-
-    tetrisGrid.forEach((row, y) => { 
-        row.forEach((value, x) => { 
-            if (value !== 0) { 
-                let blockColor = tetrisRainbow ? `hsl(${Math.floor(time + (x + y) * 15) % 360}, 100%, 50%)` : T_COLORS[value];
-                ctxTetris.fillStyle = blockColor; 
-                ctxTetris.fillRect(100 + x * 20, y * 20, 20, 20); 
-                ctxTetris.strokeStyle = "#fff"; 
-                ctxTetris.strokeRect(100 + x * 20, y * 20, 20, 20); 
-            } 
-        });
-    });
-    
-    // Ghost Piece Logic
-    if (tetrisGhost && currentPiece) {
-        let ghostY = currentPiece.pos.y;
-        while (!tCollide(tetrisGrid, {matrix: currentPiece.matrix, pos: {x: currentPiece.pos.x, y: ghostY + 1}})) { 
-            ghostY++; 
-        }
-        currentPiece.matrix.forEach((row, y) => {
-            row.forEach((value, x) => {
-                if (value !== 0) {
-                    ctxTetris.fillStyle = "rgba(255, 255, 255, 0.2)";
-                    ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
-                    ctxTetris.strokeStyle = "rgba(255, 255, 255, 0.5)";
-                    ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
-                }
-            });
-        });
+        ctxTetris.fillStyle = "cyan"; ctxTetris.font = "bold 24px monospace"; ctxTetris.textAlign = "center"; ctxTetris.fillText("GAME OVER", 200, 160); 
+        if (Date.now() - tetrisDeathTime > 1000) { ctxTetris.fillStyle = neonColor; ctxTetris.fillRect(100, 240, 200, 30); ctxTetris.fillStyle = "#000"; ctxTetris.fillText("PLAY AGAIN", 200, 260); }
+        ctxTetris.textAlign = "left"; tetrisAnimId = requestAnimationFrame(updateTetris); return;
     }
     
-    currentPiece.matrix.forEach((row, y) => { 
-        row.forEach((value, x) => { 
-            if (value !== 0) { 
-                let blockColor = tetrisRainbow ? `hsl(${Math.floor(time + (x + currentPiece.pos.x + y + currentPiece.pos.y) * 15) % 360}, 100%, 50%)` : T_COLORS[value];
-                ctxTetris.fillStyle = blockColor; 
-                ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + currentPiece.pos.y) * 20, 20, 20); 
-                ctxTetris.strokeStyle = "#fff"; 
-                ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + currentPiece.pos.y) * 20, 20, 20); 
-            } 
-        });
-    });
-
-    // Render Floating Animations for Tetris Line Clears
-    for (let i = tetrisFloaters.length - 1; i >= 0; i--) {
-        let f = tetrisFloaters[i];
-        
-        ctxTetris.shadowBlur = 10;
-        ctxTetris.shadowColor = "#00FFFF";
-        ctxTetris.fillStyle = `rgba(0, 255, 255, ${f.alpha})`;
-        ctxTetris.font = "bold 24px 'Courier New', monospace";
-        ctxTetris.textAlign = "center";
-        ctxTetris.fillText(f.text, f.x, f.y);
-        ctxTetris.shadowBlur = 0;
-        ctxTetris.textAlign = "left";
-        
-        f.y -= 1; 
-        f.alpha -= 0.02;
-        
-        if (f.alpha <= 0) {
-            tetrisFloaters.splice(i, 1);
-        }
-    }
-
+    tetrisGrid.forEach((r, y) => r.forEach((v, x) => { 
+        if (v !== 0) { ctxTetris.fillStyle = T_COLORS[v]; ctxTetris.fillRect(100 + x*20, y*20, 20, 20); ctxTetris.strokeStyle="#fff"; ctxTetris.strokeRect(100+x*20, y*20, 20, 20); } 
+    }));
+    
+    currentPiece.matrix.forEach((r, y) => r.forEach((v, x) => { 
+        if (v !== 0) { ctxTetris.fillStyle = T_COLORS[v]; ctxTetris.fillRect(100 + (x+currentPiece.pos.x)*20, (y+currentPiece.pos.y)*20, 20, 20); } 
+    }));
+    
     tetrisDropCounter++; 
-    let limit = 60 - (tetrisSpeedMod * 4); 
-    if (limit < 5) limit = 5; 
-    if (tetrisDropCounter > limit) tDrop();
-
-    ctxTetris.fillStyle = "cyan"; 
-    ctxTetris.font = "bold 14px 'Courier New', monospace"; 
-    ctxTetris.fillText("SCORE: " + tetrisScore, 10, 30); 
-    ctxTetris.fillText("HIGH: " + tetrisHighScore, 320, 30);
+    if (tetrisDropCounter > 60 - (tetrisSpeedMod*4)) tDrop();
     
+    ctxTetris.fillStyle = "cyan"; ctxTetris.fillText("SCORE: " + tetrisScore, 10, 30); 
     tetrisAnimId = requestAnimationFrame(updateTetris);
 }
 </script>
