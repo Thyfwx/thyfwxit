@@ -596,7 +596,7 @@ try { targetHighScore = parseInt(localStorage.getItem('matrixTargetHighScore')) 
 try { tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; } catch(e) {}
 
 // Global Mods
-let shakeEnabled = true;
+let shakeEnabled = true; let soundEnabled = true;
 
 // Custom Crash Messages
 const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS", "FATAL COLLISION", "NETWORK OFFLINE"];
@@ -622,13 +622,13 @@ let runnerObstacles = [];
 // Target Simulator Variables
 let targetState = 'START'; // 'START', 'PLAYING', 'GAMEOVER'
 let targetScore = 0;
-let targetSpeedMult = 8; // Normal default
+let targetSpeedMult = 5; // Normal default
 let targetSize = 30;
 let aimbotEnabled = false;
 let targetFreeze = false;
 let duckX = 0;
 let duckY = 0;
-let duckActive = false;
+let duckActive = false; let targetCombo = 0; let targetComboTimer = 0;
 let duckVelX = 0;
 let duckVelY = 0;
 let duckTimer = 0; 
@@ -652,7 +652,7 @@ let currentDuckColor = rainbowColors[0];
 let tetrisGrid = [];
 let tetrisScore = 0;
 let tetrisGameOver = false;
-let currentPiece = null;
+let currentPiece = null; let nextPiece = null;
 let tetrisDropCounter = 0;
 let tetrisSpeedMod = 5;
 let tetrisGodMode = false;
@@ -1190,8 +1190,8 @@ if (targetCanvas) {
             maxLives = parseInt(document.getElementById('modDifficulty').value) || 6;
             targetLives = maxLives;
             if (maxLives === 8) targetSpeedMult = 5;      // Easy
-            else if (maxLives === 6) targetSpeedMult = 8; // Normal
-            else if (maxLives === 3) targetSpeedMult = 12; // Hard
+            else if (maxLives === 6) targetSpeedMult = 5; // Normal
+            else if (maxLives === 3) targetSpeedMult = 8; // Hard
             
             spawnDuck();
         } else if (targetState === 'PLAYING') {
@@ -1371,7 +1371,7 @@ function updateRunner() {
         let lastObs = runnerObstacles[runnerObstacles.length - 1];
         if (!lastObs || lastObs.x < (400 - minGap)) {
             // Only spawn cactuses 
-            runnerObstacles.push({x: 400, passed: false});
+            let oType = Math.random() < 0.33 ? 'tall' : Math.random() < 0.5 ? 'wide' : 'normal';                 runnerObstacles.push({x: 400, passed: false, type: oType});
         }
         
         // Auto-Bot Logic
@@ -1398,7 +1398,7 @@ function updateRunner() {
             }
 
             let px = 20, pw = 25, py = playerY - 10, ph = 30; 
-            let ox = obs.x, oy = 150, ow = 15, oh = 20; 
+            let ox = obs.x, oy = obs.type==='tall'?135:152, ow = obs.type==='wide'?24:15, oh = obs.type==='tall'?35:obs.type==='wide'?18:20; 
             
             if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode) {
                 if (!gameOver) { 
