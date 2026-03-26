@@ -51,7 +51,7 @@ body {
  padding: 40px 20px; 
  background-color: var(--bg-color); 
  color: var(--text-color); 
- transition: background-color 0.3s ease;
+ transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 header { 
@@ -70,6 +70,7 @@ header:hover h1 {
 h1, h2 { 
  color: var(--neon-color); 
  margin-bottom: 20px; 
+ transition: color 0.3s ease;
 }
 
 section { 
@@ -78,7 +79,7 @@ section {
  padding: 25px; 
  border-radius: 8px; 
  box-shadow: 0 4px 15px rgba(0,0,0,0.6); 
- transition: transform 0.3s ease, box-shadow 0.3s ease;
+ transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
 }
 
 section:hover { 
@@ -103,6 +104,7 @@ li:hover {
 
 b { 
  color: var(--neon-color); 
+ transition: color 0.3s ease;
 }
 
 footer { 
@@ -270,6 +272,19 @@ footer {
  animation: jumpScare 0.6s cubic-bezier(.36,.07,.19,.97) both;
 }
 
+@keyframes horrifyingGlitch {
+ 0% { transform: translate(0) scale(1); filter: invert(0) hue-rotate(0deg); }
+ 20% { transform: translate(-10px, 10px) scale(1.05) skewX(5deg); filter: invert(1) hue-rotate(180deg) brightness(2); }
+ 40% { transform: translate(10px, -10px) scale(0.95) skewX(-5deg); filter: invert(0) hue-rotate(90deg) contrast(3); }
+ 60% { transform: translate(-10px, -10px) scale(1.1) skewY(5deg); filter: invert(1) hue-rotate(270deg); }
+ 80% { transform: translate(10px, 10px) scale(1) skewY(-5deg); filter: invert(0) hue-rotate(0deg); }
+ 100% { transform: translate(0) scale(1); filter: invert(1) hue-rotate(45deg) blur(1px); }
+}
+
+.nuke-terrifying {
+ animation: horrifyingGlitch 0.2s infinite;
+}
+
 /* CRT Flicker */
 @keyframes crt-flicker {
  0% { opacity: 0.8; }
@@ -382,7 +397,6 @@ canvas {
  width: 340px; 
  border-radius: 10px; 
  max-height: 90vh;
- display: flex; 
  flex-direction: column;
 }
 
@@ -465,7 +479,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
 <body>
 
 <header id="mainHeader">
- <h1>Systems Specialist & Network Infrastructure</h1>
+ <h1 id="mainTitle">Systems Specialist & Network Infrastructure</h1>
 </header>
 
 <section>
@@ -517,7 +531,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
   <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
  </div>
 
- <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> to Jump, <b>Down Arrow/S</b> to Duck.</p>
+ <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt"><b>Tap Top Half</b> to Jump. <b>Tap Bottom Half</b> to Duck.</p>
  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
  <div id="publicDifficulty" style="display:none; margin-top: 15px;">
@@ -530,8 +544,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
  </div>
 
  <div class="controls-wrapper" id="runnerControls">
-  <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
-  <button id="mobileDuckBtn" class="jump-btn" style="color: cyan; border-color: cyan;">DUCK</button>
+  <button id="mobileJumpBtn" class="jump-btn" style="max-width: none; width: 100%;">TAP GAME SCREEN TO PLAY</button>
  </div>
 </section>
 
@@ -567,7 +580,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
 <!-- ========================================================
      MOD MENU WITH TABS
      ======================================================== -->
-<div id="modMenu">
+<div id="modMenu" style="display:none;">
  <h3 id="modMenuHeader">
   SYSTEM OVERRIDE
  </h3>
@@ -900,6 +913,33 @@ function playExplosionSound() {
  noise.start();
 }
 
+function playTerrifyingNukeSound() {
+ if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+ if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+
+ const osc = audioCtx.createOscillator();
+ osc.type = 'sawtooth';
+ osc.frequency.setValueAtTime(40, audioCtx.currentTime); // Deep rumbling bass
+
+ const osc2 = audioCtx.createOscillator();
+ osc2.type = 'square';
+ osc2.frequency.setValueAtTime(800, audioCtx.currentTime);
+ osc2.frequency.linearRampToValueAtTime(300, audioCtx.currentTime + 1.5); // Dropping siren pitch
+
+ const gain = audioCtx.createGain();
+ gain.gain.setValueAtTime(1.5, audioCtx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2.5); 
+
+ osc.connect(gain);
+ osc2.connect(gain);
+ gain.connect(audioCtx.destination);
+
+ osc.start();
+ osc2.start();
+ osc.stop(audioCtx.currentTime + 2.5);
+ osc2.stop(audioCtx.currentTime + 2.5);
+}
+
 // ==========================================================================
 // 3. SHAKE FUNCTION (Safe Toggle)
 // ==========================================================================
@@ -1221,7 +1261,7 @@ document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
 });
 
 // ==========================================================================
-// KAWAII TOGGLE SCRIPT
+// KAWAII TOGGLE SCRIPT - EXTREME CUTE MODE
 // ==========================================================================
 let kawaiiActive = false;
 document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
@@ -1229,18 +1269,26 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
  const btn = document.getElementById('kawaiiToggle');
  if (kawaiiActive) {
   document.documentElement.style.setProperty('--neon-color','#ff69b4');
-  document.documentElement.style.setProperty('--bg-color','#1a0d1a');
-  document.documentElement.style.setProperty('--section-bg','#2a0d20');
-  document.documentElement.style.setProperty('--grid-color','#330022');
+  document.documentElement.style.setProperty('--bg-color','#fff0f5');
+  document.documentElement.style.setProperty('--section-bg','#ffe4e1');
+  document.documentElement.style.setProperty('--grid-color','#ffb6c1');
+  document.documentElement.style.setProperty('--text-color','#d11a7a');
+  document.documentElement.style.setProperty('--canvas-bg','#fffafa');
+  
   document.getElementById('modMenu').style.borderColor='#ff69b4';
   document.getElementById('modMenu').style.boxShadow='0 0 20px #ff69b4';
   btn.innerText='[KAWAII] ON!';
   btn.classList.add('active');
    
+  document.body.style.fontFamily = "'Comic Sans MS', 'Chalkboard SE', sans-serif";
+  document.body.style.backgroundImage = "url(\"data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 3.333c-3.68-3.68-9.648-3.68-13.328 0-3.68 3.68-3.68 9.648 0 13.328l13.328 13.328 13.328-13.328c3.68-3.68 3.68-9.648 0-13.328-3.68-3.68-9.648-3.68-13.328 0z' fill='%23ff69b4' fill-opacity='0.15' fill-rule='evenodd'/%3E%3C/svg%3E\")";
+  document.getElementById('mainTitle').innerText = "(✿◠‿◠) Systems Specialist & Network Infrastructure (◕‿◕✿)";
+  document.body.style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><text y=\"20\" font-size=\"20\">✨</text></svg>'), auto";
+
   if (!document.getElementById('kawaiiStyle')) { 
    var s = document.createElement('style'); 
    s.id = 'kawaiiStyle'; 
-   s.textContent = '@keyframes kFloat{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(360deg);opacity:0}}'; 
+   s.textContent = '@keyframes kFloat{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(360deg);opacity:0}} section { border-radius: 20px !important; border: 2px dashed #ffb6c1; }'; 
    document.head.appendChild(s); 
   }
    
@@ -1249,9 +1297,9 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
   ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9998;overflow:hidden'; 
   document.body.appendChild(ov);
    
-  ['<3','*','*','o','@','+','#','~'].forEach(function(em){ 
+  ['💖','✨','🌸','🎀','💕','🍰','🍧','~'].forEach(function(em){ 
    var e = document.createElement('span'); 
-   e.style.cssText = 'position:absolute;font-size:'+(Math.random()*24+16)+'px;left:'+(Math.random()*100)+'%;top:-40px;color:'+(Math.random()<0.5?'#ff69b4':'#ffb6c1')+';text-shadow:0 0 6px #ff69b4;animation:kFloat '+(Math.random()*4+3)+'s linear '+(Math.random()*4)+'s infinite'; 
+   e.style.cssText = 'position:absolute;font-size:'+(Math.random()*30+20)+'px;left:'+(Math.random()*100)+'%;top:-40px;text-shadow:0 0 6px #ff69b4;animation:kFloat '+(Math.random()*4+3)+'s linear '+(Math.random()*4)+'s infinite'; 
    e.textContent = em; 
    ov.appendChild(e); 
   });
@@ -1260,6 +1308,14 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
   document.documentElement.style.setProperty('--bg-color','#1a1a1a');
   document.documentElement.style.setProperty('--section-bg','#2a2a2a');
   document.documentElement.style.setProperty('--grid-color','#330033');
+  document.documentElement.style.setProperty('--text-color','#e0e0e0');
+  document.documentElement.style.setProperty('--canvas-bg','#0a0a0a');
+
+  document.body.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+  document.body.style.backgroundImage = "none";
+  document.getElementById('mainTitle').innerText = "Systems Specialist & Network Infrastructure";
+  document.body.style.cursor = "auto";
+
   document.getElementById('modMenu').style.borderColor='#ff0000';
   document.getElementById('modMenu').style.boxShadow='0 0 20px #ff0000';
   btn.innerText='OFF';
@@ -1269,44 +1325,60 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
  }
 });
 
-// MASSIVE NUKE MODE UPGRADE (JUMP SCARE & EXPLOSIONS)
+// MASSIVE NUKE MODE UPGRADE (TERRIFYING MODE)
 // ==========================================================================
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
  nukeModeActive = true; 
   
- // Jump Scare Flash
- document.body.classList.add("nuke-flash");
+ // Jump Scare Flash & Glitch
+ document.body.classList.add("nuke-terrifying");
   
- // Change background to a dark red warning grid
- document.body.style.backgroundColor = "#0a0000";
- document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #220000 25%, transparent 25%, transparent 75%, #220000 75%, #220000), repeating-linear-gradient(45deg, #220000 25%, #0a0000 25%, #0a0000 75%, #220000 75%, #220000)";
+ // Change background to a dark red warning void
+ document.body.style.backgroundColor = "#050000";
+ document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #110000 25%, transparent 25%, transparent 75%, #110000 75%, #110000), repeating-linear-gradient(45deg, #110000 25%, #050000 25%, #050000 75%, #110000 75%, #110000)";
  document.body.style.backgroundPosition = "0 0, 10px 10px";
  document.body.style.backgroundSize = "20px 20px";
  document.body.style.cursor = "crosshair";
 
  e.target.style.background = "#ff0000"; 
  e.target.style.color = "#000"; 
- e.target.innerText = "WARNING: SYSTEM NUKED. CLICK TO PURGE DATA."; 
+ e.target.innerText = "SYSTEM COMPROMISED. DO NOT TURN OFF DEVICE."; 
  e.target.style.pointerEvents = "none";
   
- // Add permanent un-deletable background warning text
+ // Terrifying Overlay that disables the screen entirely
+ const doomOverlay = document.createElement("div");
+ doomOverlay.style.position = "fixed";
+ doomOverlay.style.top = "0";
+ doomOverlay.style.left = "0";
+ doomOverlay.style.width = "100vw";
+ doomOverlay.style.height = "100vh";
+ doomOverlay.style.backgroundColor = "rgba(255, 0, 0, 0.2)";
+ doomOverlay.style.mixBlendMode = "multiply";
+ doomOverlay.style.pointerEvents = "none";
+ doomOverlay.style.zIndex = "9998";
+ document.body.appendChild(doomOverlay);
+
  const doomText = document.createElement("div");
  doomText.style.position = "fixed";
  doomText.style.top = "50%";
  doomText.style.left = "50%";
  doomText.style.transform = "translate(-50%, -50%)";
- doomText.style.color = "rgba(255, 0, 0, 0.15)";
- doomText.style.fontSize = "5vw";
+ doomText.style.color = "#ff0000";
+ doomText.style.textShadow = "0 0 20px #ff0000, 0 0 40px #ff0000";
+ doomText.style.fontSize = "6vw";
  doomText.style.fontFamily = "monospace";
  doomText.style.fontWeight = "bold";
- doomText.style.pointerEvents = "none"; // Make it un-clickable
- doomText.style.zIndex = "-1"; // Keep it strictly in the background
+ doomText.style.pointerEvents = "none"; 
+ doomText.style.zIndex = "9999"; 
  doomText.style.textAlign = "center";
- doomText.innerHTML = "&#9760; YOU'VE BEEN HACKED &#9760;<br>SYSTEM COMPROMISED<br>ALL DATA EXPOSED";
+ doomText.style.lineHeight = "1.2";
+ doomText.innerHTML = "<h1 style='font-size:12vw; margin:0;'>&#9760;</h1><br>DATA BREACH DETECTED<br>PURGING HARD DRIVES...<br>IP LOGGED.";
  document.body.appendChild(doomText);
 
+ playTerrifyingNukeSound();
+
  triggerShake();
- setTimeout(triggerShake, 500);
+ setInterval(triggerShake, 200); // Constant violent shaking
 });
 
 document.addEventListener('click', (e) => {
@@ -1314,11 +1386,6 @@ document.addEventListener('click', (e) => {
  if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') return;
   
  playExplosionSound(); 
-  
- if (shakeEnabled) {
-  document.body.style.transform = `translate(${(Math.random() - 0.5) * 20}px, ${(Math.random() - 0.5) * 20}px)`;
-  setTimeout(() => { document.body.style.transform = 'none'; }, 100);
- }
   
  // Massive Deletion Particle Effect
  for (let i = 0; i < 50; i++) {
@@ -1433,12 +1500,28 @@ window.addEventListener("keyup", e => {
  }
 });
 
-// Canvas Tap-to-Start Listeners
+// Canvas Tap-to-Start & Swipe Listeners
 if (canvas) {
- canvas.addEventListener("pointerdown", (e) => { 
+ canvas.addEventListener("touchstart", (e) => { 
   e.preventDefault(); 
-  jump(); 
- });
+  // Mobile Top/Bottom Canvas logic
+  let rect = canvas.getBoundingClientRect();
+  let touchY = e.touches[0].clientY - rect.top;
+  
+  if (touchY > rect.height / 2) {
+   // Tapped bottom half
+   isDucking = true;
+   if (isJumping) velocity += 5;
+  } else {
+   // Tapped top half
+   jump(); 
+  }
+ }, {passive: false});
+
+ canvas.addEventListener("touchend", (e) => { 
+  e.preventDefault(); 
+  isDucking = false;
+ }, {passive: false});
 }
 
 if (targetCanvas) {
@@ -1554,25 +1637,11 @@ if (tetrisCanvas) {
  });
 }
 
-// Mobile specific Runner controls
 document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) => { 
  e.preventDefault(); 
+ // Just scroll to canvas and jump
+ document.getElementById("jumpGame").scrollIntoView({behavior: "smooth", block: "center"});
  jump(); 
-});
-document.getElementById("mobileDuckBtn")?.addEventListener("pointerdown", (e) => { 
- e.preventDefault(); 
- isDucking = true;
- if (isJumping) {
-  velocity += 5; // Fast-drop
- }
-});
-document.getElementById("mobileDuckBtn")?.addEventListener("pointerup", (e) => { 
- e.preventDefault(); 
- isDucking = false;
-});
-document.getElementById("mobileDuckBtn")?.addEventListener("pointerout", (e) => { 
- e.preventDefault(); 
- isDucking = false;
 });
 
 // ==========================================================================
@@ -1674,10 +1743,10 @@ function updateRunner() {
 
   let lastObs = runnerObstacles[runnerObstacles.length - 1];
   if (!lastObs || lastObs.x < (400 - minGap)) {
-   // Randomly spawn different cacti or a flying bird
+   // Randomly spawn different cacti or a flying drone
    let r = Math.random();
    let oType = 'normal';
-   if (score > 10 && r < 0.25) oType = 'flying'; // Introduce birds after 10 score
+   if (score > 10 && r < 0.25) oType = 'flying'; // Introduce drones after 10 score
    else if (r < 0.5) oType = 'tall';
    else if (r < 0.75) oType = 'wide';
      
@@ -1718,7 +1787,7 @@ function updateRunner() {
    let px = 20, pw = 24, py = playerY - 4, ph = 26; 
    if (isDucking && !isJumping) {
     pw = 42; // Wider hitbox when ducking
-    py = playerY + 10; // Lower hitbox top
+    py = playerY + 10; // Lower hitbox top (approx Y=160)
     ph = 14; // Shorter hitbox height
    }
 
@@ -1729,7 +1798,7 @@ function updateRunner() {
    } else if (obs.type === 'wide') {
     oy = 145; ow = 36; oh = 25;
    } else if (obs.type === 'flying') {
-    oy = 130; ow = 20; oh = 15; // Positioned perfectly to hit a standing head, but miss a ducking head
+    oy = 0; ow = 20; oh = 150; // MASSIVE Hitbox. Bottom edge is exactly at Y=150. You CANNOT jump this. You must duck.
    } else {
     oy = 145; ow = 16; oh = 25; // Normal
    }
@@ -1770,16 +1839,22 @@ function updateRunner() {
   // Draw the specific pixel-art obstacle shapes
   runnerObstacles.forEach(obs => {
    if (obs.type === 'flying') {
-    ctx.fillStyle = "#ff0055"; // Red/Pink Birds
-    let flyY = 130;
+    let flyY = 135; // Visual height of the drone
+    // Visual Red Laser Beam preventing jump
+    ctx.fillStyle = "rgba(255, 0, 85, 0.6)";
+    ctx.fillRect(obs.x + 8, 0, 4, flyY); 
+    
+    // Draw sci-fi drone
+    ctx.fillStyle = "#ff0055"; // Hot pink/red drone
+    ctx.fillRect(obs.x, flyY, 20, 10); // Main body
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(obs.x + 4, flyY + 2, 4, 4); // Glowing eye
+    ctx.fillStyle = "#ff0055";
+    
     if (gameFrame % 20 < 10) { // Wings UP
-     ctx.fillRect(obs.x+4, flyY+6, 12, 6); // body
-     ctx.fillRect(obs.x+8, flyY, 8, 6);    // wing up
-     ctx.fillRect(obs.x, flyY+6, 4, 4);    // head
+     ctx.fillRect(obs.x + 8, flyY - 6, 4, 6);
     } else { // Wings DOWN
-     ctx.fillRect(obs.x+4, flyY+6, 12, 6); // body
-     ctx.fillRect(obs.x+8, flyY+12, 8, 6); // wing down
-     ctx.fillRect(obs.x, flyY+6, 4, 4);    // head
+     ctx.fillRect(obs.x + 8, flyY + 10, 4, 6);
     }
    } else {
     ctx.fillStyle = "#00ff00"; // Neon Green Cacti
