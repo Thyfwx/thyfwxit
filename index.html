@@ -1811,7 +1811,7 @@ function tDrop() {
 function tReset() {
     const pieces = '1234567'; 
     let type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
-    currentPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[type])), pos: {x: 3, y: 0} };
+    if (!nextPiece) { nextPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[type])), pos: {x: 3, y: 0} }; }     currentPiece = nextPiece;     currentPiece.pos = {x: 3, y: 0};     const p2='1234567'; let t2=parseInt(p2[Math.floor(Math.random()*p2.length)]); nextPiece = { matrix: JSON.parse(JSON.stringify(T_SHAPES[t2])), pos: {x: 3, y: 0} };
     
     if (tCollide(tetrisGrid, currentPiece)) {
         if (tetrisGodMode) { 
