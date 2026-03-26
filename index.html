@@ -1079,10 +1079,10 @@ document.addEventListener('click', (e) => {
         pixel.animate([
             { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 }, 
             { transform: `translate(${vx}px, ${vy}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 }
-        ], { duration: 800, easing: 'ease-out' });
+        ], { duration: 1200, easing: 'ease-out' });
         
         document.body.appendChild(pixel); 
-        setTimeout(() => pixel.remove(), 800);
+        setTimeout(() => pixel.remove(), 1200);
     }
     
     // Physically delete the element you clicked
@@ -2006,7 +2006,7 @@ function updateTetris() {
 
     ctxTetris.fillStyle = "cyan"; 
     ctxTetris.font = "bold 14px 'Courier New', monospace"; 
-    ctxTetris.fillText("SCORE: " + tetrisScore, 10, 30); 
+    // === NEXT PIECE PREVIEW PANEL ===     ctxTetris.fillStyle = 'rgba(0,0,0,0.7)';     ctxTetris.fillRect(310, 60, 80, 80);     ctxTetris.strokeStyle = 'cyan';     ctxTetris.lineWidth = 1.5;     ctxTetris.strokeRect(310, 60, 80, 80);     ctxTetris.fillStyle = 'cyan';     ctxTetris.font = 'bold 10px monospace';     ctxTetris.textAlign = 'center';     ctxTetris.fillText('NEXT', 350, 55);     ctxTetris.textAlign = 'left';     if (nextPiece) {         const nm = nextPiece.matrix;         const blockSize = 14;         const offX = 350 - (nm[0].length * blockSize) / 2;         const offY = 100 - (nm.length * blockSize) / 2;         nm.forEach((row, y) => {             row.forEach((val, x) => {                 if (val !== 0) {                     let nc = tetrisRainbow ? `hsl(${Math.floor(time + (x+y)*15)%360},100%,50%)` : T_COLORS[val];                     ctxTetris.fillStyle = nc;                     ctxTetris.fillRect(offX + x*blockSize, offY + y*blockSize, blockSize-1, blockSize-1);                     ctxTetris.strokeStyle = '#fff';                     ctxTetris.lineWidth = 0.5;                     ctxTetris.strokeRect(offX + x*blockSize, offY + y*blockSize, blockSize-1, blockSize-1);                 }             });         });     }     ctxTetris.lineWidth = 1;     // === END NEXT PIECE PREVIEW ===     ctxTetris.fillStyle = "cyan";     ctxTetris.font = "bold 14px 'Courier New', monospace";     ctxTetris.fillText("SCORE: " + tetrisScore, 10, 30); 
     ctxTetris.fillText("HIGH: " + tetrisHighScore, 320, 30);
     
     tetrisAnimId = requestAnimationFrame(updateTetris);
