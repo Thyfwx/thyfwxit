@@ -521,23 +521,46 @@ canvas {
         <input type="checkbox" id="modGodMode" style="transform: scale(1.5);">
     </div>
 
-    <div class="mod-section-title">Tetris Mods</div>
-    <div class="mod-row">
-        <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
-        <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
-    </div>
-    <div class="mod-row">
-        <label>Rainbow Blocks</label>
-        <input type="checkbox" id="modTetrisRainbow" style="transform: scale(1.5);">
-    </div>
-    <div class="mod-row">
-        <label>Ghost Piece Mode</label>
-        <input type="checkbox" id="modTetrisGhost" style="transform: scale(1.5);">
-    </div>
-    <div class="mod-row">
-        <label>God Mode (Never Lose)</label>
-        <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
-    </div>
+        <div class="mod-section-title">Tetris Mods</div>
+        <div class="mod-row">
+            <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
+            <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
+        </div>
+        <div class="mod-row">
+            <label>Score Multiplier (<span id="tetrisMultVal">1</span>x)</label>
+            <input type="range" id="modTetrisMult" min="1" max="50" step="1" value="1">
+        </div>
+        <div class="mod-row">
+            <label>Rainbow Blocks</label>
+            <input type="checkbox" id="modTetrisRainbow" style="transform: scale(1.5);">
+        </div>
+        <div class="mod-row">
+            <label>Ghost Piece Mode</label>
+            <input type="checkbox" id="modTetrisGhost" style="transform: scale(1.5);">
+        </div>
+        <div class="mod-row">
+            <label>God Mode (Never Lose)</label>
+            <input type="checkbox" id="modTetrisGodMode" style="transform: scale(1.5);">
+        </div>
+        <div class="mod-row">
+            <label>Slow Motion</label>
+            <input type="checkbox" id="modTetrisSlow" style="transform: scale(1.5);">
+        </div>
+        <div class="mod-row">
+            <label>Piece Lock (Freeze Drop)</label>
+            <input type="checkbox" id="modTetrisLock" style="transform: scale(1.5);">
+        </div>
+        <div class="mod-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+            <label>Set Score</label>
+            <div style="display:flex;gap:6px;width:100%;">
+                <input type="number" id="modTetrisScoreSet" min="0" value="0" style="background:#111;color:#0ff;border:1px solid #0ff;padding:4px 6px;border-radius:3px;width:80px;font-size:0.85em;">
+                <button id="modTetrisScoreBtn" style="background:#0ff;color:#000;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.85em;">SET</button>
+            </div>
+        </div>
+        <div class="mod-row" style="gap:6px;">
+            <button id="modTetrisClearBtn" style="background:#ff00ff;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">CLEAR ALL LINES</button>
+            <button id="modTetrisLevelUpBtn" style="background:#00ff88;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">LEVEL UP +5</button>
+        </div>
 
     <div class="mod-section-title">Target Mods</div>
     <div class="mod-row">
@@ -657,7 +680,7 @@ let tetrisDropCounter = 0;
 let tetrisSpeedMod = 5;
 let tetrisGodMode = false;
 let tetrisRainbow = false;
-let tetrisGhost = false;
+let tetrisGhost = false; let tetrisScoreMult = 1; let tetrisSlow = false; let tetrisLock = false;
 let tetrisFloaters = []; let tetrisLines = 0; let tetrisLevel = 1; 
 let tetrisStars = Array.from({length: 50}, () => ({x: Math.random()*400, y: Math.random()*400, s: Math.random()*2+0.5, v: Math.random()*2+0.5}));
 let tetrisCrashMsg = "";
@@ -774,7 +797,7 @@ window.onload = () => {
     if(document.getElementById('modTetrisSpeed')) document.getElementById('modTetrisSpeed').value = 5;
     if(document.getElementById('modTetrisGodMode')) document.getElementById('modTetrisGodMode').checked = false;
     if(document.getElementById('modTetrisRainbow')) document.getElementById('modTetrisRainbow').checked = false;
-    if(document.getElementById('modTetrisGhost')) document.getElementById('modTetrisGhost').checked = false;
+    let tetrisGhoif(document.getElementById('modTetrisGhost')) document.getElementById('modTetrisGhost').checked = false;     if(document.getElementById('modTetrisMult')) { document.getElementById('modTetrisMult').value = 1; document.getElementById('tetrisMultVal').innerText = 1; }     if(document.getElementById('modTetrisSlow')) document.getElementById('modTetrisSlow').checked = false;     if(document.getElementById('modTetrisLock')) document.getElementById('modTetrisLock').checked = false;let limit = tetrisSlow ? 200 : 60 - (tetrisSpeedMod * 4);          if (!tetrisSlow && limit < 5) limit = 5;          if (tetrisDropCounter > limit && !tetrisLock) tDrop();if (tetrisDropCounter > limit && !tetrisLock) tDrop();let pts = rowCount * 10 * tetrisLevel * tetrisScoreMult;document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => {      tetrisGhost = e.target.checked;  }); document.getElementById('modTetrisMult')?.addEventListener('input', (e) => {     tetrisScoreMult = parseInt(e.target.value);     document.getElementById('tetrisMultVal').innerText = tetrisScoreMult; }); document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => {     tetrisSlow = e.target.checked; }); document.getElementById('modTetrisLock')?.addEventListener('change', (e) => {     tetrisLock = e.target.checked; }); document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => {     if (!tetrisActive) return;     let v = parseInt(document.getElementById('modTetrisScoreSet').value) || 0;     tetrisScore = v;     if (v > tetrisHighScore) { tetrisHighScore = v; try { localStorage.setItem('tetrisHighScore', v); } catch(e){} } }); document.getElementById('modTetrisClearBtn')?.addEventListener('click', () => {     if (!tetrisActive || tetrisGameOver) return;     for (let y = 0; y < tetrisGrid.length; y++) tetrisGrid[y].fill(0);     tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: 'CLEARED!' }); }); document.getElementById('modTetrisLevelUpBtn')?.addEventListener('click', () => {     if (!tetrisActive || tetrisGameOver) return;     tetrisLevel = Math.min(tetrisLevel + 5, 50);     tetrisScore += 500 * tetrisScoreMult;     tetrisFloaters.push({ x: 200, y: 180, alpha: 1.5, text: 'LVL +5!' }); });st = false; let tetrisScoreMult = 1; let tetrisSlow = false; let tetrisLock = false;
     
     if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
     if(document.getElementById('modTargetFreeze')) document.getElementById('modTargetFreeze').checked = false;
@@ -1847,7 +1870,7 @@ function tSweep() {
         tetrisGrid.unshift(row); 
         ++y; 
         
-        let pts = rowCount * 10 * tetrisLevel; tetrisLines += 1; if (tetrisLines % 10 === 0) { tetrisLevel++; }
+        let tetrisGholet pts = rowCount * 10 * tetrisLevel * tetrisScoreMult;document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => {      tetrisGhost = e.target.checked;  }); document.getElementById('modTetrisMult')?.addEventListener('input', (e) => {     tetrisScoreMult = parseInt(e.target.value);     document.getElementById('tetrisMultVal').innerText = tetrisScoreMult; }); document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => {     tetrisSlow = e.target.checked; }); document.getElementById('modTetrisLock')?.addEventListener('change', (e) => {     tetrisLock = e.target.checked; }); document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => {     if (!tetrisActive) return;     let v = parseInt(document.getElementById('modTetrisScoreSet').value) || 0;     tetrisScore = v;     if (v > tetrisHighScore) { tetrisHighScore = v; try { localStorage.setItem('tetrisHighScore', v); } catch(e){} } }); document.getElementById('modTetrisClearBtn')?.addEventListener('click', () => {     if (!tetrisActive || tetrisGameOver) return;     for (let y = 0; y < tetrisGrid.length; y++) tetrisGrid[y].fill(0);     tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: 'CLEARED!' }); }); document.getElementById('modTetrisLevelUpBtn')?.addEventListener('click', () => {     if (!tetrisActive || tetrisGameOver) return;     tetrisLevel = Math.min(tetrisLevel + 5, 50);     tetrisScore += 500 * tetrisScoreMult;     tetrisFloaters.push({ x: 200, y: 180, alpha: 1.5, text: 'LVL +5!' }); });st = false; let tetrisScoreMult = 1; let tetrisSlow = false; let tetrisLock = false; tetrisLines += 1; if (tetrisLines % 10 === 0) { tetrisLevel++; }
         tetrisScore += pts; 
         rowCount *= 2; 
         clearedLines++;
@@ -2002,7 +2025,7 @@ function updateTetris() {
     tetrisDropCounter++; 
     let limit = 60 - (tetrisSpeedMod * 4); 
     if (limit < 5) limit = 5; 
-    if (tetrisDropCounter > limit) tDrop();
+    let tetrisGhoif (tetrisDropCounter > limit && !tetrisLock) tDrop();let pts = rowCount * 10 * tetrisLevel * tetrisScoreMult;document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => {      tetrisGhost = e.target.checked;  }); document.getElementById('modTetrisMult')?.addEventListener('input', (e) => {     tetrisScoreMult = parseInt(e.target.value);     document.getElementById('tetrisMultVal').innerText = tetrisScoreMult; }); document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => {     tetrisSlow = e.target.checked; }); document.getElementById('modTetrisLock')?.addEventListener('change', (e) => {     tetrisLock = e.target.checked; }); document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => {     if (!tetrisActive) return;     let v = parseInt(document.getElementById('modTetrisScoreSet').value) || 0;     tetrisScore = v;     if (v > tetrisHighScore) { tetrisHighScore = v; try { localStorage.setItem('tetrisHighScore', v); } catch(e){} } }); document.getElementById('modTetrisClearBtn')?.addEventListener('click', () => {     if (!tetrisActive || tetrisGameOver) return;     for (let y = 0; y < tetrisGrid.length; y++) tetrisGrid[y].fill(0);     tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: 'CLEARED!' }); }); document.getElementById('modTetrisLevelUpBtn')?.addEventListener('click', () => {     if (!tetrisActive || tetrisGameOver) return;     tetrisLevel = Math.min(tetrisLevel + 5, 50);     tetrisScore += 500 * tetrisScoreMult;     tetrisFloaters.push({ x: 200, y: 180, alpha: 1.5, text: 'LVL +5!' }); });st = false; let tetrisScoreMult = 1; let tetrisSlow = false; let tetrisLock = false;
 
         // === LEFT HUD: SCORE / HIGH / LEVEL / LINES ===
         function tHud(lx,ly,lw,lh,label,val,c){
