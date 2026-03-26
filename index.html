@@ -38,7 +38,7 @@ body {
   padding: 40px 20px; 
   background-color: var(--bg-color); 
   color: var(--text-color); 
-  transition: all 0.8s ease; /* Smooth transition for Kawaii mode */
+  transition: background-color 0.8s ease, color 0.8s ease; 
   overflow-x: hidden;
 }
 
@@ -172,13 +172,14 @@ canvas {
 
 #terminalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #00ff00; font-family: monospace; padding: 20px; z-index: 9999; overflow-y: auto; font-size: 1.2em; line-height: 1.5; }
 
-/* Mod Menu */
+/* Mod Menu - Removed 'transition: all' to instantly fix drag lag */
 #modMenu { 
   display: none; position: fixed; top: 10%; left: 50%; margin-left: -170px;
   background: rgba(10, 10, 10, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border: 2px solid var(--neon-color); padding: 0; z-index: 10000; 
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.5); 
-  color: #fff; width: 340px; border-radius: 10px; max-height: 90vh; flex-direction: column; transition: all 0.3s;
+  color: #fff; width: 340px; border-radius: 10px; max-height: 90vh; flex-direction: column; 
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 #modMenuHeader { cursor: move; padding: 15px; margin: 0; background: rgba(30, 0, 0, 0.8); border-bottom: 2px solid #ff0000; border-radius: 8px 8px 0 0; text-align: center; font-size: 1.1em; letter-spacing: 2px; }
@@ -380,16 +381,16 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
   <!-- TAB: RUNNER -->
   <div id="tab-runner" class="mod-tab-content">
     <div class="mod-row">
-      <label>Gravity (<span id="gravVal">0.6</span>)</label>
-      <input type="range" id="modGravity" min="0.1" max="20.0" step="0.1" value="0.6">
+      <label>Gravity (<span id="gravVal">0.85</span>)</label>
+      <input type="range" id="modGravity" min="0.1" max="20.0" step="0.05" value="0.85">
     </div>
     <div class="mod-row">
-      <label>Jump Power (<span id="jumpVal">10</span>)</label>
-      <input type="range" id="modJump" min="5" max="250" step="1" value="10">
+      <label>Jump Power (<span id="jumpVal">11.5</span>)</label>
+      <input type="range" id="modJump" min="5" max="25" step="0.5" value="11.5">
     </div>
     <div class="mod-row">
-      <label>Base Speed (<span id="speedVal">3.5</span>)</label>
-      <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5">
+      <label>Base Speed (<span id="speedVal">5.0</span>)</label>
+      <input type="range" id="modSpeed" min="1" max="20" step="0.5" value="5.0">
     </div>
     <div class="mod-row">
       <button id="modMoonGrav" style="background:#222; color:#fff; border:1px solid #aaa; padding:4px 8px; border-radius:4px; font-size:0.8em; cursor:pointer;">Moon Gravity Preset</button>
@@ -614,10 +615,10 @@ const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS",
 const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "TOO SLOW", "SIGNAL LOST"];
 const tetrisCrashMessages = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR", "TETROMINO JAM", "OUT OF MEMORY"];
 
-// Cyber Runner Variables
-let currentGravity = 0.6;
-let currentJumpPower = 10;
-let currentBaseSpeed = 3.5;
+// Cyber Runner Variables (Updated default speeds/gravity for snappier play)
+let currentGravity = 0.85; 
+let currentJumpPower = 11.5; 
+let currentBaseSpeed = 5.0; 
 let runnerGodMode = false;
 let runnerAutoBot = false;
 let runnerJetpack = false; 
@@ -628,7 +629,7 @@ let playerY = 150;
 let score = 0;
 let gameOver = false;
 let gameStarted = false;
-let currentSpeed = 3.5;
+let currentSpeed = 5.0;
 let currentRunnerCrash = "";
 let runnerObstacles = [];
 let runnerParticles = []; 
@@ -736,7 +737,7 @@ function playExplosionSound() {
 }
 
 // ==========================================================================
-// MATRIX RAIN 
+// FULLSCREEN MATRIX RAIN
 // ==========================================================================
 const mCanvas = document.getElementById('matrixCanvas');
 const mCtx = mCanvas.getContext('2d');
@@ -749,9 +750,7 @@ function resizeMatrix() {
   mCanvas.height = window.innerHeight;
   const newColumns = Math.floor(mCanvas.width / fontSize) + 1;
   drops = [];
-  for(let x = 0; x < newColumns; x++) {
-    drops[x] = 1;
-  }
+  for(let x = 0; x < newColumns; x++) drops[x] = 1;
 }
 
 window.addEventListener('resize', resizeMatrix);
@@ -759,18 +758,14 @@ resizeMatrix();
 
 function drawMatrix() {
   if (!matrixRainEnabled) return;
-  
   mCtx.fillStyle = "rgba(0, 0, 0, 0.05)"; 
   mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
   mCtx.fillStyle = kawaiiActive ? "#ff69b4" : "#0F0"; 
   mCtx.font = fontSize + "px monospace";
-  
   for(let i = 0; i < drops.length; i++) {
     const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
     mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
-    if(drops[i] * fontSize > mCanvas.height && Math.random() > 0.975) {
-      drops[i] = 0;
-    }
+    if(drops[i] * fontSize > mCanvas.height && Math.random() > 0.975) drops[i] = 0;
     drops[i]++;
   }
   requestAnimationFrame(drawMatrix);
@@ -783,9 +778,7 @@ function triggerShake() {
   if (!shakeEnabled) return;
   const gameArea = document.getElementById("gameArea");
   if (gameArea) {
-    gameArea.classList.remove("shake-effect"); 
-    void gameArea.offsetWidth; 
-    gameArea.classList.add("shake-effect");
+    gameArea.classList.remove("shake-effect"); void gameArea.offsetWidth; gameArea.classList.add("shake-effect");
     setTimeout(() => { gameArea.classList.remove("shake-effect"); }, 400);
   }
 }
@@ -794,32 +787,21 @@ function triggerShake() {
 // INITIALIZATION
 // ==========================================================================
 async function fetchUptimeStatus() {
-  const setOnline = () => { 
-    document.querySelectorAll('.status-dot').forEach(dot => { 
-      dot.classList.remove('status-offline'); 
-      dot.classList.add('status-online'); 
-    }); 
-  };
-  try { 
-    await fetch('https://uptime.thyfwxit.com/api/status-page/status'); 
-    setOnline(); 
-  } catch (e) { 
-    setOnline(); 
-  }
+  const setOnline = () => { document.querySelectorAll('.status-dot').forEach(dot => { dot.classList.remove('status-offline'); dot.classList.add('status-online'); }); };
+  try { await fetch('https://uptime.thyfwxit.com/api/status-page/status'); setOnline(); } catch (e) { setOnline(); }
 }
 
 window.onload = () => {
   fetchUptimeStatus(); 
   
-  if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.6;
-  if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
-  if(document.getElementById('modShakeToggle')) { document.getElementById('modShakeToggle').checked = true; shakeEnabled = true; }
+  // Set defaults matching the HTML inputs for snappy Cyber Runner
+  if(document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.85;
+  if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 5.0;
+  if(document.getElementById('modJump')) document.getElementById('modJump').value = 11.5;
   
+  if(document.getElementById('modShakeToggle')) { document.getElementById('modShakeToggle').checked = true; shakeEnabled = true; }
   if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
-
-  if (localStorage.getItem('themePref') === 'kawaii') {
-    document.getElementById('kawaiiToggle')?.click(); 
-  }
+  if (localStorage.getItem('themePref') === 'kawaii') document.getElementById('kawaiiToggle')?.click(); 
 };
 
 // ==========================================================================
@@ -844,167 +826,79 @@ document.addEventListener("DOMContentLoaded", () => {
   const jokes = ["I would tell you a UDP joke, but you might not get it.", "Why do programmers prefer dark mode? Because light attracts bugs."];
   const footer = document.querySelector("footer");
   if (footer) {
-    const jokeElement = document.createElement("p"); 
-    jokeElement.style.fontSize = "0.8em"; 
-    jokeElement.style.color = "#888"; 
-    jokeElement.style.marginTop = "10px";
-    jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)]; 
-    footer.appendChild(jokeElement);
+    const jokeElement = document.createElement("p"); jokeElement.style.fontSize = "0.8em"; jokeElement.style.color = "#888"; jokeElement.style.marginTop = "10px";
+    jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)]; footer.appendChild(jokeElement);
   }
 });
 
 // ==========================================================================
-// MOD MENU DRAG
+// MOD MENU DRAG (Instant Snap Fix)
 // ==========================================================================
 let headerTapCount = 0;
 const handleHeaderInteraction = () => {
   headerTapCount++;
-  if (headerTapCount >= 5) { 
-    document.getElementById('modMenu').style.display = 'flex'; 
-    headerTapCount = 0; 
-  }
+  if (headerTapCount >= 5) { document.getElementById('modMenu').style.display = 'flex'; headerTapCount = 0; }
   setTimeout(() => { headerTapCount = 0; }, 1500);
 };
 
 document.getElementById('mainHeader')?.addEventListener('pointerdown', handleHeaderInteraction);
-document.getElementById('mainHeader')?.addEventListener('keydown', (e) => { 
-  if (e.key === 'Enter') handleHeaderInteraction(); 
-});
+document.getElementById('mainHeader')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleHeaderInteraction(); });
 
-const dragMenu = document.getElementById("modMenu"); 
-const dragHeader = document.getElementById("modMenuHeader");
-let isDraggingMenu = false; 
-let dragOffsetX = 0; 
-let dragOffsetY = 0;
+const dragMenu = document.getElementById("modMenu"); const dragHeader = document.getElementById("modMenuHeader");
+let isDraggingMenu = false; let dragOffsetX = 0; let dragOffsetY = 0;
 
 if (dragHeader) {
-  dragHeader.addEventListener("mousedown", (e) => { 
-    isDraggingMenu = true; 
-    const rect = dragMenu.getBoundingClientRect(); 
-    dragOffsetX = e.clientX - rect.left; 
-    dragOffsetY = e.clientY - rect.top; 
-    dragMenu.style.margin = "0"; 
-  });
-  
-  dragHeader.addEventListener("touchstart", (e) => { 
-    isDraggingMenu = true; 
-    const rect = dragMenu.getBoundingClientRect(); 
-    dragOffsetX = e.touches[0].clientX - rect.left; 
-    dragOffsetY = e.touches[0].clientY - rect.top; 
-    dragMenu.style.margin = "0"; 
-  }, {passive: false});
+  dragHeader.addEventListener("mousedown", (e) => { isDraggingMenu = true; const rect = dragMenu.getBoundingClientRect(); dragOffsetX = e.clientX - rect.left; dragOffsetY = e.clientY - rect.top; dragMenu.style.margin = "0"; });
+  dragHeader.addEventListener("touchstart", (e) => { isDraggingMenu = true; const rect = dragMenu.getBoundingClientRect(); dragOffsetX = e.touches[0].clientX - rect.left; dragOffsetY = e.touches[0].clientY - rect.top; dragMenu.style.margin = "0"; }, {passive: false});
 }
-
-document.addEventListener("mousemove", (e) => { 
-  if (!isDraggingMenu) return; 
-  dragMenu.style.left = `${e.clientX - dragOffsetX}px`; 
-  dragMenu.style.top = `${e.clientY - dragOffsetY}px`; 
-});
-
-document.addEventListener("touchmove", (e) => { 
-  if (!isDraggingMenu) return; 
-  dragMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`; 
-  dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`; 
-}, {passive: false});
-
-document.addEventListener("mouseup", () => { isDraggingMenu = false; }); 
-document.addEventListener("touchend", () => { isDraggingMenu = false; });
+document.addEventListener("mousemove", (e) => { if (!isDraggingMenu) return; dragMenu.style.left = `${e.clientX - dragOffsetX}px`; dragMenu.style.top = `${e.clientY - dragOffsetY}px`; });
+document.addEventListener("touchmove", (e) => { if (!isDraggingMenu) return; dragMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`; dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`; }, {passive: false});
+document.addEventListener("mouseup", () => { isDraggingMenu = false; }); document.addEventListener("touchend", () => { isDraggingMenu = false; });
 
 // ==========================================================================
 // MASTER GAME SWITCHER
 // ==========================================================================
 window.switchGame = function(mode) {
-  targetGameActive = false; 
-  tetrisActive = false;
-  
-  cancelAnimationFrame(runnerAnimId); 
-  cancelAnimationFrame(targetAnimId); 
-  cancelAnimationFrame(tetrisAnimId);
+  targetGameActive = false; tetrisActive = false;
+  cancelAnimationFrame(runnerAnimId); cancelAnimationFrame(targetAnimId); cancelAnimationFrame(tetrisAnimId);
 
-  document.getElementById('jumpGame').style.display = 'none'; 
-  document.getElementById('targetGame').style.display = 'none'; 
-  document.getElementById('tetrisGame').style.display = 'none';
-  document.getElementById('runnerControls').style.display = 'none'; 
-  document.getElementById('publicDifficulty').style.display = 'none';
+  document.getElementById('jumpGame').style.display = 'none'; document.getElementById('targetGame').style.display = 'none'; document.getElementById('tetrisGame').style.display = 'none';
+  document.getElementById('runnerControls').style.display = 'none'; document.getElementById('publicDifficulty').style.display = 'none';
 
   if (mode === 'runner') {
-    document.getElementById('jumpGame').style.display = 'block'; 
-    document.getElementById('runnerControls').style.display = 'flex'; 
-    document.getElementById('gamePrompt').style.display = 'block'; 
-    document.getElementById('secretText').style.display = 'block';
-    
-    document.getElementById('gameTitle').innerText = "Cyber Runner Game"; 
-    document.getElementById('gameTitle').style.color = "var(--neon-color)";
-    
-    gameStarted = false; 
-    gameOver = false; 
-    playerY = 150; 
-    velocity = 0; 
-    runnerObstacles = []; 
-    runnerParticles = []; 
-    score = 0;
-    
+    document.getElementById('jumpGame').style.display = 'block'; document.getElementById('runnerControls').style.display = 'flex'; 
+    document.getElementById('gamePrompt').style.display = 'block'; document.getElementById('secretText').style.display = 'block';
+    document.getElementById('gameTitle').innerText = "Cyber Runner Game"; document.getElementById('gameTitle').style.color = "var(--neon-color)";
+    gameStarted = false; gameOver = false; playerY = 150; velocity = 0; runnerObstacles = []; runnerParticles = []; score = 0;
     runnerAnimId = requestAnimationFrame(updateRunner);
-    
   } else if (mode === 'target') {
-    targetGameActive = true; 
-    targetState = 'START';
-    
-    document.getElementById('targetGame').style.display = 'block'; 
-    document.getElementById('publicDifficulty').style.display = 'block'; 
-    document.getElementById('gamePrompt').style.display = 'none';
-    
-    document.getElementById('gameTitle').innerText = "Matrix Target Simulator"; 
-    document.getElementById('gameTitle').style.color = "red";
-    
+    targetGameActive = true; targetState = 'START';
+    document.getElementById('targetGame').style.display = 'block'; document.getElementById('publicDifficulty').style.display = 'block'; 
+    document.getElementById('gamePrompt').style.display = 'none'; document.getElementById('gameTitle').innerText = "Matrix Target Simulator"; document.getElementById('gameTitle').style.color = "red";
     targetAnimId = requestAnimationFrame(updateTargetGame);
-    
   } else if (mode === 'tetris') {
     tetrisActive = true;
-    
-    document.getElementById('tetrisGame').style.display = 'block'; 
-    document.getElementById('gamePrompt').style.display = 'none';
-    
-    document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; 
-    document.getElementById('gameTitle').style.color = "cyan";
-    
-    initTetris(); 
-    tetrisAnimId = requestAnimationFrame(updateTetris);
+    document.getElementById('tetrisGame').style.display = 'block'; document.getElementById('gamePrompt').style.display = 'none';
+    document.getElementById('gameTitle').innerText = "TETRIS TERMINAL"; document.getElementById('gameTitle').style.color = "cyan";
+    initTetris(); tetrisAnimId = requestAnimationFrame(updateTetris);
   }
 }
 
 // ==========================================================================
 // MOD MENU LINKAGE
 // ==========================================================================
-document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { 
-  shakeEnabled = e.target.checked; 
-});
-document.getElementById('modMatrixRain')?.addEventListener('change', (e) => { 
-  matrixRainEnabled = e.target.checked; 
-  if(matrixRainEnabled) { 
-    document.getElementById('matrixCanvas').style.display = 'block'; 
-    requestAnimationFrame(drawMatrix); 
-  } else { 
-    document.getElementById('matrixCanvas').style.display = 'none'; 
-  } 
-});
-document.getElementById('modCrtToggle')?.addEventListener('change', (e) => { 
-  const crt = document.getElementById('crtOverlayElement'); 
-  if (crt) { crt.style.display = e.target.checked ? 'block' : 'none'; } 
-});
+document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { shakeEnabled = e.target.checked; });
+document.getElementById('modMatrixRain')?.addEventListener('change', (e) => { matrixRainEnabled = e.target.checked; if(matrixRainEnabled) { document.getElementById('matrixCanvas').style.display = 'block'; requestAnimationFrame(drawMatrix); } else { document.getElementById('matrixCanvas').style.display = 'none'; } });
+document.getElementById('modCrtToggle')?.addEventListener('change', (e) => { const crt = document.getElementById('crtOverlayElement'); if (crt) { crt.style.display = e.target.checked ? 'block' : 'none'; } });
 
 document.getElementById('modGravity')?.addEventListener('input', (e) => { currentGravity = parseFloat(e.target.value); document.getElementById('gravVal').innerText = currentGravity; });
-document.getElementById('modJump')?.addEventListener('input', (e) => { currentJumpPower = parseInt(e.target.value); document.getElementById('jumpVal').innerText = currentJumpPower; });
+document.getElementById('modJump')?.addEventListener('input', (e) => { currentJumpPower = parseFloat(e.target.value); document.getElementById('jumpVal').innerText = currentJumpPower; });
 document.getElementById('modSpeed')?.addEventListener('input', (e) => { currentBaseSpeed = parseFloat(e.target.value); document.getElementById('speedVal').innerText = currentBaseSpeed; });
 document.getElementById('modGodMode')?.addEventListener('change', (e) => { runnerGodMode = e.target.checked; });
 document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { runnerAutoBot = e.target.checked; });
 document.getElementById('modDiscoRunner')?.addEventListener('change', (e) => { runnerDiscoActive = e.target.checked; });
 document.getElementById('modJetpack')?.addEventListener('change', (e) => { runnerJetpack = e.target.checked; });
-
-document.getElementById('modMoonGrav')?.addEventListener('click', () => { 
-  document.getElementById('modGravity').value = 0.2; currentGravity = 0.2; document.getElementById('gravVal').innerText = 0.2; 
-  document.getElementById('modJump').value = 7; currentJumpPower = 7; document.getElementById('jumpVal').innerText = 7; 
-});
+document.getElementById('modMoonGrav')?.addEventListener('click', () => { document.getElementById('modGravity').value = 0.2; currentGravity = 0.2; document.getElementById('gravVal').innerText = 0.2; document.getElementById('modJump').value = 7; currentJumpPower = 7; document.getElementById('jumpVal').innerText = 7; });
 
 document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { tetrisSpeedMod = parseInt(e.target.value); document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; });
 document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { tetrisGodMode = e.target.checked; });
@@ -1013,21 +907,9 @@ document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { t
 document.getElementById('modTetrisMult')?.addEventListener('input', (e) => { tetrisScoreMult = parseInt(e.target.value); document.getElementById('tetrisMultVal').innerText = tetrisScoreMult; });
 document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => { tetrisSlow = e.target.checked; });
 document.getElementById('modTetrisLock')?.addEventListener('change', (e) => { tetrisLock = e.target.checked; });
-document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => { 
-  if (!tetrisActive) return; let v = parseInt(document.getElementById('modTetrisScoreSet').value) || 0; tetrisScore = v; 
-  if (v > tetrisHighScore) { tetrisHighScore = v; try { localStorage.setItem('tetrisHighScore', v); } catch(e){} } 
-});
-document.getElementById('modTetrisClearBtn')?.addEventListener('click', () => { 
-  if (!tetrisActive || tetrisGameOver) return; 
-  for (let y = 0; y < tetrisGrid.length; y++) { tetrisGrid[y].fill(0); } 
-  tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: 'CLEARED!' }); 
-});
-document.getElementById('modTetrisAddJunkBtn')?.addEventListener('click', () => { 
-  if (!tetrisActive || tetrisGameOver) return; 
-  tetrisGrid.shift(); let junkRow = []; 
-  for(let i=0; i<10; i++) { junkRow.push(Math.random() > 0.3 ? Math.floor(Math.random() * 7) + 1 : 0); } 
-  tetrisGrid.push(junkRow); tetrisFloaters.push({ x: 200, y: 350, alpha: 1.5, text: 'JUNK ROW!' }); 
-});
+document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => { if (!tetrisActive) return; let v = parseInt(document.getElementById('modTetrisScoreSet').value) || 0; tetrisScore = v; if (v > tetrisHighScore) { tetrisHighScore = v; try { localStorage.setItem('tetrisHighScore', v); } catch(e){} } });
+document.getElementById('modTetrisClearBtn')?.addEventListener('click', () => { if (!tetrisActive || tetrisGameOver) return; for (let y = 0; y < tetrisGrid.length; y++) { tetrisGrid[y].fill(0); } tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: 'CLEARED!' }); });
+document.getElementById('modTetrisAddJunkBtn')?.addEventListener('click', () => { if (!tetrisActive || tetrisGameOver) return; tetrisGrid.shift(); let junkRow = []; for(let i=0; i<10; i++) { junkRow.push(Math.random() > 0.3 ? Math.floor(Math.random() * 7) + 1 : 0); } tetrisGrid.push(junkRow); tetrisFloaters.push({ x: 200, y: 350, alpha: 1.5, text: 'JUNK ROW!' }); });
 
 document.getElementById('modDifficulty')?.addEventListener('change', (e) => { document.getElementById('publicDiffSelect').value = e.target.value; maxLives = parseInt(e.target.value); });
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { document.getElementById('modDifficulty').value = e.target.value; maxLives = parseInt(e.target.value); });
@@ -1042,13 +924,13 @@ document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
 });
 
 // ==========================================================================
-// THE ULTIMATE KAWAII MODE (Cute Emojis & Visible Text)
+// THE ULTIMATE KAWAII MODE (Cute Emojis & Soft Pink Theme)
 // ==========================================================================
 let kawaiiActive = false;
 let kawaiiInterval = null;
 
 function startKawaiiParticles() {
-  const emojis = ['⭐', '💖', '✨', '🌸', '🎀', '💕', '🍓', '🍰'];
+  const emojis = ['⭐', '💖', '✨', '🌸', '🎀', '💕', '🍓'];
   const ov = document.getElementById('kawaiiOv');
   
   kawaiiInterval = setInterval(() => {
@@ -1096,7 +978,7 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     document.body.style.fontFamily = "'Comic Sans MS', 'Chalkboard SE', sans-serif";
     document.getElementById('mainTitle').innerText = "(✿◠‿◠) Systems Specialist (◕‿◕✿)";
     
-    // Very quiet, gentle pink gradient
+    // Very quiet, gentle pink background
     document.body.style.background = "linear-gradient(135deg, #fff0f5, #ffe4e1, #ffd1dc, #fff0f5)";
     document.body.style.backgroundSize = "400% 400%";
     document.body.style.animation = "kawaiiGradient 20s ease infinite"; 
@@ -1154,7 +1036,7 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
 });
 
 // ==========================================================================
-// NUKE MODE 
+// NUKE MODE (Safe Visual Glitch)
 // ==========================================================================
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
   nukeModeActive = true; 
@@ -1437,6 +1319,7 @@ if (targetCanvas) {
       }
 
       if (hitNormal || hitGolden) { 
+        // Small flash feedback when clicking target
         ctxTarget.fillStyle = kawaiiActive ? "rgba(255, 182, 193, 0.5)" : "rgba(255, 255, 255, 0.5)"; 
         ctxTarget.fillRect(0,0,400,200); 
       }
@@ -1509,7 +1392,7 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => {
 
 
 // ==========================================================================
-// 10. RUNNER GAME ENGINE
+// 10. RUNNER GAME ENGINE (SNAPPY PHYSICS & FIXED COLORS)
 // ==========================================================================
 function spawnRunnerParticles(x, y, color) {
   for (let i = 0; i < 20; i++) {
@@ -1552,8 +1435,8 @@ function jump() {
 }
 
 function drawDino(ctx, x, y, frame) {
-  ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 10) % 360}, 100%, 50%)` : (kawaiiActive ? "#ff69b4" : neonColor);
-  if (runnerGodMode && !runnerDiscoActive) ctx.fillStyle = kawaiiActive ? "#ff1493" : "#fff";
+  ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 10) % 360}, 100%, 50%)` : (kawaiiActive ? "#ff1493" : neonColor);
+  if (runnerGodMode && !runnerDiscoActive) ctx.fillStyle = kawaiiActive ? "#ffb6c1" : "#fff";
 
   ctx.fillRect(x + 12, y - 4, 12, 12); 
   ctx.fillRect(x + 12, y + 2, 16, 4);  
@@ -1561,6 +1444,7 @@ function drawDino(ctx, x, y, frame) {
   ctx.fillRect(x, y + 2, 4, 10); 
   ctx.fillRect(x + 18, y + 10, 6, 4);  
   
+  // Jetpack Fire
   if (runnerJetpack && isJumping) {
     ctx.fillStyle = "#ffa500"; 
     ctx.fillRect(x + 6, y + 22, 4, Math.random() * 10 + 5); 
@@ -1583,19 +1467,20 @@ function updateRunner() {
 
   gameFrame++;
   
-  // Dynamic Canvas Theme Variables
-  const textColor = kawaiiActive ? "#d11a7a" : "#fff";
-  const lineCol = kawaiiActive ? "rgba(255, 105, 180, 0.4)" : gridColor;
+  // FIXED VISIBILITY: Make text pink if kawaii, white if cyber
+  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
+  const canvasLineCol = kawaiiActive ? "rgba(255, 105, 180, 0.4)" : gridColor;
   
   ctx.clearRect(0, 0, 400, 200);
   
+  // Background
   if (kawaiiActive) {
     ctx.fillStyle = "#fffafa";
     ctx.fillRect(0, 0, 400, 200);
   }
   
-  ctx.strokeStyle = lineCol;
-  
+  // Grid Lines
+  ctx.strokeStyle = canvasLineCol;
   for (let i = 0; i <= 400; i += 20) { 
     ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke(); 
   }
@@ -1613,6 +1498,8 @@ function updateRunner() {
   ctx.setLineDash([]);
 
   if (gameStarted && !gameOver) {
+    
+    // Jetpack physics
     if (runnerJetpack && keySpaceHeld) {
       velocity -= 1.5; 
       if(velocity < -currentJumpPower) {
@@ -1635,7 +1522,8 @@ function updateRunner() {
       velocity = 0; 
     }
 
-    currentSpeed = currentBaseSpeed + (Math.floor(score / 20) * 1.0); 
+    // Smoother speed scaling
+    currentSpeed = currentBaseSpeed + (score / 15); 
     let minGap = 350 + (currentSpeed * 20); 
 
     let lastObs = runnerObstacles[runnerObstacles.length - 1];
@@ -1697,7 +1585,7 @@ function updateRunner() {
           currentRunnerCrash = runnerCrashMessages[Math.floor(Math.random() * runnerCrashMessages.length)]; 
           
           triggerShake(); 
-          spawnRunnerParticles(px, py, kawaiiActive ? "#ff69b4" : neonColor);
+          spawnRunnerParticles(px, py, kawaiiActive ? "#ff1493" : neonColor);
           
           if (score > runnerHighScore) { 
             runnerHighScore = score; 
@@ -1776,10 +1664,12 @@ function updateRunner() {
     }
   }
 
+  // Draw bottom bar correctly for visibility
   ctx.fillStyle = kawaiiActive ? "#ffe4e1" : "#444"; 
   ctx.fillRect(0, 170, 400, 30);
   
-  ctx.fillStyle = textColor; 
+  // Use correct text color
+  ctx.fillStyle = canvasTextColor; 
   ctx.font = "bold 14px 'Courier New', monospace"; 
   ctx.fillText("SCORE: " + score, 10, 20); 
   ctx.fillText("HIGH: " + runnerHighScore, 10, 40);
@@ -1794,7 +1684,7 @@ function updateRunner() {
     ctx.textAlign = "center"; 
     ctx.fillText(currentRunnerCrash, 200, 80); 
     
-    ctx.fillStyle = textColor; 
+    ctx.fillStyle = canvasTextColor; 
     ctx.font = "bold 16px 'Courier New', monospace"; 
     ctx.fillText("Final Score: " + score, 200, 110); 
     
@@ -1819,7 +1709,7 @@ function updateRunner() {
 }
 
 // ==========================================================================
-// 11. TARGET SIMULATOR ENGINE 
+// 11. TARGET SIMULATOR ENGINE (FIXED VISIBILITY)
 // ==========================================================================
 function spawnTargetParticles(x, y, color) {
   for (let i = 0; i < 15; i++) {
@@ -1885,7 +1775,7 @@ function updateTargetGame() {
   
   ctxTarget.clearRect(0, 0, 400, 200);
   
-  const textColor = kawaiiActive ? "#d11a7a" : "#fff";
+  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
   const bgCol = kawaiiActive ? "#fff0f5" : "#050510";
   const lineCol = kawaiiActive ? "rgba(255, 182, 193, 0.4)" : "rgba(0, 255, 255, 0.2)";
   
@@ -1905,13 +1795,13 @@ function updateTargetGame() {
     ctxTarget.fillStyle = kawaiiActive ? "rgba(255,228,225,0.8)" : "rgba(0, 0, 0, 0.7)"; 
     ctxTarget.fillRect(0,0,400,200);
     
-    ctxTarget.fillStyle = textColor; 
+    ctxTarget.fillStyle = canvasTextColor; 
     ctxTarget.font = "bold 20px 'Courier New', monospace"; 
     ctxTarget.textAlign = "center"; 
     ctxTarget.fillText("MATRIX TARGET SIMULATOR", 200, 80);
     
     let pulse = Math.floor(Date.now() / 400) % 2 === 0; 
-    ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#ff1493" : "#00ff00") : textColor; 
+    ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#ff1493" : "#00ff00") : canvasTextColor; 
     ctxTarget.font = "bold 14px 'Courier New', monospace"; 
     ctxTarget.fillText("Select Difficulty below, then Tap to Start", 200, 120); 
     
@@ -1934,7 +1824,7 @@ function updateTargetGame() {
     ctxTarget.textAlign = "center"; 
     ctxTarget.fillText(currentTargetCrash, 200, 80);
     
-    ctxTarget.fillStyle = textColor; 
+    ctxTarget.fillStyle = canvasTextColor; 
     ctxTarget.font = "bold 16px 'Courier New', monospace"; 
     ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
     
@@ -2149,7 +2039,8 @@ function updateTargetGame() {
   ctxTarget.arc(mouseX, mouseY, 8, 0, Math.PI*2); 
   ctxTarget.stroke();
 
-  ctxTarget.fillStyle = textColor; 
+  // Use dynamic canvas text color so it's readable
+  ctxTarget.fillStyle = canvasTextColor; 
   ctxTarget.font = "bold 14px 'Courier New', monospace"; 
   ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
   ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
@@ -2159,7 +2050,7 @@ function updateTargetGame() {
 }
 
 // ==========================================================================
-// 12. TETRIS GAME ENGINE
+// 12. TETRIS GAME ENGINE (FIXED VISIBILITY)
 // ==========================================================================
 function createMatrix(w, h) { 
   const matrix = []; 
@@ -2317,7 +2208,7 @@ function updateTetris() {
   cancelAnimationFrame(tetrisAnimId); 
   if (!tetrisActive) return;
   
-  const textColor = kawaiiActive ? "#d11a7a" : "#fff";
+  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
   
   ctxTetris.fillStyle = kawaiiActive ? '#fffafa' : '#000000'; 
   ctxTetris.fillRect(0, 0, 400, 400);
@@ -2347,7 +2238,7 @@ function updateTetris() {
     ctxTetris.textAlign = "center"; 
     ctxTetris.fillText(tetrisCrashMsg, 200, 160); 
     
-    ctxTetris.fillStyle = textColor; 
+    ctxTetris.fillStyle = canvasTextColor; 
     ctxTetris.font = "bold 16px 'Courier New', monospace"; 
     ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200); 
     
