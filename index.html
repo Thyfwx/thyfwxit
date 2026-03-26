@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xavier Scott - Systems Specialist</title>
 
@@ -272,17 +273,16 @@ footer {
  animation: jumpScare 0.6s cubic-bezier(.36,.07,.19,.97) both;
 }
 
-@keyframes horrifyingGlitch {
- 0% { transform: translate(0) scale(1); filter: invert(0) hue-rotate(0deg); }
- 20% { transform: translate(-10px, 10px) scale(1.05) skewX(5deg); filter: invert(1) hue-rotate(180deg) brightness(2); }
- 40% { transform: translate(10px, -10px) scale(0.95) skewX(-5deg); filter: invert(0) hue-rotate(90deg) contrast(3); }
- 60% { transform: translate(-10px, -10px) scale(1.1) skewY(5deg); filter: invert(1) hue-rotate(270deg); }
- 80% { transform: translate(10px, 10px) scale(1) skewY(-5deg); filter: invert(0) hue-rotate(0deg); }
- 100% { transform: translate(0) scale(1); filter: invert(1) hue-rotate(45deg) blur(1px); }
+@keyframes brokenGlitch {
+ 0% { filter: hue-rotate(0deg) contrast(1); }
+ 5% { filter: hue-rotate(90deg) contrast(3) invert(0.2); transform: skewX(2deg); }
+ 10% { filter: hue-rotate(0deg) contrast(1); transform: skewX(0deg); }
+ 95% { filter: hue-rotate(0deg) contrast(1); transform: skewX(0deg); }
+ 100% { filter: hue-rotate(-45deg) contrast(2); transform: skewX(-2deg); }
 }
 
 .nuke-terrifying {
- animation: horrifyingGlitch 0.2s infinite;
+ animation: brokenGlitch 3s infinite;
 }
 
 /* CRT Flicker */
@@ -468,15 +468,16 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
 input[type=range]::-moz-range-track { width: 100%; height: 6px; cursor: pointer; background: #222; border-radius: 3px; border: 1px solid #444; }
 input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); height: 16px; width: 16px; border-radius: 50%; background: #000; cursor: pointer; box-shadow: 0 0 8px var(--neon-color); }
 
-@keyframes hackGlitch {  0% { opacity: 0.10; transform: translate(-50%,-50%) skewX(0deg); }  10% { opacity: 0.18; transform: translate(-52%,-50%) skewX(3deg); }  20% { opacity: 0.08; transform: translate(-50%,-48%) skewX(-2deg); }  30% { opacity: 0.20; transform: translate(-50%,-50%) skewX(0deg); }  50% { opacity: 0.12; transform: translate(-51%,-50%) skewX(1deg); }  70% { opacity: 0.22; transform: translate(-50%,-52%) skewX(-3deg); }  85% { opacity: 0.08; transform: translate(-50%,-50%) skewX(2deg); }  100% { opacity: 0.15; transform: translate(-50%,-50%) skewX(0deg); } } 
-@keyframes nukePulse {  0% { box-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000; }  50% { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #800000; }  100% { box-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000; } } 
-@keyframes nukeParticle {
- 0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
- 100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
+#matrixCanvas {
+ position: fixed;
+ top: 0; left: 0; width: 100vw; height: 100vh;
+ pointer-events: none; z-index: 9997; opacity: 0.3; display: none;
 }
 </style>
 </head>
 <body>
+
+<canvas id="matrixCanvas"></canvas>
 
 <header id="mainHeader">
  <h1 id="mainTitle">Systems Specialist & Network Infrastructure</h1>
@@ -531,7 +532,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
   <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
  </div>
 
- <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt"><b>Tap Top Half</b> to Jump. <b>Tap Bottom Half</b> to Duck.</p>
+ <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump, <b>Down/S</b> or <b>Swipe Down</b> to Duck.</p>
  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
  <div id="publicDifficulty" style="display:none; margin-top: 15px;">
@@ -544,7 +545,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
  </div>
 
  <div class="controls-wrapper" id="runnerControls">
-  <button id="mobileJumpBtn" class="jump-btn" style="max-width: none; width: 100%;">TAP GAME SCREEN TO PLAY</button>
+  <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
  </div>
 </section>
 
@@ -609,6 +610,13 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
      <span class="toggle-slider"></span>
    </label>
   </div>
+  <div class="mod-row">
+   <label style="color:#0f0;">Matrix Rain</label>
+   <label class="toggle-switch">
+     <input type="checkbox" id="modMatrixRain">
+     <span class="toggle-slider"></span>
+   </label>
+  </div>
 
   <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
   <button id="nukeToggle" class="nuke-btn">&#9760; INITIATE BREACH &#9760;</button>   
@@ -627,6 +635,16 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
   <div class="mod-row">
    <label>Base Speed (<span id="speedVal">3.5</span>)</label>
    <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5">
+  </div>
+  <div class="mod-row">
+   <button id="modMoonGrav" style="background:#222; color:#fff; border:1px solid #aaa; padding:4px 8px; border-radius:4px; font-size:0.8em; cursor:pointer;">Moon Gravity Preset</button>
+  </div>
+  <div class="mod-row">
+   <label>Disco Mode</label>
+   <label class="toggle-switch">
+     <input type="checkbox" id="modDiscoRunner">
+     <span class="toggle-slider"></span>
+   </label>
   </div>
   <div class="mod-row">
    <label>Auto-Jump/Duck Bot</label>
@@ -697,8 +715,8 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
    </div>
   </div>
   <div class="mod-row" style="gap:6px;">
+   <button id="modTetrisAddJunkBtn" style="background:#ff5500;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">ADD JUNK ROW</button>
    <button id="modTetrisClearBtn" style="background:#ff00ff;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">CLEAR ALL LINES</button>
-   <button id="modTetrisLevelUpBtn" style="background:#00ff88;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">LEVEL UP +5</button>
   </div>
  </div>
 
@@ -711,6 +729,10 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
     <option value="6" selected>Normal (6 Misses)</option>
     <option value="3">Hard (3 Misses)</option>
    </select>
+  </div>
+  <div class="mod-row">
+   <label>Target Size (<span id="targetSizeVal">30</span>)</label>
+   <input type="range" id="modTargetSize" min="10" max="100" step="5" value="30">
   </div>
   <div class="mod-row">
    <label>Time Freeze (Infinite)</label>
@@ -759,6 +781,7 @@ function openModTab(evt, tabName) {
 let targetGameActive = false;
 let tetrisActive = false;
 let nukeModeActive = false;
+let runnerDiscoActive = false;
 
 let runnerAnimId;
 let targetAnimId;
@@ -786,6 +809,7 @@ try { tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0; 
 
 // Global Mods
 let shakeEnabled = true; let soundEnabled = true;
+let matrixRainEnabled = false;
 
 // Custom Crash Messages
 const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS", "FATAL COLLISION", "NETWORK OFFLINE"];
@@ -878,7 +902,7 @@ const neonColor = style.getPropertyValue('--neon-color').trim() || '#ff00ff';
 const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
 
 // ==========================================================================
-// 2. EXPLOSION AUDIO GENERATOR (NUKE MODE)
+// 2. EXPLOSION AUDIO GENERATOR (NUKE MODE - SCARY DIGITAL CRUNCH)
 // ==========================================================================
 function playExplosionSound() {
  if (!audioCtx) {
@@ -888,7 +912,7 @@ function playExplosionSound() {
   audioCtx.resume();
  }
   
- const bufferSize = audioCtx.sampleRate * 2; 
+ const bufferSize = audioCtx.sampleRate * 0.5; // Short, violent crunch
  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
  const data = buffer.getChannelData(0);
  for (let i = 0; i < bufferSize; i++) {
@@ -898,13 +922,14 @@ function playExplosionSound() {
  const noise = audioCtx.createBufferSource();
  noise.buffer = buffer;
   
+ // Filter it to sound more electronic and terrifying
  const filter = audioCtx.createBiquadFilter();
- filter.type = 'lowpass';
- filter.frequency.value = 800; 
+ filter.type = 'highpass';
+ filter.frequency.value = 1000; 
   
  const gain = audioCtx.createGain();
- gain.gain.setValueAtTime(2, audioCtx.currentTime);
- gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); 
+ gain.gain.setValueAtTime(3, audioCtx.currentTime);
+ gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); 
   
  noise.connect(filter);
  filter.connect(gain);
@@ -913,32 +938,40 @@ function playExplosionSound() {
  noise.start();
 }
 
-function playTerrifyingNukeSound() {
- if (!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
- if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+// ==========================================================================
+// MATRIX RAIN SCRIPT
+// ==========================================================================
+const mCanvas = document.getElementById('matrixCanvas');
+const mCtx = mCanvas.getContext('2d');
+mCanvas.width = window.innerWidth;
+mCanvas.height = window.innerHeight;
 
- const osc = audioCtx.createOscillator();
- osc.type = 'sawtooth';
- osc.frequency.setValueAtTime(40, audioCtx.currentTime); // Deep rumbling bass
+const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*";
+const matrixChars = letters.split("");
+const fontSize = 16;
+const columns = mCanvas.width / fontSize;
+const drops = [];
+for(let x = 0; x < columns; x++) drops[x] = 1;
 
- const osc2 = audioCtx.createOscillator();
- osc2.type = 'square';
- osc2.frequency.setValueAtTime(800, audioCtx.currentTime);
- osc2.frequency.linearRampToValueAtTime(300, audioCtx.currentTime + 1.5); // Dropping siren pitch
-
- const gain = audioCtx.createGain();
- gain.gain.setValueAtTime(1.5, audioCtx.currentTime);
- gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 2.5); 
-
- osc.connect(gain);
- osc2.connect(gain);
- gain.connect(audioCtx.destination);
-
- osc.start();
- osc2.start();
- osc.stop(audioCtx.currentTime + 2.5);
- osc2.stop(audioCtx.currentTime + 2.5);
+function drawMatrix() {
+ if (!matrixRainEnabled) return;
+ mCtx.fillStyle = "rgba(0, 0, 0, 0.05)";
+ mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
+ mCtx.fillStyle = "#0F0";
+ mCtx.font = fontSize + "px monospace";
+ for(let i = 0; i < drops.length; i++) {
+  const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+  mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+  if(drops[i] * fontSize > mCanvas.height && Math.random() > 0.975) drops[i] = 0;
+  drops[i]++;
+ }
+ requestAnimationFrame(drawMatrix);
 }
+
+window.addEventListener('resize', () => {
+ mCanvas.width = window.innerWidth;
+ mCanvas.height = window.innerHeight;
+});
 
 // ==========================================================================
 // 3. SHAKE FUNCTION (Safe Toggle)
@@ -987,6 +1020,7 @@ window.onload = () => {
  if(document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 3.5;
  if(document.getElementById('modGodMode')) document.getElementById('modGodMode').checked = false;
  if(document.getElementById('modRunnerBot')) document.getElementById('modRunnerBot').checked = false;
+ if(document.getElementById('modDiscoRunner')) document.getElementById('modDiscoRunner').checked = false;
   
  if(document.getElementById('modTetrisSpeed')) document.getElementById('modTetrisSpeed').value = 5;
  if(document.getElementById('modTetrisGodMode')) document.getElementById('modTetrisGodMode').checked = false;
@@ -998,11 +1032,10 @@ window.onload = () => {
   
  if(document.getElementById('modAimbot')) document.getElementById('modAimbot').checked = false;
  if(document.getElementById('modTargetFreeze')) document.getElementById('modTargetFreeze').checked = false;
+ if(document.getElementById('modTargetSize')) { document.getElementById('modTargetSize').value = 30; document.getElementById('targetSizeVal').innerText = 30; }
   
- if(document.getElementById('modShakeToggle')) {
-  document.getElementById('modShakeToggle').checked = true;
-  shakeEnabled = true;
- }
+ if(document.getElementById('modShakeToggle')) { document.getElementById('modShakeToggle').checked = true; shakeEnabled = true; }
+ if(document.getElementById('modMatrixRain')) document.getElementById('modMatrixRain').checked = false;
   
  if (ctx) runnerAnimId = requestAnimationFrame(updateRunner);
 };
@@ -1161,68 +1194,43 @@ window.switchGame = function(mode) {
 // ==========================================================================
 // 8. MOD MENU LINKAGE
 // ==========================================================================
-document.getElementById('modGravity')?.addEventListener('input', (e) => { 
- currentGravity = parseFloat(e.target.value); 
- document.getElementById('gravVal').innerText = currentGravity; 
-});
-document.getElementById('modJump')?.addEventListener('input', (e) => { 
- currentJumpPower = parseInt(e.target.value); 
- document.getElementById('jumpVal').innerText = currentJumpPower; 
-});
-document.getElementById('modSpeed')?.addEventListener('input', (e) => { 
- currentBaseSpeed = parseFloat(e.target.value); 
- document.getElementById('speedVal').innerText = currentBaseSpeed; 
-});
-document.getElementById('modGodMode')?.addEventListener('change', (e) => { 
- runnerGodMode = e.target.checked; 
-});
-document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { 
- runnerAutoBot = e.target.checked; 
+// Global
+document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { shakeEnabled = e.target.checked; });
+document.getElementById('modMatrixRain')?.addEventListener('change', (e) => { 
+ matrixRainEnabled = e.target.checked; 
+ if(matrixRainEnabled) {
+  document.getElementById('matrixCanvas').style.display = 'block';
+  requestAnimationFrame(drawMatrix);
+ } else {
+  document.getElementById('matrixCanvas').style.display = 'none';
+ }
 });
 
-document.getElementById('modShakeToggle')?.addEventListener('change', (e) => { 
- shakeEnabled = e.target.checked;
-});
-
-document.getElementById('modAimbot')?.addEventListener('change', (e) => { 
- aimbotEnabled = e.target.checked; 
-});
-document.getElementById('modTargetFreeze')?.addEventListener('change', (e) => { 
- targetFreeze = e.target.checked; 
+// Runner
+document.getElementById('modGravity')?.addEventListener('input', (e) => { currentGravity = parseFloat(e.target.value); document.getElementById('gravVal').innerText = currentGravity; });
+document.getElementById('modJump')?.addEventListener('input', (e) => { currentJumpPower = parseInt(e.target.value); document.getElementById('jumpVal').innerText = currentJumpPower; });
+document.getElementById('modSpeed')?.addEventListener('input', (e) => { currentBaseSpeed = parseFloat(e.target.value); document.getElementById('speedVal').innerText = currentBaseSpeed; });
+document.getElementById('modGodMode')?.addEventListener('change', (e) => { runnerGodMode = e.target.checked; });
+document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { runnerAutoBot = e.target.checked; });
+document.getElementById('modDiscoRunner')?.addEventListener('change', (e) => { runnerDiscoActive = e.target.checked; });
+document.getElementById('modMoonGrav')?.addEventListener('click', () => { 
+ document.getElementById('modGravity').value = 0.2; currentGravity = 0.2; document.getElementById('gravVal').innerText = 0.2; 
+ document.getElementById('modJump').value = 7; currentJumpPower = 7; document.getElementById('jumpVal').innerText = 7;
 });
 
 // TETRIS EVENT LISTENERS
-document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { 
- tetrisSpeedMod = parseInt(e.target.value); 
- document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; 
-});
-document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { 
- tetrisGodMode = e.target.checked; 
-});
-document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => { 
- tetrisRainbow = e.target.checked; 
-});
-document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { 
- tetrisGhost = e.target.checked; 
-});
-document.getElementById('modTetrisMult')?.addEventListener('input', (e) => { 
- tetrisScoreMult = parseInt(e.target.value); 
- document.getElementById('tetrisMultVal').innerText = tetrisScoreMult; 
-});
-document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => { 
- tetrisSlow = e.target.checked; 
-});
-document.getElementById('modTetrisLock')?.addEventListener('change', (e) => { 
- tetrisLock = e.target.checked; 
-});
+document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { tetrisSpeedMod = parseInt(e.target.value); document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; });
+document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { tetrisGodMode = e.target.checked; });
+document.getElementById('modTetrisRainbow')?.addEventListener('change', (e) => { tetrisRainbow = e.target.checked; });
+document.getElementById('modTetrisGhost')?.addEventListener('change', (e) => { tetrisGhost = e.target.checked; });
+document.getElementById('modTetrisMult')?.addEventListener('input', (e) => { tetrisScoreMult = parseInt(e.target.value); document.getElementById('tetrisMultVal').innerText = tetrisScoreMult; });
+document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => { tetrisSlow = e.target.checked; });
+document.getElementById('modTetrisLock')?.addEventListener('change', (e) => { tetrisLock = e.target.checked; });
 document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => { 
  if (!tetrisActive) return; 
  let v = parseInt(document.getElementById('modTetrisScoreSet').value) || 0; 
  tetrisScore = v; 
- if (v > tetrisHighScore) { 
-  tetrisHighScore = v; 
-  try { localStorage.setItem('tetrisHighScore', v); } catch(e){} 
- } 
+ if (v > tetrisHighScore) { tetrisHighScore = v; try { localStorage.setItem('tetrisHighScore', v); } catch(e){} } 
 });
 document.getElementById('modTetrisClearBtn')?.addEventListener('click', () => { 
  if (!tetrisActive || tetrisGameOver) return; 
@@ -1235,16 +1243,22 @@ document.getElementById('modTetrisLevelUpBtn')?.addEventListener('click', () => 
  tetrisScore += 500 * tetrisScoreMult; 
  tetrisFloaters.push({ x: 200, y: 180, alpha: 1.5, text: 'LVL +5!' }); 
 });
+document.getElementById('modTetrisAddJunkBtn')?.addEventListener('click', () => { 
+ if (!tetrisActive || tetrisGameOver) return; 
+ tetrisGrid.shift(); 
+ let junkRow = [];
+ for(let i=0; i<10; i++) junkRow.push(Math.random() > 0.3 ? Math.floor(Math.random() * 7) + 1 : 0);
+ tetrisGrid.push(junkRow);
+ tetrisFloaters.push({ x: 200, y: 350, alpha: 1.5, text: 'JUNK ROW!' }); 
+});
 
-// Difficulty updating (Syncs both menus)
-document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { 
- document.getElementById('modDifficulty').value = e.target.value; 
- maxLives = parseInt(e.target.value); 
-});
-document.getElementById('modDifficulty')?.addEventListener('change', (e) => { 
- document.getElementById('publicDiffSelect').value = e.target.value; 
- maxLives = parseInt(e.target.value); 
-});
+// Target Mods
+document.getElementById('modDifficulty')?.addEventListener('change', (e) => { document.getElementById('publicDiffSelect').value = e.target.value; maxLives = parseInt(e.target.value); });
+document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => { document.getElementById('modDifficulty').value = e.target.value; maxLives = parseInt(e.target.value); });
+document.getElementById('modTargetSize')?.addEventListener('input', (e) => { targetSize = parseInt(e.target.value); document.getElementById('targetSizeVal').innerText = targetSize; });
+document.getElementById('modAimbot')?.addEventListener('change', (e) => { aimbotEnabled = e.target.checked; });
+document.getElementById('modTargetFreeze')?.addEventListener('change', (e) => { targetFreeze = e.target.checked; });
+
 
 document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
  try { 
@@ -1325,12 +1339,12 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
  }
 });
 
-// MASSIVE NUKE MODE UPGRADE (TERRIFYING MODE)
+// MASSIVE NUKE MODE UPGRADE (BROKEN SYSTEM MODE)
 // ==========================================================================
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
  nukeModeActive = true; 
   
- // Jump Scare Flash & Glitch
+ // Glitch state without constant violent bouncing
  document.body.classList.add("nuke-terrifying");
   
  // Change background to a dark red warning void
@@ -1375,10 +1389,9 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
  doomText.innerHTML = "<h1 style='font-size:12vw; margin:0;'>&#9760;</h1><br>DATA BREACH DETECTED<br>PURGING HARD DRIVES...<br>IP LOGGED.";
  document.body.appendChild(doomText);
 
- playTerrifyingNukeSound();
-
+ // Audio crunch
+ playExplosionSound();
  triggerShake();
- setInterval(triggerShake, 200); // Constant violent shaking
 });
 
 document.addEventListener('click', (e) => {
@@ -1387,34 +1400,34 @@ document.addEventListener('click', (e) => {
   
  playExplosionSound(); 
   
- // Massive Deletion Particle Effect
- for (let i = 0; i < 50; i++) {
-  const pixel = document.createElement('div');
-  pixel.style.position = 'fixed'; 
-  pixel.style.left = e.clientX + 'px'; 
-  pixel.style.top = e.clientY + 'px';
-  pixel.style.width = (Math.random() * 8 + 4) + 'px'; 
-  pixel.style.height = pixel.style.width;
-  pixel.style.background = `hsl(${Math.random() * 60 + 0}, 100%, 50%)`; // Fire colors
-  pixel.style.pointerEvents = 'none'; 
-  pixel.style.zIndex = 10001;
+ // "Digital Shredding" Particle Effect
+ for (let i = 0; i < 20; i++) {
+  const glitch = document.createElement('div');
+  glitch.style.position = 'fixed'; 
+  glitch.style.left = (e.clientX - 50 + Math.random() * 100) + 'px'; 
+  glitch.style.top = (e.clientY - 50 + Math.random() * 100) + 'px';
+  glitch.style.width = (Math.random() * 100 + 20) + 'px'; 
+  glitch.style.height = (Math.random() * 10 + 2) + 'px'; 
+  glitch.style.background = Math.random() > 0.5 ? '#ff0000' : '#000000';
+  glitch.style.pointerEvents = 'none'; 
+  glitch.style.zIndex = 10001;
+  glitch.style.mixBlendMode = 'difference';
    
-  const vx = (Math.random() - 0.5) * 600;
-  const vy = (Math.random() - 0.5) * 600;
-  pixel.animate([
-   { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 }, 
-   { transform: `translate(${vx}px, ${vy}px) scale(0) rotate(${Math.random()*360}deg)`, opacity: 0 }
-  ], { duration: 1200, easing: 'ease-out' });
+  glitch.animate([
+   { transform: `scaleX(1) translate(0, 0)`, opacity: 1 }, 
+   { transform: `scaleX(3) translate(${Math.random() > 0.5 ? 100 : -100}px, 0)`, opacity: 0 }
+  ], { duration: 400, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' });
    
-  document.body.appendChild(pixel); 
-  setTimeout(() => pixel.remove(), 1200);
+  document.body.appendChild(glitch); 
+  setTimeout(() => glitch.remove(), 400);
  }
   
- // Physically delete the element you clicked
- e.target.style.transition = 'all 0.1s'; 
- e.target.style.transform = 'scale(0)'; 
+ // Violently distort and delete the element clicked
+ e.target.style.transition = 'all 0.3s cubic-bezier(0.25, 1, 0.5, 1)'; 
+ e.target.style.transform = 'skewX(45deg) scaleY(0)'; 
+ e.target.style.filter = 'invert(1) drop-shadow(0 0 10px red)';
  e.target.style.opacity = '0';
- setTimeout(() => { if (e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 100);
+ setTimeout(() => { if (e.target.parentNode) e.target.parentNode.removeChild(e.target); }, 300);
 });
 
 // ==========================================================================
@@ -1501,27 +1514,39 @@ window.addEventListener("keyup", e => {
 });
 
 // Canvas Tap-to-Start & Swipe Listeners
+let rStartY = 0;
+let rIsSwipe = false;
+
 if (canvas) {
  canvas.addEventListener("touchstart", (e) => { 
   e.preventDefault(); 
-  // Mobile Top/Bottom Canvas logic
-  let rect = canvas.getBoundingClientRect();
-  let touchY = e.touches[0].clientY - rect.top;
-  
-  if (touchY > rect.height / 2) {
-   // Tapped bottom half
+  rStartY = e.touches[0].clientY;
+  rIsSwipe = false;
+ }, {passive: false});
+
+ canvas.addEventListener("touchmove", (e) => {
+  e.preventDefault();
+  let dy = e.touches[0].clientY - rStartY;
+  if (dy > 30) {
    isDucking = true;
-   if (isJumping) velocity += 5;
-  } else {
-   // Tapped top half
-   jump(); 
+   rIsSwipe = true;
+   if (isJumping) velocity += 5; // Fast fall on mobile swipe
   }
  }, {passive: false});
 
  canvas.addEventListener("touchend", (e) => { 
   e.preventDefault(); 
   isDucking = false;
+  if (!rIsSwipe) {
+   jump(); // Normal tap -> Jump
+  }
  }, {passive: false});
+ 
+ // For desktop clicks
+ canvas.addEventListener("mousedown", (e) => { 
+  e.preventDefault();
+  jump();
+ });
 }
 
 if (targetCanvas) {
@@ -1556,7 +1581,7 @@ if (targetCanvas) {
    let hitGolden = false;
 
    // Check Golden Target First
-   if (goldenActive && clickX >= goldenX - 25 && clickX <= goldenX + targetSize + 25 && clickY >= goldenY - 25 && clickY <= goldenY + targetSize + 25) {
+   if (goldenActive && clickX >= goldenX - (targetSize/2) && clickX <= goldenX + targetSize + (targetSize/2) && clickY >= goldenY - (targetSize/2) && clickY <= goldenY + targetSize + (targetSize/2)) {
     hitGolden = true;
     targetScore += 2; // Secret Multiplier
     targetFloatingScores.push({x: clickX + 15, y: clickY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
@@ -1564,7 +1589,7 @@ if (targetCanvas) {
     goldenActive = false; 
    }
    // Check Normal Target Second
-   else if (duckActive && clickX >= duckX - 25 && clickX <= duckX + targetSize + 25 && clickY >= duckY - 25 && clickY <= duckY + targetSize + 25) {
+   else if (duckActive && clickX >= duckX - (targetSize/2) && clickX <= duckX + targetSize + (targetSize/2) && clickY >= duckY - (targetSize/2) && clickY <= duckY + targetSize + (targetSize/2)) {
     hitNormal = true;
     targetScore++; 
     targetFloatingScores.push({x: clickX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
@@ -1637,12 +1662,14 @@ if (tetrisCanvas) {
  });
 }
 
+// Mobile specific Runner controls
 document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) => { 
  e.preventDefault(); 
  // Just scroll to canvas and jump
  document.getElementById("jumpGame").scrollIntoView({behavior: "smooth", block: "center"});
  jump(); 
 });
+
 
 // ==========================================================================
 // 10. RUNNER GAME ENGINE (DINO CLONE WITH DUCKING & PIXEL ART)
@@ -1674,8 +1701,8 @@ function jump() {
 }
 
 function drawDino(ctx, x, y, frame) {
- ctx.fillStyle = neonColor; 
- if (runnerGodMode) ctx.fillStyle = "#fff";
+ ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 10) % 360}, 100%, 50%)` : neonColor;
+ if (runnerGodMode && !runnerDiscoActive) ctx.fillStyle = "#fff";
   
  if (isDucking && !isJumping) {
   // Ducking Sprite (Wider, Shorter)
@@ -1845,11 +1872,11 @@ function updateRunner() {
     ctx.fillRect(obs.x + 8, 0, 4, flyY); 
     
     // Draw sci-fi drone
-    ctx.fillStyle = "#ff0055"; // Hot pink/red drone
+    ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 20) % 360}, 100%, 50%)` : "#ff0055";
     ctx.fillRect(obs.x, flyY, 20, 10); // Main body
     ctx.fillStyle = "#fff";
     ctx.fillRect(obs.x + 4, flyY + 2, 4, 4); // Glowing eye
-    ctx.fillStyle = "#ff0055";
+    ctx.fillStyle = runnerDiscoActive ? "#fff" : "#ff0055";
     
     if (gameFrame % 20 < 10) { // Wings UP
      ctx.fillRect(obs.x + 8, flyY - 6, 4, 6);
@@ -1857,7 +1884,7 @@ function updateRunner() {
      ctx.fillRect(obs.x + 8, flyY + 10, 4, 6);
     }
    } else {
-    ctx.fillStyle = "#00ff00"; // Neon Green Cacti
+    ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 15 + obs.x) % 360}, 100%, 50%)` : "#00ff00"; // Cacti
     if (obs.type === 'tall') {
      ctx.fillRect(obs.x, 130, 12, 40); // Main stem
      ctx.fillRect(obs.x - 6, 140, 6, 15); // Left arm
