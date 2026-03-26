@@ -517,7 +517,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
   <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
  </div>
 
- <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump</p>
+ <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> to Jump, <b>Down Arrow/S</b> to Duck.</p>
  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
  <div id="publicDifficulty" style="display:none; margin-top: 15px;">
@@ -531,6 +531,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
 
  <div class="controls-wrapper" id="runnerControls">
   <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
+  <button id="mobileDuckBtn" class="jump-btn" style="color: cyan; border-color: cyan;">DUCK</button>
  </div>
 </section>
 
@@ -615,7 +616,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
    <input type="range" id="modSpeed" min="1" max="200" step="0.5" value="3.5">
   </div>
   <div class="mod-row">
-   <label>Auto-Jump Bot</label>
+   <label>Auto-Jump/Duck Bot</label>
    <label class="toggle-switch">
      <input type="checkbox" id="modRunnerBot">
      <span class="toggle-slider"></span>
@@ -785,6 +786,7 @@ let currentBaseSpeed = 3.5;
 let runnerGodMode = false;
 let runnerAutoBot = false;
 let isJumping = false;
+let isDucking = false;
 let velocity = 0;
 let playerY = 150;
 let score = 0;
@@ -1404,9 +1406,16 @@ window.addEventListener("keydown", function(e) {
    targetState = 'START';
   }
  } else {
+  // CYBER RUNNER CONTROLS
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
    jump(); 
-  } 
+  }
+  if (e.code === "ArrowDown" || e.code === "KeyS") {
+   isDucking = true;
+   if (isJumping) {
+    velocity += 5; // Fast-drop mechanics like Chrome Dino
+   }
+  }
  }
 }, { passive: false });
 
@@ -1417,7 +1426,10 @@ window.addEventListener("keyup", e => {
  if (!targetGameActive && !tetrisActive) {
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
    if (velocity < -4) velocity = -4; 
-  } 
+  }
+  if (e.code === "ArrowDown" || e.code === "KeyS") {
+   isDucking = false;
+  }
  }
 });
 
@@ -1547,9 +1559,24 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) =>
  e.preventDefault(); 
  jump(); 
 });
+document.getElementById("mobileDuckBtn")?.addEventListener("pointerdown", (e) => { 
+ e.preventDefault(); 
+ isDucking = true;
+ if (isJumping) {
+  velocity += 5; // Fast-drop
+ }
+});
+document.getElementById("mobileDuckBtn")?.addEventListener("pointerup", (e) => { 
+ e.preventDefault(); 
+ isDucking = false;
+});
+document.getElementById("mobileDuckBtn")?.addEventListener("pointerout", (e) => { 
+ e.preventDefault(); 
+ isDucking = false;
+});
 
 // ==========================================================================
-// 10. RUNNER GAME ENGINE (PURE JUMPING)
+// 10. RUNNER GAME ENGINE (DINO CLONE WITH DUCKING & PIXEL ART)
 // ==========================================================================
 function jump() {
  if (targetGameActive || tetrisActive) return; 
@@ -1568,9 +1595,10 @@ function jump() {
   gameOver = false; 
   velocity = 0; 
   isJumping = false; 
+  isDucking = false;
  }
   
- if (!isJumping && !gameOver) { 
+ if (!isJumping && !gameOver && !isDucking) { 
   isJumping = true; 
   velocity = -currentJumpPower; 
  }
@@ -1580,18 +1608,38 @@ function drawDino(ctx, x, y, frame) {
  ctx.fillStyle = neonColor; 
  if (runnerGodMode) ctx.fillStyle = "#fff";
   
- ctx.fillRect(x + 6, y + 4, 12, 16); 
- ctx.fillRect(x + 14, y, 12, 10); 
- ctx.fillRect(x, y + 10, 6, 8); 
- ctx.fillRect(x + 18, y + 10, 4, 4); 
+ if (isDucking && !isJumping) {
+  // Ducking Sprite (Wider, Shorter)
+  ctx.fillRect(x, y + 10, 30, 12); // Main ducking body
+  ctx.fillRect(x + 30, y + 10, 12, 8); // Head lowered
+  ctx.fillRect(x + 4, y + 4, 8, 6); // Tail raised up
   
- if (frame % 10 < 5 && !isJumping) {
-  ctx.fillRect(x + 8, y + 20, 4, 6);
- } else if (!isJumping) {
-  ctx.fillRect(x + 14, y + 20, 4, 6);
- } else { 
-  ctx.fillRect(x + 8, y + 20, 4, 4); 
-  ctx.fillRect(x + 14, y + 20, 4, 4); 
+  // Animated legs for ducking
+  if (frame % 10 < 5) {
+   ctx.fillRect(x + 6, y + 22, 4, 4);
+   ctx.fillRect(x + 20, y + 22, 4, 4);
+  } else {
+   ctx.fillRect(x + 10, y + 22, 4, 4);
+   ctx.fillRect(x + 24, y + 22, 4, 4);
+  }
+ } else {
+  // Standing/Jumping Sprite (Pixel T-Rex)
+  ctx.fillRect(x + 12, y - 4, 12, 12); // Head
+  ctx.fillRect(x + 12, y + 2, 16, 4);  // Snout
+  ctx.fillRect(x + 4, y + 6, 16, 14);  // Body
+  ctx.fillRect(x, y + 2, 4, 10);       // Tail
+  ctx.fillRect(x + 18, y + 10, 6, 4);  // Small Arm
+   
+  // Animated legs for standing
+  if (frame % 10 < 5 && !isJumping) {
+   ctx.fillRect(x + 6, y + 20, 4, 6);
+  } else if (!isJumping) {
+   ctx.fillRect(x + 14, y + 20, 4, 6);
+  } else { 
+   // Feet tucked in during jump
+   ctx.fillRect(x + 6, y + 20, 4, 4); 
+   ctx.fillRect(x + 14, y + 20, 4, 4); 
+  }
  }
 }
 
@@ -1626,22 +1674,34 @@ function updateRunner() {
 
   let lastObs = runnerObstacles[runnerObstacles.length - 1];
   if (!lastObs || lastObs.x < (400 - minGap)) {
-   // Only spawn cactuses 
-   let oType = Math.random() < 0.33 ? 'tall' : Math.random() < 0.5 ? 'wide' : 'normal';     
+   // Randomly spawn different cacti or a flying bird
+   let r = Math.random();
+   let oType = 'normal';
+   if (score > 10 && r < 0.25) oType = 'flying'; // Introduce birds after 10 score
+   else if (r < 0.5) oType = 'tall';
+   else if (r < 0.75) oType = 'wide';
+     
    runnerObstacles.push({x: 400, passed: false, type: oType});
   }
    
-  // Auto-Bot Logic
+  // Upgraded Auto-Bot Logic (With AI Ducking)
   if (runnerAutoBot && runnerObstacles.length > 0) {
    let nextObs = runnerObstacles[0];
    if (nextObs.passed && runnerObstacles.length > 1) {
     nextObs = runnerObstacles[1];
    }
-   if (nextObs.x < 70 && nextObs.x > 30) {
-    if (!isJumping) {
-     isJumping = true;
-     velocity = -currentJumpPower;
+   if (nextObs.x < 110 && nextObs.x > 20) {
+    if (nextObs.type === 'flying') {
+     isDucking = true; // Bot recognizes flying object and ducks
+    } else {
+     if (!isJumping) {
+      isJumping = true;
+      velocity = -currentJumpPower;
+      isDucking = false; // Un-duck to jump over cacti
+     }
     }
+   } else if (runnerAutoBot) {
+    isDucking = false; // Release duck after passing
    }
   }
    
@@ -1654,9 +1714,27 @@ function updateRunner() {
     score++; 
    }
 
-   let px = 20, pw = 25, py = playerY - 10, ph = 30; 
-   let ox = obs.x, oy = obs.type==='tall'?135:152, ow = obs.type==='wide'?24:15, oh = obs.type==='tall'?35:obs.type==='wide'?18:20; 
+   // Player Hitbox Calculation
+   let px = 20, pw = 24, py = playerY - 4, ph = 26; 
+   if (isDucking && !isJumping) {
+    pw = 42; // Wider hitbox when ducking
+    py = playerY + 10; // Lower hitbox top
+    ph = 14; // Shorter hitbox height
+   }
+
+   // Obstacle Hitbox Calculation
+   let ox = obs.x, oy, ow, oh;
+   if (obs.type === 'tall') {
+    oy = 130; ow = 12; oh = 40;
+   } else if (obs.type === 'wide') {
+    oy = 145; ow = 36; oh = 25;
+   } else if (obs.type === 'flying') {
+    oy = 130; ow = 20; oh = 15; // Positioned perfectly to hit a standing head, but miss a ducking head
+   } else {
+    oy = 145; ow = 16; oh = 25; // Normal
+   }
     
+   // Collision Logic
    if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode) {
     if (!gameOver) { 
      gameOver = true; 
@@ -1672,7 +1750,7 @@ function updateRunner() {
    }
   }
    
-  runnerObstacles = runnerObstacles.filter(o => o.x + 30 > -10);
+  runnerObstacles = runnerObstacles.filter(o => o.x + 40 > -10);
  }
 
  if (gameOver) { 
@@ -1689,11 +1767,39 @@ function updateRunner() {
  }
 
  if (gameStarted && !gameOver) { 
+  // Draw the specific pixel-art obstacle shapes
   runnerObstacles.forEach(obs => {
-   ctx.fillStyle = "#00ff00"; 
-   ctx.fillRect(obs.x, 150, 10, 20); 
-   ctx.fillRect(obs.x - 5, 160, 5, 10); 
-   ctx.fillRect(obs.x + 10, 155, 5, 10); 
+   if (obs.type === 'flying') {
+    ctx.fillStyle = "#ff0055"; // Red/Pink Birds
+    let flyY = 130;
+    if (gameFrame % 20 < 10) { // Wings UP
+     ctx.fillRect(obs.x+4, flyY+6, 12, 6); // body
+     ctx.fillRect(obs.x+8, flyY, 8, 6);    // wing up
+     ctx.fillRect(obs.x, flyY+6, 4, 4);    // head
+    } else { // Wings DOWN
+     ctx.fillRect(obs.x+4, flyY+6, 12, 6); // body
+     ctx.fillRect(obs.x+8, flyY+12, 8, 6); // wing down
+     ctx.fillRect(obs.x, flyY+6, 4, 4);    // head
+    }
+   } else {
+    ctx.fillStyle = "#00ff00"; // Neon Green Cacti
+    if (obs.type === 'tall') {
+     ctx.fillRect(obs.x, 130, 12, 40); // Main stem
+     ctx.fillRect(obs.x - 6, 140, 6, 15); // Left arm
+     ctx.fillRect(obs.x - 6, 155, 6, 4);  
+     ctx.fillRect(obs.x + 12, 135, 6, 15); // Right arm
+     ctx.fillRect(obs.x + 12, 150, 6, 4); 
+    } else if (obs.type === 'wide') {
+     // Clump of 3 small cacti
+     ctx.fillRect(obs.x, 145, 10, 25);
+     ctx.fillRect(obs.x + 12, 150, 10, 20);
+     ctx.fillRect(obs.x + 24, 140, 10, 30);
+    } else { // Normal
+     ctx.fillRect(obs.x, 145, 16, 25); 
+     ctx.fillRect(obs.x - 4, 150, 4, 10); 
+     ctx.fillRect(obs.x + 16, 148, 4, 10); 
+    }
+   }
   }); 
  }
 
