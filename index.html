@@ -229,7 +229,6 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
 
 <canvas id="matrixCanvas"></canvas>
 
-<!-- Container for the kawaii falling emojis -->
 <div id="kawaiiOv" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9998; overflow:hidden;"></div>
 
 <header id="mainHeader" tabindex="0">
@@ -331,7 +330,6 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
   <div id="terminalText"></div>
 </div>
 
-<!-- MOD MENU -->
 <div id="modMenu" style="display:none;">
   <h3 id="modMenuHeader">SYSTEM OVERRIDE</h3>
 
@@ -342,7 +340,6 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
     <button class="mod-tab-btn" onclick="openModTab(event, 'tab-target')">Target</button>
   </div>
 
-  <!-- TAB: SYSTEM -->
   <div id="tab-system" class="mod-tab-content active">
     <button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
     <button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
@@ -378,7 +375,6 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
     <button id="nukeToggle" class="nuke-btn">&#9760; INITIATE BREACH &#9760;</button>  
   </div>
 
-  <!-- TAB: RUNNER -->
   <div id="tab-runner" class="mod-tab-content">
     <div class="mod-row">
       <label>Gravity (<span id="gravVal">0.85</span>)</label>
@@ -425,7 +421,6 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
     </div>
   </div>
 
-  <!-- TAB: TETRIS -->
   <div id="tab-tetris" class="mod-tab-content">
     <div class="mod-row">
       <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
@@ -483,7 +478,6 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
     </div>
   </div>
 
-  <!-- TAB: TARGET -->
   <div id="tab-target" class="mod-tab-content">
     <div class="mod-row">
       <label>Difficulty</label>
@@ -1905,6 +1899,240 @@ function updateTetris(currentTime) {
     nm.forEach((row,y)=>{ row.forEach((val,x)=>{ if(val!==0){ let nc = tetrisRainbow ? `hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)` : T_COLORS[val]; ctxTetris.fillStyle = nc; ctxTetris.fillRect(ox+x*bs,oy+y*bs,bs-1,bs-1); ctxTetris.strokeStyle = '#fff'; ctxTetris.lineWidth = 0.5; ctxTetris.strokeRect(ox+x*bs,oy+y*bs,bs-1,bs-1); } }); });
   }
   ctxTetris.lineWidth = 1; 
+}
+
+// ==========================================================================
+// RUNNER GAME FUNCTIONS
+// ==========================================================================
+function jump() {
+  if (!isJumping) {
+    isJumping = true;
+    velocity = -currentJumpPower;
+    
+    if (!gameStarted || gameOver) {
+      gameStarted = true;
+      gameOver = false;
+      score = 0;
+      runnerObstacles = [];
+      runnerParticles = [];
+      playerY = 150;
+    }
+  }
+}
+
+function drawDino(ctx, x, y, frame) {
+  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
+  
+  // Draw main body (square)
+  ctx.fillRect(x, y, 20, 20);
+  
+  // Draw eye
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(x + 12, y + 4, 4, 4);
+  
+  // Draw legs
+  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
+  if (isJumping) {
+    ctx.fillRect(x + 2, y + 20, 6, 6);
+    ctx.fillRect(x + 12, y + 20, 6, 6);
+  } else {
+    // Alternate legs for running animation
+    if (Math.floor(frame / 5) % 2 === 0) {
+      ctx.fillRect(x + 2, y + 20, 6, 6);
+    } else {
+      ctx.fillRect(x + 12, y + 20, 6, 6);
+    }
+  }
+}
+
+// ==========================================================================
+// TARGET SIMULATOR FUNCTIONS
+// ==========================================================================
+function spawnDuck() {
+  duckX = Math.random() * (400 - targetSize);
+  duckY = Math.random() * (200 - targetSize);
+  
+  let speed = 2 + (targetSpeedMult * 0.5);
+  duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
+  duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
+  
+  duckActive = true;
+  duckTimer = 60 + Math.random() * 60; // Frames before it vanishes
+  
+  // Pick random color
+  currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
+
+  // Random chance to spawn decoy (red target that takes away points)
+  if (targetDecoyEnabled && Math.random() < 0.3) {
+    decoyX = Math.random() * (400 - targetSize);
+    decoyY = Math.random() * (200 - targetSize);
+    decoyVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
+    decoyVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
+    decoyActive = true;
+    decoyTimer = 80;
+  } 
+  // Random chance to spawn golden target (extra points)
+  else if (Math.random() < 0.1) {
+    goldenX = Math.random() * (400 - targetSize);
+    goldenY = Math.random() * (200 - targetSize);
+    goldenVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
+    goldenVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
+    goldenActive = true;
+    goldenTimer = 50;
+  }
+}
+
+// ==========================================================================
+// TETRIS ENGINE FUNCTIONS
+// ==========================================================================
+function initTetris() {
+  // Create an empty 20x10 grid
+  tetrisGrid = Array.from({length: 20}, () => Array(10).fill(0));
+  tetrisScore = 0;
+  tetrisLines = 0;
+  tetrisLevel = 1;
+  tetrisGameOver = false;
+  tetrisFloaters = [];
+  nextPiece = null;
+  
+  let speedInput = document.getElementById('modTetrisSpeed');
+  if (speedInput) tetrisSpeedMod = parseInt(speedInput.value);
+  
+  tReset(); // Load first piece
+  tReset(); // Load next piece into queue
+}
+
+function tCollide(board, player) {
+  const m = player.matrix;
+  const o = player.pos;
+  
+  for (let y = 0; y < m.length; ++y) {
+    for (let x = 0; x < m[y].length; ++x) {
+      if (m[y][x] !== 0 &&
+         (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function tMerge() {
+  currentPiece.matrix.forEach((row, y) => {
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value;
+      }
+    });
+  });
+}
+
+function tReset() {
+  const pieces = '1234567'; // Indexes for T_SHAPES
+  const type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+  
+  if (!nextPiece) {
+    nextPiece = { matrix: T_SHAPES[type], pos: {x: 0, y: 0} };
+  }
+  
+  currentPiece = nextPiece;
+  currentPiece.pos.y = 0;
+  currentPiece.pos.x = Math.floor((10 / 2) - (currentPiece.matrix[0].length / 2));
+  
+  const nextType = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+  nextPiece = { matrix: T_SHAPES[nextType], pos: {x: 0, y: 0} };
+
+  if (tCollide(tetrisGrid, currentPiece)) {
+    if (tetrisGodMode) {
+        tetrisGrid.forEach(row => row.fill(0)); // Clear board to prevent game over
+    } else {
+        tetrisGameOver = true;
+        tetrisDeathTime = Date.now();
+        tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)];
+        triggerShake();
+    }
+  }
+}
+
+function tDrop() {
+  currentPiece.pos.y++;
+  if (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.y--; // Move back up one space
+    tMerge();
+    tReset();
+    tSweep();
+  }
+  tetrisDropCounter = 0;
+}
+
+function tMove(dir) {
+  currentPiece.pos.x += dir;
+  if (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.x -= dir; // Cancel movement if hitting a wall
+  }
+}
+
+function tRotate() {
+  const pos = currentPiece.pos.x;
+  let offset = 1;
+  tRotateMatrix(currentPiece.matrix);
+  
+  // Wall kick logic (pushes piece away from wall if rotated into it)
+  while (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.x += offset;
+    offset = -(offset + (offset > 0 ? 1 : -1));
+    if (offset > currentPiece.matrix[0].length) {
+      tRotateMatrix(currentPiece.matrix, -1); // Rotate back if stuck
+      currentPiece.pos.x = pos;
+      return;
+    }
+  }
+}
+
+function tRotateMatrix(matrix, dir = 1) {
+  for (let y = 0; y < matrix.length; ++y) {
+    for (let x = 0; x < y; ++x) {
+      [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+    }
+  }
+  if (dir > 0) {
+    matrix.forEach(row => row.reverse());
+  } else {
+    matrix.reverse();
+  }
+}
+
+function tSweep() {
+  let rowCount = 1;
+  let linesCleared = 0;
+  
+  outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
+    for (let x = 0; x < tetrisGrid[y].length; ++x) {
+      if (tetrisGrid[y][x] === 0) {
+        continue outer; // Skip row if it has empty spaces
+      }
+    }
+    
+    // Remove solid row and add empty row at top
+    const row = tetrisGrid.splice(y, 1)[0].fill(0);
+    tetrisGrid.unshift(row);
+    ++y;
+    
+    tetrisScore += (rowCount * 10) * tetrisScoreMult;
+    rowCount *= 2;
+    linesCleared++;
+  }
+  
+  if (linesCleared > 0) {
+      tetrisLines += linesCleared;
+      tetrisLevel = Math.floor(tetrisLines / 10) + 1;
+      tetrisFloaters.push({x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!"});
+      
+      if (tetrisScore > tetrisHighScore) {
+          tetrisHighScore = tetrisScore;
+          try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){}
+      }
+  }
 }
 </script>
 </body>
