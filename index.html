@@ -2004,11 +2004,59 @@ function updateTetris() {
     if (limit < 5) limit = 5; 
     if (tetrisDropCounter > limit) tDrop();
 
-    ctxTetris.fillStyle = "cyan"; 
-    ctxTetris.font = "bold 14px 'Courier New', monospace"; 
-    // === NEXT PIECE PREVIEW PANEL ===     ctxTetris.fillStyle = 'rgba(0,0,0,0.7)';     ctxTetris.fillRect(310, 60, 80, 80);     ctxTetris.strokeStyle = 'cyan';     ctxTetris.lineWidth = 1.5;     ctxTetris.strokeRect(310, 60, 80, 80);     ctxTetris.fillStyle = 'cyan';     ctxTetris.font = 'bold 10px monospace';     ctxTetris.textAlign = 'center';     ctxTetris.fillText('NEXT', 350, 55);     ctxTetris.textAlign = 'left';     if (nextPiece) {         const nm = nextPiece.matrix;         const blockSize = 14;         const offX = 350 - (nm[0].length * blockSize) / 2;         const offY = 100 - (nm.length * blockSize) / 2;         nm.forEach((row, y) => {             row.forEach((val, x) => {                 if (val !== 0) {                     let nc = tetrisRainbow ? `hsl(${Math.floor(time + (x+y)*15)%360},100%,50%)` : T_COLORS[val];                     ctxTetris.fillStyle = nc;                     ctxTetris.fillRect(offX + x*blockSize, offY + y*blockSize, blockSize-1, blockSize-1);                     ctxTetris.strokeStyle = '#fff';                     ctxTetris.lineWidth = 0.5;                     ctxTetris.strokeRect(offX + x*blockSize, offY + y*blockSize, blockSize-1, blockSize-1);                 }             });         });     }     ctxTetris.lineWidth = 1;     // === END NEXT PIECE PREVIEW ===     ctxTetris.fillStyle = "cyan";     ctxTetris.font = "bold 14px 'Courier New', monospace";     ctxTetris.// === LEFT HUD: SCORE / HIGH / LEVEL / LINES === (function tHud(lx,ly,lw,lh,label,val,c){ctxTetris.fillStyle='rgba(0,0,0,0.8)';ctxTetris.fillRect(lx,ly,lw,lh);ctxTetris.strokeStyle=c;ctxTetris.lineWidth=1.5;ctxTetris.strokeRect(lx,ly,lw,lh);ctxTetris.fillStyle=c;ctxTetris.font='bold 8px monospace';ctxTetris.textAlign='center';ctxTetris.fillText(label,lx+lw/2,ly+11);ctxTetris.font='bold 12px monospace';ctxTetris.fillText(String(val),lx+lw/2,ly+26);ctxTetris.textAlign='left';ctxTetris.lineWidth=1;})(0,0,0,0,'',0,''); function tHud(lx,ly,lw,lh,label,val,c){ctxTetris.fillStyle='rgba(0,0,0,0.8)';ctxTetris.fillRect(lx,ly,lw,lh);ctxTetris.strokeStyle=c;ctxTetris.lineWidth=1.5;ctxTetris.strokeRect(lx,ly,lw,lh);ctxTetris.fillStyle=c;ctxTetris.font='bold 8px monospace';ctxTetris.textAlign='center';ctxTetris.fillText(label,lx+lw/2,ly+11);ctxTetris.font='bold 12px monospace';ctxTetris.fillText(String(val),lx+lw/2,ly+26);ctxTetris.textAlign='left';ctxTetris.lineWidth=1;} tHud(4,10,90,34,'SCORE',tetrisScore,'cyan'); tHud(4,50,90,34,'HIGH',tetrisHighScore,'#ff00ff'); tHud(4,90,43,34,'LVL',tetrisLevel,'#00ff88'); tHud(51,90,43,34,'LINES',tetrisLines,'#ffaa00'); // RIGHT HUD: NEXT PIECE === ctxTetris.fillStyle='rgba(0,0,0,0.8)'; ctxTetris.fillRect(307,10,88,88); ctxTetris.strokeStyle='cyan'; ctxTetris.lineWidth=1.5; ctxTetris.strokeRect(307,10,88,88); ctxTetris.fillStyle='cyan'; ctxTetris.font='bold 8px monospace'; ctxTetris.textAlign='center'; ctxTetris.fillText('NEXT',351,22); ctxTetris.textAlign='left'; ctxTetris.lineWidth=1; if(nextPiece){const nm=nextPiece.matrix;const bs=14;const ox=351-(nm[0].length*bs)/2;const oy=58-(nm.length*bs)/2;nm.forEach((row,y)=>{row.forEach((val,x)=>{if(val!==0){let nc=tetrisRainbow?`hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)`:T_COLORS[val];ctxTetris.fillStyle=nc;ctxTetris.fillRect(ox+x*bs,oy+y*bs,bs-1,bs-1);ctxTetris.strokeStyle='#fff';ctxTetris.lineWidth=0.5;ctxTetris.strokeRect(ox+x*bs,oy+y*bs,bs-1,bs-1);}});});} ctxTetris.lineWidth=1; //done; 
-    ctxTetris.// HUD handled above;
-    
+        // === LEFT HUD: SCORE / HIGH / LEVEL / LINES ===
+        function tHud(lx,ly,lw,lh,label,val,c){
+            ctxTetris.fillStyle='rgba(0,0,0,0.8)';
+            ctxTetris.fillRect(lx,ly,lw,lh);
+            ctxTetris.strokeStyle=c;
+            ctxTetris.lineWidth=1.5;
+            ctxTetris.strokeRect(lx,ly,lw,lh);
+            ctxTetris.fillStyle=c;
+            ctxTetris.font='bold 9px monospace';
+            ctxTetris.textAlign='center';
+            ctxTetris.fillText(label,lx+lw/2,ly+12);
+            ctxTetris.font='bold 13px monospace';
+            ctxTetris.fillText(String(val),lx+lw/2,ly+28);
+            ctxTetris.textAlign='left';
+            ctxTetris.lineWidth=1;
+        }
+        tHud(4, 10, 90, 34, 'SCORE', tetrisScore, 'cyan');
+        tHud(4, 50, 90, 34, 'HIGH',  tetrisHighScore, '#ff00ff');
+        tHud(4, 90, 43, 34, 'LVL',   tetrisLevel, '#00ff88');
+        tHud(51, 90, 43, 34, 'LINES', tetrisLines, '#ffaa00');
+
+        // === RIGHT HUD: NEXT PIECE ===
+        ctxTetris.fillStyle='rgba(0,0,0,0.8)';
+        ctxTetris.fillRect(307,10,88,88);
+        ctxTetris.strokeStyle='cyan';
+        ctxTetris.lineWidth=1.5;
+        ctxTetris.strokeRect(307,10,88,88);
+        ctxTetris.fillStyle='cyan';
+        ctxTetris.font='bold 9px monospace';
+        ctxTetris.textAlign='center';
+        ctxTetris.fillText('NEXT',351,23);
+        ctxTetris.textAlign='left';
+        ctxTetris.lineWidth=1;
+        if(nextPiece){
+            const nm=nextPiece.matrix;
+            const bs=14;
+            const ox=351-(nm[0].length*bs)/2;
+            const oy=58-(nm.length*bs)/2;
+            nm.forEach((row,y)=>{
+                row.forEach((val,x)=>{
+                    if(val!==0){
+                        let nc=tetrisRainbow?`hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)`:T_COLORS[val];
+                        ctxTetris.fillStyle=nc;
+                        ctxTetris.fillRect(ox+x*bs,oy+y*bs,bs-1,bs-1);
+                        ctxTetris.strokeStyle='#fff';
+                        ctxTetris.lineWidth=0.5;
+                        ctxTetris.strokeRect(ox+x*bs,oy+y*bs,bs-1,bs-1);
+                    }
+                });
+            });
+        }
+        ctxTetris.lineWidth=1;
+
     tetrisAnimId = requestAnimationFrame(updateTetris);
 }
 </script>
