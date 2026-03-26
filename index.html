@@ -532,8 +532,8 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
   <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
  </div>
 
- <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump, <b>Down/S</b> or <b>Swipe Down</b> to Duck.</p>
- <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
+ <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump.</p>
+ <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type or Tap <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
  <div id="publicDifficulty" style="display:none; margin-top: 15px;">
   <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -647,7 +647,7 @@ input[type=range]::-moz-range-thumb { border: 1px solid var(--neon-color); heigh
    </label>
   </div>
   <div class="mod-row">
-   <label>Auto-Jump/Duck Bot</label>
+   <label>Auto-Jump Bot</label>
    <label class="toggle-switch">
      <input type="checkbox" id="modRunnerBot">
      <span class="toggle-slider"></span>
@@ -823,7 +823,6 @@ let currentBaseSpeed = 3.5;
 let runnerGodMode = false;
 let runnerAutoBot = false;
 let isJumping = false;
-let isDucking = false;
 let velocity = 0;
 let playerY = 150;
 let score = 0;
@@ -1491,7 +1490,6 @@ window.addEventListener("keydown", function(e) {
    jump(); 
   }
   if (e.code === "ArrowDown" || e.code === "KeyS") {
-   isDucking = true;
    if (isJumping) {
     velocity += 5; // Fast-drop mechanics like Chrome Dino
    }
@@ -1507,45 +1505,15 @@ window.addEventListener("keyup", e => {
   if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") { 
    if (velocity < -4) velocity = -4; 
   }
-  if (e.code === "ArrowDown" || e.code === "KeyS") {
-   isDucking = false;
-  }
  }
 });
 
-// Canvas Tap-to-Start & Swipe Listeners
-let rStartY = 0;
-let rIsSwipe = false;
-
+// Canvas Tap-to-Start Listeners
 if (canvas) {
- canvas.addEventListener("touchstart", (e) => { 
-  e.preventDefault(); 
-  rStartY = e.touches[0].clientY;
-  rIsSwipe = false;
- }, {passive: false});
-
- canvas.addEventListener("touchmove", (e) => {
+ canvas.addEventListener("pointerdown", (e) => { 
   e.preventDefault();
-  let dy = e.touches[0].clientY - rStartY;
-  if (dy > 30) {
-   isDucking = true;
-   rIsSwipe = true;
-   if (isJumping) velocity += 5; // Fast fall on mobile swipe
-  }
- }, {passive: false});
-
- canvas.addEventListener("touchend", (e) => { 
-  e.preventDefault(); 
-  isDucking = false;
-  if (!rIsSwipe) {
-   jump(); // Normal tap -> Jump
-  }
- }, {passive: false});
- 
- // For desktop clicks
- canvas.addEventListener("mousedown", (e) => { 
-  e.preventDefault();
-  jump();
+  document.getElementById("jumpGame").scrollIntoView({behavior: "smooth", block: "center"});
+  jump(); 
  });
 }
 
@@ -1672,7 +1640,7 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) =>
 
 
 // ==========================================================================
-// 10. RUNNER GAME ENGINE (DINO CLONE WITH DUCKING & PIXEL ART)
+// 10. RUNNER GAME ENGINE (DINO CLONE WITH PIXEL ART)
 // ==========================================================================
 function jump() {
  if (targetGameActive || tetrisActive) return; 
@@ -1691,10 +1659,9 @@ function jump() {
   gameOver = false; 
   velocity = 0; 
   isJumping = false; 
-  isDucking = false;
  }
   
- if (!isJumping && !gameOver && !isDucking) { 
+ if (!isJumping && !gameOver) { 
   isJumping = true; 
   velocity = -currentJumpPower; 
  }
@@ -1703,39 +1670,23 @@ function jump() {
 function drawDino(ctx, x, y, frame) {
  ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 10) % 360}, 100%, 50%)` : neonColor;
  if (runnerGodMode && !runnerDiscoActive) ctx.fillStyle = "#fff";
-  
- if (isDucking && !isJumping) {
-  // Ducking Sprite (Wider, Shorter)
-  ctx.fillRect(x, y + 10, 30, 12); // Main ducking body
-  ctx.fillRect(x + 30, y + 10, 12, 8); // Head lowered
-  ctx.fillRect(x + 4, y + 4, 8, 6); // Tail raised up
-  
-  // Animated legs for ducking
-  if (frame % 10 < 5) {
-   ctx.fillRect(x + 6, y + 22, 4, 4);
-   ctx.fillRect(x + 20, y + 22, 4, 4);
-  } else {
-   ctx.fillRect(x + 10, y + 22, 4, 4);
-   ctx.fillRect(x + 24, y + 22, 4, 4);
-  }
- } else {
-  // Standing/Jumping Sprite (Pixel T-Rex)
-  ctx.fillRect(x + 12, y - 4, 12, 12); // Head
-  ctx.fillRect(x + 12, y + 2, 16, 4);  // Snout
-  ctx.fillRect(x + 4, y + 6, 16, 14);  // Body
-  ctx.fillRect(x, y + 2, 4, 10);       // Tail
-  ctx.fillRect(x + 18, y + 10, 6, 4);  // Small Arm
+
+ // Standing/Jumping Sprite (Pixel T-Rex)
+ ctx.fillRect(x + 12, y - 4, 12, 12); // Head
+ ctx.fillRect(x + 12, y + 2, 16, 4);  // Snout
+ ctx.fillRect(x + 4, y + 6, 16, 14);  // Body
+ ctx.fillRect(x, y + 2, 4, 10);       // Tail
+ ctx.fillRect(x + 18, y + 10, 6, 4);  // Small Arm
    
-  // Animated legs for standing
-  if (frame % 10 < 5 && !isJumping) {
-   ctx.fillRect(x + 6, y + 20, 4, 6);
-  } else if (!isJumping) {
-   ctx.fillRect(x + 14, y + 20, 4, 6);
-  } else { 
-   // Feet tucked in during jump
-   ctx.fillRect(x + 6, y + 20, 4, 4); 
-   ctx.fillRect(x + 14, y + 20, 4, 4); 
-  }
+ // Animated legs for standing
+ if (frame % 10 < 5 && !isJumping) {
+  ctx.fillRect(x + 6, y + 20, 4, 6);
+ } else if (!isJumping) {
+  ctx.fillRect(x + 14, y + 20, 4, 6);
+ } else { 
+  // Feet tucked in during jump
+  ctx.fillRect(x + 6, y + 20, 4, 4); 
+  ctx.fillRect(x + 14, y + 20, 4, 4); 
  }
 }
 
@@ -1780,24 +1731,18 @@ function updateRunner() {
    runnerObstacles.push({x: 400, passed: false, type: oType});
   }
    
-  // Upgraded Auto-Bot Logic (With AI Ducking)
+  // Upgraded Auto-Bot Logic
   if (runnerAutoBot && runnerObstacles.length > 0) {
    let nextObs = runnerObstacles[0];
    if (nextObs.passed && runnerObstacles.length > 1) {
     nextObs = runnerObstacles[1];
    }
    if (nextObs.x < 110 && nextObs.x > 20) {
-    if (nextObs.type === 'flying') {
-     isDucking = true; // Bot recognizes flying object and ducks
-    } else {
-     if (!isJumping) {
-      isJumping = true;
-      velocity = -currentJumpPower;
-      isDucking = false; // Un-duck to jump over cacti
-     }
+    // DO NOT jump if it's a high drone (let the player slide under naturally)
+    if (nextObs.type !== 'flying' && !isJumping) {
+     isJumping = true;
+     velocity = -currentJumpPower;
     }
-   } else if (runnerAutoBot) {
-    isDucking = false; // Release duck after passing
    }
   }
    
@@ -1812,11 +1757,6 @@ function updateRunner() {
 
    // Player Hitbox Calculation
    let px = 20, pw = 24, py = playerY - 4, ph = 26; 
-   if (isDucking && !isJumping) {
-    pw = 42; // Wider hitbox when ducking
-    py = playerY + 10; // Lower hitbox top (approx Y=160)
-    ph = 14; // Shorter hitbox height
-   }
 
    // Obstacle Hitbox Calculation
    let ox = obs.x, oy, ow, oh;
@@ -1825,7 +1765,7 @@ function updateRunner() {
    } else if (obs.type === 'wide') {
     oy = 145; ow = 36; oh = 25;
    } else if (obs.type === 'flying') {
-    oy = 0; ow = 20; oh = 150; // MASSIVE Hitbox. Bottom edge is exactly at Y=150. You CANNOT jump this. You must duck.
+    oy = 115; ow = 20; oh = 15; // Placed perfectly so you can safely run under (130 bottom edge), but die if you jump (head hits 115-130 range).
    } else {
     oy = 145; ow = 16; oh = 25; // Normal
    }
@@ -1866,10 +1806,7 @@ function updateRunner() {
   // Draw the specific pixel-art obstacle shapes
   runnerObstacles.forEach(obs => {
    if (obs.type === 'flying') {
-    let flyY = 135; // Visual height of the drone
-    // Visual Red Laser Beam preventing jump
-    ctx.fillStyle = "rgba(255, 0, 85, 0.6)";
-    ctx.fillRect(obs.x + 8, 0, 4, flyY); 
+    let flyY = 115; // Visual height of the drone
     
     // Draw sci-fi drone
     ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 20) % 360}, 100%, 50%)` : "#ff0055";
