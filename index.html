@@ -376,7 +376,7 @@ canvas {
     transform: scale(0.95); 
 }
 
-@keyframes nukeParticle {
+@keyframes hackGlitch {     0%   { opacity: 0.10; transform: translate(-50%,-50%) skewX(0deg); }     10%  { opacity: 0.18; transform: translate(-52%,-50%) skewX(3deg); }     20%  { opacity: 0.08; transform: translate(-50%,-48%) skewX(-2deg); }     30%  { opacity: 0.20; transform: translate(-50%,-50%) skewX(0deg); }     50%  { opacity: 0.12; transform: translate(-51%,-50%) skewX(1deg); }     70%  { opacity: 0.22; transform: translate(-50%,-52%) skewX(-3deg); }     85%  { opacity: 0.08; transform: translate(-50%,-50%) skewX(2deg); }     100% { opacity: 0.15; transform: translate(-50%,-50%) skewX(0deg); } } @keyframes nukePulse {     0%   { box-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000; }     50%  { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000, 0 0 60px #800000; }     100% { box-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000; } } @keyframes nukeParticle {
     0% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
     100% { transform: scale(4) translate(-50%, -150%); opacity: 0; }
 }
@@ -558,7 +558,7 @@ canvas {
     </div>
 
     <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
-    <button id="nukeToggle" class="nuke-btn">NUKE THIS PAGE ;)</button>        
+    <button id="nukeToggle" class="nuke-btn">&#9760; INITIATE BREACH &#9760;</button>        
     <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
 </div>
 
@@ -1044,7 +1044,7 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
     doomText.style.pointerEvents = "none"; // Make it un-clickable
     doomText.style.zIndex = "-1"; // Keep it strictly in the background
     doomText.style.textAlign = "center";
-    doomText.innerHTML = "SYSTEM PURGE ACTIVE<br>NO RECOVERY POSSIBLE";
+    doomText.innerHTML = "&#9760; YOU'VE BEEN HACKED &#9760;<br>SYSTEM COMPROMISED<br>ALL DATA EXPOSED";
     document.body.appendChild(doomText);
 
     triggerShake();
