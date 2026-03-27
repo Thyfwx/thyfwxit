@@ -403,7 +403,7 @@ canvas {
   border-radius: 10px; 
   max-height: 90vh; 
   flex-direction: column; 
-  transition: all 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 #modMenuHeader { 
@@ -1633,7 +1633,7 @@ let kawaiiActive = false;
 let kawaiiInterval = null;
 
 function startKawaiiParticles() {
-  const emojis = ['♡', '★', '✧', '❀', '✿', '☾', '♪', '(◕‿◕✿)', '(◠‿◠)', '☆', '🎀'];
+  const emojis = ['♡', '★', '✧', '❀', '✿', '☾', '♪', '☆', '🎀', '💖', '✨', '🌸', '☁️', '🍓', '🍰', '🧸', '☁️', '🍒', '🌷'];
   const ov = document.getElementById('kawaiiOv');
   
   kawaiiInterval = setInterval(() => {
@@ -1681,7 +1681,7 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     document.documentElement.style.setProperty('--canvas-bg','#fffafa');
     
     document.body.style.fontFamily = "'Comic Sans MS', 'Chalkboard SE', sans-serif";
-    document.getElementById('mainTitle').innerText = "(✿◠‿◠) Systems Specialist (◕‿◕✿)";
+    document.getElementById('mainTitle').innerText = "Systems Specialist & Network Infrastructure";
     
     document.body.style.background = "linear-gradient(135deg, #fff0f5, #ffe4e1, #ffd1dc, #fff0f5)";
     document.body.style.backgroundSize = "400% 400%";
@@ -1890,7 +1890,6 @@ window.addEventListener("keydown", function(e) {
     menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
   }
 
-  // Strictly prevent Spacebar from scrolling the page down
   if (e.code === 'Space' || e.key === " ") {
     if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
       e.preventDefault(); 
