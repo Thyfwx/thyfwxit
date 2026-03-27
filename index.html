@@ -215,7 +215,7 @@ input[type=range]::-webkit-slider-thumb { border: 1px solid var(--neon-color); h
 input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
 
 /* Matrix Canvas */
-#matrixCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; opacity: 0.3; display: none; margin: 0; padding: 0; overflow: hidden; }
+#matrixCanvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 1; opacity: 0.5; display: none; margin: 0; padding: 0; overflow: hidden; }
 
 /* SOFT GIRLY PINK BACKGROUND ANIMATION */
 @keyframes kawaiiGradient {
@@ -419,6 +419,7 @@ input[type=range]::-webkit-slider-thumb:hover { background: var(--neon-color); }
         <span class="toggle-slider"></span>
       </label>
     </div>
+    <button id="modRunnerReset" class="nuke-btn" style="background: #444; color: #fff; margin-top: 15px;">RESET RUNNER SETTINGS</button>
   </div>
 
   <div id="tab-tetris" class="mod-tab-content">
@@ -745,20 +746,26 @@ const mCtx = mCanvas.getContext('2d');
 const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*".split("");
 const fontSize = 16;
 let drops = [];
+let matrixDrawActive = false;
 
 function resizeMatrix() {
   mCanvas.width = window.innerWidth;
   mCanvas.height = window.innerHeight;
   const newColumns = Math.floor(mCanvas.width / fontSize) + 1;
   drops = [];
-  for(let x = 0; x < newColumns; x++) drops[x] = 1;
+  for(let x = 0; x < newColumns; x++) {
+    drops[x] = Math.random() * -100; // Start lines offscreen so it drops naturally
+  }
 }
 
 window.addEventListener('resize', resizeMatrix);
 resizeMatrix(); 
 
 function drawMatrix(currentTime) {
-  if (!matrixRainEnabled) return;
+  if (!matrixRainEnabled) {
+    matrixDrawActive = false;
+    return;
+  }
   requestAnimationFrame(drawMatrix);
   
   if (!currentTime) currentTime = performance.now();
@@ -766,15 +773,20 @@ function drawMatrix(currentTime) {
   if (dt < FRAME_INTERVAL) return; // 60 FPS Lock
   matrixLastTime = currentTime - (dt % FRAME_INTERVAL);
 
-  mCtx.fillStyle = "rgba(0, 0, 0, 0.05)"; 
+  mCtx.fillStyle = "rgba(0, 0, 0, 0.1)"; // Darkened fade slightly so text pops more
   mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
   mCtx.fillStyle = kawaiiActive ? "#ff69b4" : "#0F0"; 
-  mCtx.font = fontSize + "px monospace";
+  mCtx.font = "bold " + fontSize + "px monospace";
   
   for(let i = 0; i < drops.length; i++) {
-    const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
-    mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
-    if(drops[i] * fontSize > mCanvas.height && Math.random() > 0.975) drops[i] = 0;
+    if (drops[i] > 0) {
+      const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+      mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+    }
+    
+    if(drops[i] * fontSize > mCanvas.height && Math.random() > 0.975) {
+      drops[i] = 0;
+    }
     drops[i]++;
   }
 }
@@ -915,7 +927,12 @@ document.getElementById('modMatrixRain')?.addEventListener('change', (e) => {
   matrixRainEnabled = e.target.checked; 
   if(matrixRainEnabled) { 
     matrixLastTime = performance.now();
-    document.getElementById('matrixCanvas').style.display = 'block'; requestAnimationFrame(drawMatrix); 
+    document.getElementById('matrixCanvas').style.display = 'block'; 
+    
+    if(!matrixDrawActive) {
+      matrixDrawActive = true;
+      requestAnimationFrame(drawMatrix); 
+    }
   } else { 
     document.getElementById('matrixCanvas').style.display = 'none'; 
   } 
@@ -930,6 +947,17 @@ document.getElementById('modRunnerBot')?.addEventListener('change', (e) => { run
 document.getElementById('modDiscoRunner')?.addEventListener('change', (e) => { runnerDiscoActive = e.target.checked; });
 document.getElementById('modJetpack')?.addEventListener('change', (e) => { runnerJetpack = e.target.checked; });
 document.getElementById('modMoonGrav')?.addEventListener('click', () => { document.getElementById('modGravity').value = 0.2; currentGravity = 0.2; document.getElementById('gravVal').innerText = 0.2; document.getElementById('modJump').value = 7; currentJumpPower = 7; document.getElementById('jumpVal').innerText = 7; });
+
+document.getElementById('modRunnerReset')?.addEventListener('click', () => {
+  document.getElementById('modGravity').value = 0.85; currentGravity = 0.85; document.getElementById('gravVal').innerText = 0.85;
+  document.getElementById('modJump').value = 11.5; currentJumpPower = 11.5; document.getElementById('jumpVal').innerText = 11.5;
+  document.getElementById('modSpeed').value = 5.0; currentBaseSpeed = 5.0; document.getElementById('speedVal').innerText = 5.0;
+  
+  document.getElementById('modGodMode').checked = false; runnerGodMode = false;
+  document.getElementById('modRunnerBot').checked = false; runnerAutoBot = false;
+  document.getElementById('modDiscoRunner').checked = false; runnerDiscoActive = false;
+  document.getElementById('modJetpack').checked = false; runnerJetpack = false;
+});
 
 document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => { tetrisSpeedMod = parseInt(e.target.value); document.getElementById('tetrisSpeedVal').innerText = tetrisSpeedMod; });
 document.getElementById('modTetrisGodMode')?.addEventListener('change', (e) => { tetrisGodMode = e.target.checked; });
@@ -1495,10 +1523,8 @@ function updateRunner(currentTime) {
       velocity = 0; 
     }
     
-    if (playerY < 0) { 
-      playerY = 0; 
-      velocity = 0; 
-    }
+    // Removed ceiling collision so hackers can fly out of bounds naturally
+    // if (playerY < 0) { playerY = 0; velocity = 0; }
 
     // Increased speed scaling 
     currentSpeed = currentBaseSpeed + (score / 8); 
