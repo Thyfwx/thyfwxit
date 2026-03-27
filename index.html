@@ -179,10 +179,10 @@ canvas {
   border: 2px solid var(--neon-color); padding: 0; z-index: 10000; 
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.5); 
   color: #fff; width: 340px; border-radius: 10px; max-height: 90vh; flex-direction: column; 
-  transition: border-color 0.3s, box-shadow 0.3s;
+  transition: all 0.3s;
 }
 
-#modMenuHeader { cursor: move; padding: 15px; margin: 0; background: rgba(30, 0, 0, 0.8); border-bottom: 2px solid #ff0000; border-radius: 8px 8px 0 0; text-align: center; font-size: 1.1em; letter-spacing: 2px; }
+#modMenuHeader { cursor: move; padding: 15px; margin: 0; background: rgba(30, 0, 0, 0.8); border-bottom: 2px solid #ff0000; border-radius: 8px 8px 0 0; text-align: center; font-size: 1.1em; letter-spacing: 2px; transition: all 0.3s; }
 
 /* Tab Navigation */
 .mod-tabs { display: flex; border-bottom: 1px solid #444; background: rgba(0,0,0,0.5); overflow-x: auto; scrollbar-width: none; }
@@ -989,7 +989,8 @@ let kawaiiActive = false;
 let kawaiiInterval = null;
 
 function startKawaiiParticles() {
-  const emojis = ['⭐', '💖', '✨', '🌸', '🎀', '💕', '🍓', '🍰'];
+  // Changed from emojis to pure text kawaii symbols
+  const emojis = ['♡', '★', '✧', '❀', '✿', '☾', '♪', '(◕‿◕✿)', '(◠‿◠)', '☆', '🎀'];
   const ov = document.getElementById('kawaiiOv');
   
   kawaiiInterval = setInterval(() => {
@@ -1004,7 +1005,8 @@ function startKawaiiParticles() {
     el.style.fontSize = (Math.random() * 20 + 15) + 'px';
     el.style.whiteSpace = 'nowrap';
     el.style.userSelect = 'none';
-    el.style.filter = 'drop-shadow(0 0 5px rgba(255, 105, 180, 0.5))'; 
+    el.style.color = '#ff69b4';
+    el.style.filter = 'drop-shadow(0 0 5px rgba(255, 105, 180, 0.8))'; 
     
     const duration = Math.random() * 4000 + 4000; 
     
@@ -1051,6 +1053,19 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
           border: 3px dashed #ffb6c1 !important; 
         }
         .mod-tab-content { border-radius: 20px !important; }
+        
+        /* KAWAII MOD MENU OVERRIDES */
+        #modMenu { background: rgba(255, 240, 245, 0.95) !important; color: #d11a7a !important; border-color: #ff69b4 !important; }
+        #modMenuHeader { background: rgba(255, 182, 193, 0.9) !important; border-bottom: 2px solid #ff1493 !important; color: #fff !important; }
+        .mod-tab-btn { color: #ff69b4 !important; font-weight: bold !important; }
+        .mod-tab-btn.active { color: #ff1493 !important; border-bottom: 2px solid #ff1493 !important; text-shadow: none !important; }
+        .mod-row label { color: #d11a7a !important; font-weight: bold; }
+        .toggle-slider { background-color: #ffb6c1 !important; border: 1px solid #ff69b4 !important; }
+        input:checked + .toggle-slider { background-color: #ff1493 !important; box-shadow: none !important; }
+        input:checked + .toggle-slider:before { background-color: #fff !important; box-shadow: none !important; }
+        .nuke-btn { background: #ffb6c1 !important; color: #fff !important; border: 1px solid #ff69b4 !important; text-shadow: none !important; }
+        select { background: #ffe4e1 !important; color: #d11a7a !important; font-weight: bold; }
+        .close-mod { background: #ff69b4 !important; color: #fff !important; }
       `; 
       document.head.appendChild(s); 
     }
@@ -1548,12 +1563,15 @@ function updateRunner(currentTime) {
       runnerObstacles.push({x: 400, passed: false, type: oType});
     }
     
+    // Dynamic trigger distance based on speed so bot clears tall/wide objects
+    let jumpTriggerDist = 80 + (currentSpeed * 5);
+
     if (runnerAutoBot && runnerObstacles.length > 0) {
       let nextObs = runnerObstacles[0]; 
       if (nextObs.passed && runnerObstacles.length > 1) { 
         nextObs = runnerObstacles[1]; 
       }
-      if (nextObs.x < 110 && nextObs.x > 20) {
+      if (nextObs.x < jumpTriggerDist && nextObs.x > 30) {
         if (nextObs.type !== 'flying' && !isJumping) { 
           isJumping = true; 
           velocity = -currentJumpPower; 
@@ -1578,7 +1596,7 @@ function updateRunner(currentTime) {
       } else if (obs.type === 'wide') { 
         oy = 145; ow = 36; oh = 25; 
       } else if (obs.type === 'flying') { 
-        oy = 115; ow = 20; oh = 15; 
+        oy = 20; ow = 20; oh = 110; // Tall invisible box above the bird to prevent jumping over
       } else { 
         oy = 145; ow = 16; oh = 25; 
       }
@@ -1618,7 +1636,7 @@ function updateRunner(currentTime) {
   if (gameStarted && !gameOver) { 
     runnerObstacles.forEach(obs => {
       if (obs.type === 'flying') {
-        let flyY = 115; 
+        let flyY = 115; // Visual drawing height
         ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 20) % 360}, 100%, 50%)` : (kawaiiActive ? "#ff1493" : "#ff0055"); 
         ctx.fillRect(obs.x, flyY, 20, 10); 
         ctx.fillStyle = "#fff"; 
@@ -1936,246 +1954,6 @@ function updateTetris(currentTime) {
     nm.forEach((row,y)=>{ row.forEach((val,x)=>{ if(val!==0){ let nc = tetrisRainbow ? `hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)` : T_COLORS[val]; ctxTetris.fillStyle = nc; ctxTetris.fillRect(ox+x*bs,oy+y*bs,bs-1,bs-1); ctxTetris.strokeStyle = '#fff'; ctxTetris.lineWidth = 0.5; ctxTetris.strokeRect(ox+x*bs,oy+y*bs,bs-1,bs-1); } }); });
   }
   ctxTetris.lineWidth = 1; 
-}
-
-// ==========================================================================
-// RUNNER GAME FUNCTIONS
-// ==========================================================================
-function jump() {
-  if (!gameStarted || gameOver) {
-    if (gameOver && Date.now() - runnerDeathTime < 1000) return;
-    
-    gameStarted = true;
-    gameOver = false;
-    score = 0;
-    runnerObstacles = [];
-    runnerParticles = [];
-    playerY = 150;
-    
-    isJumping = true;
-    velocity = -currentJumpPower;
-    return; 
-  }
-
-  if (!isJumping) {
-    isJumping = true;
-    velocity = -currentJumpPower;
-  }
-}
-
-function drawDino(ctx, x, y, frame) {
-  // Turn ghost mode on if God Mode is active
-  if (runnerGodMode && frame % 10 < 5) {
-    ctx.globalAlpha = 0.5;
-  } else {
-    ctx.globalAlpha = 1.0;
-  }
-
-  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
-  
-  ctx.fillRect(x, y, 20, 20);
-  
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(x + 12, y + 4, 4, 4);
-  
-  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
-  if (isJumping) {
-    ctx.fillRect(x + 2, y + 20, 6, 6);
-    ctx.fillRect(x + 12, y + 20, 6, 6);
-  } else {
-    if (Math.floor(frame / 5) % 2 === 0) {
-      ctx.fillRect(x + 2, y + 20, 6, 6);
-    } else {
-      ctx.fillRect(x + 12, y + 20, 6, 6);
-    }
-  }
-
-  // Reset alpha back to normal
-  ctx.globalAlpha = 1.0;
-}
-
-// ==========================================================================
-// TARGET SIMULATOR FUNCTIONS
-// ==========================================================================
-function spawnDuck() {
-  duckX = Math.random() * (400 - targetSize);
-  duckY = Math.random() * (200 - targetSize);
-  
-  let speed = 2 + (targetSpeedMult * 0.5);
-  duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
-  duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
-  
-  duckActive = true;
-  duckTimer = 60 + Math.random() * 60; 
-  
-  currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
-
-  if (targetDecoyEnabled && Math.random() < 0.3) {
-    decoyX = Math.random() * (400 - targetSize);
-    decoyY = Math.random() * (200 - targetSize);
-    decoyVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
-    decoyVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
-    decoyActive = true;
-    decoyTimer = 80;
-  } 
-  else if (Math.random() < 0.1) {
-    goldenX = Math.random() * (400 - targetSize);
-    goldenY = Math.random() * (200 - targetSize);
-    goldenVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
-    goldenVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
-    goldenActive = true;
-    goldenTimer = 50;
-  }
-}
-
-// ==========================================================================
-// TETRIS ENGINE FUNCTIONS
-// ==========================================================================
-function initTetris() {
-  tetrisGrid = Array.from({length: 20}, () => Array(10).fill(0));
-  tetrisScore = 0;
-  tetrisLines = 0;
-  tetrisLevel = 1;
-  tetrisGameOver = false;
-  tetrisFloaters = [];
-  nextPiece = null;
-  
-  let speedInput = document.getElementById('modTetrisSpeed');
-  if (speedInput) tetrisSpeedMod = parseInt(speedInput.value);
-  
-  tReset(); 
-  tReset(); 
-}
-
-function tCollide(board, player) {
-  const m = player.matrix;
-  const o = player.pos;
-  
-  for (let y = 0; y < m.length; ++y) {
-    for (let x = 0; x < m[y].length; ++x) {
-      if (m[y][x] !== 0 &&
-         (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
-        return true;
-      }
-    }
-  }
-  return false;
-}
-
-function tMerge() {
-  currentPiece.matrix.forEach((row, y) => {
-    row.forEach((value, x) => {
-      if (value !== 0) {
-        tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value;
-      }
-    });
-  });
-}
-
-function tReset() {
-  const pieces = '1234567'; 
-  const type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
-  
-  if (!nextPiece) {
-    nextPiece = { matrix: T_SHAPES[type], pos: {x: 0, y: 0} };
-  }
-  
-  currentPiece = nextPiece;
-  currentPiece.pos.y = 0;
-  currentPiece.pos.x = Math.floor((10 / 2) - (currentPiece.matrix[0].length / 2));
-  
-  const nextType = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
-  nextPiece = { matrix: T_SHAPES[nextType], pos: {x: 0, y: 0} };
-
-  if (tCollide(tetrisGrid, currentPiece)) {
-    if (tetrisGodMode) {
-        tetrisGrid.forEach(row => row.fill(0)); 
-    } else {
-        tetrisGameOver = true;
-        tetrisDeathTime = Date.now();
-        tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)];
-        triggerShake();
-    }
-  }
-}
-
-function tDrop() {
-  currentPiece.pos.y++;
-  if (tCollide(tetrisGrid, currentPiece)) {
-    currentPiece.pos.y--; 
-    tMerge();
-    tReset();
-    tSweep();
-  }
-  tetrisDropCounter = 0;
-}
-
-function tMove(dir) {
-  currentPiece.pos.x += dir;
-  if (tCollide(tetrisGrid, currentPiece)) {
-    currentPiece.pos.x -= dir; 
-  }
-}
-
-function tRotate() {
-  const pos = currentPiece.pos.x;
-  let offset = 1;
-  tRotateMatrix(currentPiece.matrix);
-  
-  while (tCollide(tetrisGrid, currentPiece)) {
-    currentPiece.pos.x += offset;
-    offset = -(offset + (offset > 0 ? 1 : -1));
-    if (offset > currentPiece.matrix[0].length) {
-      tRotateMatrix(currentPiece.matrix, -1); 
-      currentPiece.pos.x = pos;
-      return;
-    }
-  }
-}
-
-function tRotateMatrix(matrix, dir = 1) {
-  for (let y = 0; y < matrix.length; ++y) {
-    for (let x = 0; x < y; ++x) {
-      [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
-    }
-  }
-  if (dir > 0) {
-    matrix.forEach(row => row.reverse());
-  } else {
-    matrix.reverse();
-  }
-}
-
-function tSweep() {
-  let rowCount = 1;
-  let linesCleared = 0;
-  
-  outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
-    for (let x = 0; x < tetrisGrid[y].length; ++x) {
-      if (tetrisGrid[y][x] === 0) {
-        continue outer; 
-      }
-    }
-    
-    const row = tetrisGrid.splice(y, 1)[0].fill(0);
-    tetrisGrid.unshift(row);
-    ++y;
-    
-    tetrisScore += (rowCount * 10) * tetrisScoreMult;
-    rowCount *= 2;
-    linesCleared++;
-  }
-  
-  if (linesCleared > 0) {
-      tetrisLines += linesCleared;
-      tetrisLevel = Math.floor(tetrisLines / 10) + 1;
-      tetrisFloaters.push({x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!"});
-      
-      if (tetrisScore > tetrisHighScore) {
-          tetrisHighScore = tetrisScore;
-          try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){}
-      }
-  }
 }
 </script>
 </body>
