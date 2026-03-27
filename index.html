@@ -62,7 +62,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility Split Modes */
+/* Accessibility Modes */
 body.a11y-font * {
   font-family: Arial, Helvetica, sans-serif !important;
   text-shadow: none !important;
@@ -86,13 +86,69 @@ body.a11y-large-text input, body.a11y-large-text select, body.a11y-large-text te
   font-size: 1.2rem !important;
 }
 
+body.a11y-spaced * {
+  letter-spacing: 0.12em !important;
+  word-spacing: 0.15em !important;
+  line-height: 2 !important;
+}
+
+body.a11y-contrast {
+  --bg-color: #ffffff !important;
+  --section-bg: #eeeeee !important;
+  --text-color: #000000 !important;
+  --neon-color: #000000 !important;
+  --canvas-bg: #ffffff !important;
+  --grid-color: #999999 !important;
+}
+
 body.a11y-contrast * {
-  background-color: #ffffff !important;
-  background: #ffffff !important;
-  color: #000000 !important;
-  border-color: #000000 !important;
   text-shadow: none !important;
   box-shadow: none !important;
+}
+
+body.a11y-contrast .crt-overlay {
+  display: none !important;
+}
+
+body.a11y-contrast .project-card,
+body.a11y-contrast .status-grid,
+body.a11y-contrast .status-item {
+  background: #ffffff !important;
+  border-color: #000000 !important;
+}
+
+body.a11y-contrast input,
+body.a11y-contrast select,
+body.a11y-contrast textarea,
+body.a11y-contrast button {
+  background: #ffffff !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+}
+
+body.a11y-contrast .toggle-slider {
+  background-color: #cccccc !important;
+  border: 2px solid #000000 !important;
+}
+
+body.a11y-contrast input:checked + .toggle-slider {
+  background-color: #000000 !important;
+}
+
+body.a11y-contrast #a11yMenu,
+body.a11y-contrast #modMenu {
+  background: #ffffff !important;
+  border: 3px solid #000000 !important;
+  color: #000000 !important;
+}
+
+body.a11y-contrast .mod-tab-content {
+  background: #f4f4f4 !important;
+}
+
+body.a11y-contrast #a11yMenu h3, 
+body.a11y-contrast .mod-row label {
+  color: #000000 !important;
 }
 
 /* A11y Floating Help Button & Panel */
@@ -100,9 +156,6 @@ body.a11y-contrast * {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  font-size: 28px;
-  font-family: Arial, sans-serif;
-  font-weight: bold;
   background: #0055ff;
   color: #ffffff;
   border: 3px solid #ffffff;
@@ -694,7 +747,9 @@ input[type=range]::-webkit-slider-thumb:hover {
 </head>
 <body>
 
-<div id="a11yBtn" title="Open Help & Accessibility Menu">?</div>
+<div id="a11yBtn" title="Open Help & Accessibility Menu">
+  <svg fill="currentColor" viewBox="0 0 24 24" width="35px" height="35px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+</div>
 
 <div id="a11yMenu">
   <h3 style="margin-top: 0; color: #0055ff; font-family: Arial, sans-serif; font-size: 1.2em; text-align: center;">Help & Accessibility</h3>
@@ -711,6 +766,14 @@ input[type=range]::-webkit-slider-thumb:hover {
     <label style="font-family: Arial, sans-serif;">Large Text</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yTextToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div class="mod-row">
+    <label style="font-family: Arial, sans-serif;">Spaced Text</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="a11ySpaceToggle">
       <span class="toggle-slider"></span>
     </label>
   </div>
@@ -1312,41 +1375,35 @@ document.addEventListener("DOMContentLoaded", () => {
     footer.appendChild(jokeElement);
   }
   
+  // Accessibility Toggles
   document.getElementById('a11yBtn')?.addEventListener('click', () => {
     const menu = document.getElementById('a11yMenu');
     menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
   });
 
   document.getElementById('a11yFontToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      document.body.classList.add('a11y-font');
-    } else {
-      document.body.classList.remove('a11y-font');
-    }
+    if (e.target.checked) document.body.classList.add('a11y-font');
+    else document.body.classList.remove('a11y-font');
   });
 
   document.getElementById('a11yAnimToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      document.body.classList.add('a11y-no-anim');
-    } else {
-      document.body.classList.remove('a11y-no-anim');
-    }
+    if (e.target.checked) document.body.classList.add('a11y-no-anim');
+    else document.body.classList.remove('a11y-no-anim');
   });
   
   document.getElementById('a11yTextToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      document.body.classList.add('a11y-large-text');
-    } else {
-      document.body.classList.remove('a11y-large-text');
-    }
+    if (e.target.checked) document.body.classList.add('a11y-large-text');
+    else document.body.classList.remove('a11y-large-text');
+  });
+
+  document.getElementById('a11ySpaceToggle')?.addEventListener('change', (e) => {
+    if (e.target.checked) document.body.classList.add('a11y-spaced');
+    else document.body.classList.remove('a11y-spaced');
   });
 
   document.getElementById('a11yContrastToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) {
-      document.body.classList.add('a11y-contrast');
-    } else {
-      document.body.classList.remove('a11y-contrast');
-    }
+    if (e.target.checked) document.body.classList.add('a11y-contrast');
+    else document.body.classList.remove('a11y-contrast');
   });
 });
 
@@ -1790,7 +1847,7 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
 });
 
 document.addEventListener('click', (e) => {
-  if (!nukeModeActive || e.target.closest('#modMenu') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') {
+  if (!nukeModeActive || e.target.closest('#modMenu') || e.target.closest('#a11yMenu') || e.target.closest('#a11yBtn') || e.target.tagName === 'HTML' || e.target.tagName === 'BODY' || e.target.tagName === 'CANVAS') {
     return;
   }
   playExplosionSound(); 
@@ -1846,7 +1903,6 @@ window.addEventListener("keydown", function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
     return;
   }
-
   if (e.code === 'Escape') {
     const menu = document.getElementById('modMenu');
     menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
@@ -2078,19 +2134,23 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => {
 // ==========================================================================
 
 function drawDino(ctx, x, y, frame) {
+  const isContrast = document.body.classList.contains('a11y-contrast');
+  const gameNeonColor = isContrast ? "#000000" : (kawaiiActive ? "#ff69b4" : neonColor);
+  const secondaryColor = isContrast ? "#ffffff" : "#fff";
+
   if (runnerGodMode && frame % 10 < 5) {
     ctx.globalAlpha = 0.5;
   } else {
     ctx.globalAlpha = 1.0;
   }
   
-  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
+  ctx.fillStyle = gameNeonColor;
   
   if (isCrouching && !isJumping) {
     ctx.fillRect(x, y + 10, 30, 10);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = secondaryColor;
     ctx.fillRect(x + 22, y + 12, 4, 4);
-    ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
+    ctx.fillStyle = gameNeonColor;
     if (Math.floor(frame / 5) % 2 === 0) {
       ctx.fillRect(x + 2, y + 20, 6, 6);
     } else {
@@ -2098,9 +2158,9 @@ function drawDino(ctx, x, y, frame) {
     }
   } else {
     ctx.fillRect(x, y, 20, 20);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = secondaryColor;
     ctx.fillRect(x + 12, y + 4, 4, 4);
-    ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
+    ctx.fillStyle = gameNeonColor;
     if (isJumping) {
       ctx.fillRect(x + 2, y + 20, 6, 6);
       ctx.fillRect(x + 12, y + 20, 6, 6);
@@ -2112,7 +2172,6 @@ function drawDino(ctx, x, y, frame) {
       }
     }
   }
-  
   ctx.globalAlpha = 1.0;
 }
 
@@ -2132,53 +2191,51 @@ function spawnRunnerParticles(x, y, color) {
 function updateRunner(currentTime) {
   if (!ctx) return;
   if (targetGameActive || tetrisActive) return; 
-  
   runnerAnimId = requestAnimationFrame(updateRunner);
-
+  
   if (!currentTime) {
     currentTime = performance.now();
   }
-  
   let dt = currentTime - runnerLastTime;
   if (dt < FRAME_INTERVAL) return; 
-  
   runnerLastTime = currentTime - (dt % FRAME_INTERVAL);
   gameFrame++;
   
-  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
-  const canvasLineCol = kawaiiActive ? "rgba(255, 105, 180, 0.4)" : gridColor;
+  const isContrast = document.body.classList.contains('a11y-contrast');
+  const gameNeonColor = isContrast ? "#000000" : (kawaiiActive ? "#ff69b4" : neonColor);
+  const canvasTextColor = isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : "#fff");
+  const canvasLineCol = isContrast ? "#cccccc" : (kawaiiActive ? "rgba(255, 105, 180, 0.4)" : gridColor);
+  const gameBgColor = isContrast ? "#ffffff" : (kawaiiActive ? "#fffafa" : "rgba(0, 0, 0, 0.85)");
+  const floorCol = isContrast ? "#dddddd" : (kawaiiActive ? "#ffe4e1" : "#444");
   
   ctx.clearRect(0, 0, 400, 200);
-  
-  if (kawaiiActive) {
-    ctx.fillStyle = "#fffafa";
+  if (kawaiiActive || isContrast) {
+    ctx.fillStyle = gameBgColor;
     ctx.fillRect(0, 0, 400, 200);
   }
   
   ctx.strokeStyle = canvasLineCol;
-  
   for (let i = 0; i <= 400; i += 20) { 
     ctx.beginPath(); 
     ctx.moveTo(i, 0); 
     ctx.lineTo(i, 200); 
     ctx.stroke(); 
   }
-  
   for (let i = 0; i <= 200; i += 20) { 
     ctx.beginPath(); 
     ctx.moveTo(0, i); 
     ctx.lineTo(400, i); 
     ctx.stroke(); 
   }
-
-  ctx.strokeStyle = kawaiiActive ? "#ff69b4" : neonColor; 
+  
+  ctx.strokeStyle = gameNeonColor; 
   ctx.setLineDash([5, 5]);
   ctx.beginPath(); 
   ctx.moveTo(0 - (gameFrame * currentSpeed) % 10, 170); 
   ctx.lineTo(400, 170); 
   ctx.stroke(); 
   ctx.setLineDash([]);
-
+  
   if (gameStarted && !gameOver) {
     if (runnerJetpack && keySpaceHeld && !isCrouching) {
       velocity -= 1.5; 
@@ -2196,22 +2253,19 @@ function updateRunner(currentTime) {
     
     velocity += currentGravity; 
     playerY += velocity;
-    
     if (playerY >= 150) { 
       playerY = 150; 
       isJumping = false; 
       velocity = 0; 
     }
-
+    
     currentSpeed = currentBaseSpeed + (score / 8); 
     let minGap = 350 + (currentSpeed * 20); 
-
     let lastObs = runnerObstacles[runnerObstacles.length - 1];
     
     if (!lastObs || lastObs.x < (400 - minGap)) {
       let r = Math.random(); 
       let oType = 'normal';
-      
       if (score > 5 && r < 0.40) {
         oType = 'flying'; 
       } else if (r < 0.60) {
@@ -2219,19 +2273,15 @@ function updateRunner(currentTime) {
       } else if (r < 0.80) {
         oType = 'wide';
       }
-      
       runnerObstacles.push({x: 400, passed: false, type: oType});
     }
     
     let jumpTriggerDist = 80 + (currentSpeed * 5);
-
     if (runnerAutoBot && runnerObstacles.length > 0) {
       let nextObs = runnerObstacles[0]; 
-      
       if (nextObs.passed && runnerObstacles.length > 1) { 
         nextObs = runnerObstacles[1]; 
       }
-      
       if (nextObs.x < jumpTriggerDist && nextObs.x > 30) {
         if (nextObs.type === 'flying') {
            isCrouching = true;
@@ -2248,16 +2298,14 @@ function updateRunner(currentTime) {
     for (let i = 0; i < runnerObstacles.length; i++) {
       let obs = runnerObstacles[i]; 
       obs.x -= currentSpeed;
-      
       if (!obs.passed && obs.x + 20 < 20) { 
         obs.passed = true; 
         score++; 
       }
-
+      
       let px = 20, py = playerY; 
       let pw = isCrouching && !isJumping ? 30 : 20;
       let ph = isCrouching && !isJumping ? 10 : 20;
-      
       if (isCrouching && !isJumping) { py += 10; }
       
       let ox = obs.x, oy, ow, oh;
@@ -2276,10 +2324,8 @@ function updateRunner(currentTime) {
           gameOver = true; 
           runnerDeathTime = Date.now(); 
           currentRunnerCrash = runnerCrashMessages[Math.floor(Math.random() * runnerCrashMessages.length)]; 
-          
           triggerShake(); 
-          spawnRunnerParticles(px, py, kawaiiActive ? "#ff1493" : neonColor);
-          
+          spawnRunnerParticles(px, py, gameNeonColor);
           if (score > runnerHighScore) { 
             runnerHighScore = score; 
             try { localStorage.setItem('cyberRunnerHighScore', runnerHighScore); } catch(e){} 
@@ -2287,17 +2333,18 @@ function updateRunner(currentTime) {
         }
       }
     }
-    
     runnerObstacles = runnerObstacles.filter(o => o.x + 40 > -10);
   }
 
   if (gameOver) { 
-    ctx.fillStyle = kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 0, 0, 0.85)"; 
+    ctx.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 0, 0, 0.85)"); 
     ctx.fillRect(0, 0, 400, 200);
     
-    for (let i = 0; i < 15; i++) { 
-      ctx.fillStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.4})` : `rgba(255, 0, 0, ${Math.random() * 0.4})`; 
-      ctx.fillRect(Math.random() * 400, Math.random() * 200, Math.random() * 200 + 50, Math.random() * 5 + 1); 
+    if (!isContrast) {
+      for (let i = 0; i < 15; i++) { 
+        ctx.fillStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.4})` : `rgba(255, 0, 0, ${Math.random() * 0.4})`; 
+        ctx.fillRect(Math.random() * 400, Math.random() * 200, Math.random() * 200 + 50, Math.random() * 5 + 1); 
+      }
     }
   } else { 
     drawDino(ctx, 20, playerY, gameFrame); 
@@ -2307,23 +2354,18 @@ function updateRunner(currentTime) {
     runnerObstacles.forEach(obs => {
       if (obs.type === 'flying') {
         let flyY = 115; 
-        
-        ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 20) % 360}, 100%, 50%)` : (kawaiiActive ? "#ff1493" : "#ff0055"); 
+        ctx.fillStyle = isContrast ? "#000000" : (runnerDiscoActive ? `hsl(${(gameFrame * 20) % 360}, 100%, 50%)` : (kawaiiActive ? "#ff1493" : "#ff0055")); 
         ctx.fillRect(obs.x, flyY, 20, 10); 
-        
-        ctx.fillStyle = "#fff"; 
+        ctx.fillStyle = isContrast ? "#ffffff" : "#fff"; 
         ctx.fillRect(obs.x + 4, flyY + 2, 4, 4); 
-        
-        ctx.fillStyle = runnerDiscoActive ? "#fff" : (kawaiiActive ? "#ff1493" : "#ff0055");
-        
+        ctx.fillStyle = isContrast ? "#000000" : (runnerDiscoActive ? "#fff" : (kawaiiActive ? "#ff1493" : "#ff0055"));
         if (gameFrame % 20 < 10) { 
           ctx.fillRect(obs.x + 8, flyY - 6, 4, 6); 
         } else { 
           ctx.fillRect(obs.x + 8, flyY + 10, 4, 6); 
         }
       } else {
-        ctx.fillStyle = runnerDiscoActive ? `hsl(${(gameFrame * 15 + obs.x) % 360}, 100%, 50%)` : (kawaiiActive ? "#ffb6c1" : "#00ff00"); 
-        
+        ctx.fillStyle = isContrast ? "#000000" : (runnerDiscoActive ? `hsl(${(gameFrame * 15 + obs.x) % 360}, 100%, 50%)` : (kawaiiActive ? "#ffb6c1" : "#00ff00")); 
         if (obs.type === 'tall') { 
           ctx.fillRect(obs.x, 130, 12, 40); 
           ctx.fillRect(obs.x - 6, 140, 6, 15); 
@@ -2345,24 +2387,20 @@ function updateRunner(currentTime) {
 
   for (let i = runnerParticles.length - 1; i >= 0; i--) {
     let p = runnerParticles[i];
-    
     ctx.fillStyle = p.color; 
     ctx.globalAlpha = p.life; 
     ctx.fillRect(p.x, p.y, 4, 4);
-    
     p.x += p.vx; 
     p.y += p.vy; 
     p.life -= 0.05; 
     ctx.globalAlpha = 1.0;
-    
     if (p.life <= 0) {
       runnerParticles.splice(i, 1);
     }
   }
 
-  ctx.fillStyle = kawaiiActive ? "#ffe4e1" : "#444"; 
+  ctx.fillStyle = floorCol; 
   ctx.fillRect(0, 170, 400, 30);
-  
   ctx.fillStyle = canvasTextColor; 
   ctx.font = "bold 14px 'Courier New', monospace"; 
   ctx.fillText("SCORE: " + score, 10, 20); 
@@ -2373,30 +2411,25 @@ function updateRunner(currentTime) {
     ctx.fillText("Tap to Start", 200, 100); 
     ctx.textAlign = "left"; 
   } else if (gameOver) { 
-    ctx.fillStyle = kawaiiActive ? "#ff1493" : "#ff0000"; 
+    ctx.fillStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "#ff0000"); 
     ctx.font = "bold 24px 'Courier New', monospace"; 
     ctx.textAlign = "center"; 
     ctx.fillText(currentRunnerCrash, 200, 80); 
-    
     ctx.fillStyle = canvasTextColor; 
     ctx.font = "bold 16px 'Courier New', monospace"; 
     ctx.fillText("Final Score: " + score, 200, 110); 
     
     if (Date.now() - runnerDeathTime > 1000) {
       let pulse = Math.floor(Date.now() / 300) % 2 === 0; 
-      
-      ctx.shadowBlur = pulse ? 10 : 0; 
+      ctx.shadowBlur = pulse && !isContrast ? 10 : 0; 
       ctx.shadowColor = neonColor; 
-      ctx.fillStyle = pulse ? (kawaiiActive ? "#ffb6c1" : "#222") : (kawaiiActive ? "#ff1493" : neonColor); 
-      
+      ctx.fillStyle = pulse ? (isContrast ? "#aaaaaa" : (kawaiiActive ? "#ffb6c1" : "#222")) : (isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : neonColor)); 
       ctx.fillRect(100, 130, 200, 30); 
-      
       ctx.shadowBlur = 0; 
-      ctx.fillStyle = pulse ? (kawaiiActive ? "#d11a7a" : neonColor) : (kawaiiActive ? "#fff" : "#000"); 
+      ctx.fillStyle = pulse ? (isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : neonColor)) : (isContrast ? "#ffffff" : (kawaiiActive ? "#fff" : "#000")); 
       ctx.font = "bold 16px 'Courier New', monospace"; 
       ctx.fillText("PLAY AGAIN", 200, 150);
     }
-    
     ctx.textAlign = "left"; 
   }
 }
@@ -2417,14 +2450,11 @@ function spawnTargetParticles(x, y, color) {
 function spawnDuck() {
   duckX = Math.random() * (400 - targetSize);
   duckY = Math.random() * (200 - targetSize);
-  
   let speed = 2 + (targetSpeedMult * 0.5);
   duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
-  
   duckActive = true;
   duckTimer = 100 + Math.random() * 80; 
-  
   currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
 
   if (targetDecoyEnabled && Math.random() < 0.3) {
@@ -2448,114 +2478,96 @@ function spawnDuck() {
 function updateTargetGame(currentTime) {
   if (!ctxTarget) return; 
   if (!targetGameActive) return;
-  
   targetAnimId = requestAnimationFrame(updateTargetGame); 
-
   if (!currentTime) {
     currentTime = performance.now();
   }
-  
   let dt = currentTime - targetLastTime;
   if (dt < FRAME_INTERVAL) return;
-  
   targetLastTime = currentTime - (dt % FRAME_INTERVAL);
-  
   ctxTarget.clearRect(0, 0, 400, 200);
   
-  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
-  const bgCol = kawaiiActive ? "#fff0f5" : "#050510";
-  const lineCol = kawaiiActive ? "rgba(255, 182, 193, 0.4)" : "rgba(0, 255, 255, 0.2)";
+  const isContrast = document.body.classList.contains('a11y-contrast');
+  const canvasTextColor = isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : "#fff");
+  const bgCol = isContrast ? "#ffffff" : (kawaiiActive ? "#fff0f5" : "#050510");
+  const lineCol = isContrast ? "#cccccc" : (kawaiiActive ? "rgba(255, 182, 193, 0.4)" : "rgba(0, 255, 255, 0.2)");
+  const gameNeonColor = isContrast ? "#000000" : neonColor;
   
   if (targetState === 'START') {
     ctxTarget.fillStyle = bgCol; 
     ctxTarget.fillRect(0, 0, 400, 200);
-    
     ctxTarget.strokeStyle = lineCol; 
     ctxTarget.lineWidth = 2;
-    
     for(let i = 0; i <= 400; i += 40) { 
       ctxTarget.beginPath(); 
       ctxTarget.moveTo(i, 0); 
       ctxTarget.lineTo(i, 200); 
       ctxTarget.stroke(); 
     }
-    
     for(let i = 0; i <= 200; i += 40) { 
       ctxTarget.beginPath(); 
       ctxTarget.moveTo(0, i); 
       ctxTarget.lineTo(400, i); 
       ctxTarget.stroke(); 
     }
-    
-    ctxTarget.fillStyle = kawaiiActive ? "rgba(255,228,225,0.8)" : "rgba(0, 0, 0, 0.7)"; 
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255,228,225,0.8)" : "rgba(0, 0, 0, 0.7)"); 
     ctxTarget.fillRect(0,0,400,200);
-    
     ctxTarget.fillStyle = canvasTextColor; 
     ctxTarget.font = "bold 20px 'Courier New', monospace"; 
     ctxTarget.textAlign = "center"; 
     ctxTarget.fillText("MATRIX TARGET SIMULATOR", 200, 80);
-    
     let pulse = Math.floor(Date.now() / 400) % 2 === 0; 
-    ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#ff1493" : "#00ff00") : canvasTextColor; 
+    ctxTarget.fillStyle = pulse ? (isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "#00ff00")) : canvasTextColor; 
     ctxTarget.font = "bold 14px 'Courier New', monospace"; 
     ctxTarget.fillText("Select Difficulty below, then Tap to Start", 200, 120); 
-    
     ctxTarget.textAlign = "left"; 
     return;
   }
 
   if (targetState === 'GAMEOVER') {
-    ctxTarget.fillStyle = kawaiiActive ? "rgba(255, 228, 225, 0.85)" : "rgba(50, 0, 0, 0.85)"; 
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255, 228, 225, 0.85)" : "rgba(50, 0, 0, 0.85)"); 
     ctxTarget.fillRect(0, 0, 400, 200);
     
-    for (let i = 0; i < 20; i++) { 
-      ctxTarget.strokeStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.5})` : `rgba(255, 0, 0, ${Math.random() * 0.5})`; 
-      ctxTarget.strokeRect(Math.random() * 400, Math.random() * 200, Math.random() * 40, Math.random() * 40); 
+    if (!isContrast) {
+      for (let i = 0; i < 20; i++) { 
+        ctxTarget.strokeStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.5})` : `rgba(255, 0, 0, ${Math.random() * 0.5})`; 
+        ctxTarget.strokeRect(Math.random() * 400, Math.random() * 200, Math.random() * 40, Math.random() * 40); 
+      }
     }
     
-    ctxTarget.fillStyle = kawaiiActive ? "#ff1493" : "#ff0000"; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "#ff0000"); 
     ctxTarget.font = "bold 24px 'Courier New', monospace"; 
     ctxTarget.textAlign = "center"; 
     ctxTarget.fillText(currentTargetCrash, 200, 80);
-    
     ctxTarget.fillStyle = canvasTextColor; 
     ctxTarget.font = "bold 16px 'Courier New', monospace"; 
     ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
-    
     if (Date.now() - targetDeathTime > 1000) { 
       let pulse = Math.floor(Date.now() / 300) % 2 === 0; 
-      
-      ctxTarget.shadowBlur = pulse ? 10 : 0; 
+      ctxTarget.shadowBlur = pulse && !isContrast ? 10 : 0; 
       ctxTarget.shadowColor = neonColor; 
-      ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#ffb6c1" : "#222") : (kawaiiActive ? "#ff1493" : neonColor); 
-      
+      ctxTarget.fillStyle = pulse ? (isContrast ? "#aaaaaa" : (kawaiiActive ? "#ffb6c1" : "#222")) : (isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : neonColor)); 
       ctxTarget.fillRect(100, 130, 200, 30); 
-      
       ctxTarget.shadowBlur = 0; 
-      ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#d11a7a" : neonColor) : (kawaiiActive ? "#fff" : "#000"); 
+      ctxTarget.fillStyle = pulse ? (isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : neonColor)) : (isContrast ? "#ffffff" : (kawaiiActive ? "#fff" : "#000")); 
       ctxTarget.font = "bold 16px 'Courier New', monospace"; 
       ctxTarget.fillText("PLAY AGAIN", 200, 150); 
     }
-    
     ctxTarget.textAlign = "left"; 
     return;
   }
 
   ctxTarget.fillStyle = bgCol; 
   ctxTarget.fillRect(0, 0, 400, 200);
-  
   ctxTarget.strokeStyle = lineCol; 
   ctxTarget.lineWidth = 2;
-  
   let timeOffset = (Date.now() / 20) % 40;
-  
   for(let i = -40; i < 200; i += 40) { 
     ctxTarget.beginPath(); 
     ctxTarget.moveTo(0, i + timeOffset); 
     ctxTarget.lineTo(400, i + timeOffset); 
     ctxTarget.stroke(); 
   }
-  
   for(let i = 0; i <= 400; i += 40) { 
     ctxTarget.beginPath(); 
     ctxTarget.moveTo(i, 0); 
@@ -2566,35 +2578,27 @@ function updateTargetGame(currentTime) {
   if (duckActive) {
     duckX += duckVelX; 
     duckY += duckVelY;
-    
     if (duckX <= 0 || duckX + targetSize >= 400) duckVelX *= -1; 
     if (duckY <= 0 || duckY + targetSize >= 200) duckVelY *= -1;
-    
     let radius = targetSize / 2; 
     let centerX = duckX + radius; 
     let centerY = duckY + radius;
-    
-    ctxTarget.fillStyle = currentDuckColor; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : currentDuckColor; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(centerX, centerY, radius, 0, Math.PI*2); 
     ctxTarget.fill();
-    
-    ctxTarget.fillStyle = "#000"; 
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : "#000"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(centerX, centerY, radius * 0.6, 0, Math.PI*2); 
     ctxTarget.fill();
-    
-    ctxTarget.fillStyle = currentDuckColor; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : currentDuckColor; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(centerX, centerY, radius * 0.2, 0, Math.PI*2); 
     ctxTarget.fill();
-    
     if (!targetFreeze) duckTimer--; 
-    
     if (duckTimer <= 0) { 
       duckActive = false; 
       targetLives--; 
-      
       if (targetLives <= 0) { 
         if (targetState !== 'GAMEOVER') { 
           targetState = 'GAMEOVER'; 
@@ -2604,21 +2608,16 @@ function updateTargetGame(currentTime) {
         } 
       } 
     }
-    
     if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
       targetScore++; 
-      targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
-      spawnTargetParticles(centerX, centerY, currentDuckColor);
-      
+      targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 0, b: 0}); 
+      spawnTargetParticles(centerX, centerY, isContrast ? "#000000" : currentDuckColor);
       if (targetScore > 0 && targetScore % 5 === 0) { targetSpeedMult += 1; }
       if (targetScore > targetHighScore) { 
         targetHighScore = targetScore; 
         try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
       }
-      
       duckActive = false; 
-      ctxTarget.fillStyle = kawaiiActive ? "rgba(255,182,193,0.5)" : "rgba(255, 255, 255, 0.5)"; 
-      ctxTarget.fillRect(0, 0, 400, 200);
     }
   } else { 
     if (Math.random() < 0.05) { spawnDuck(); } 
@@ -2627,89 +2626,71 @@ function updateTargetGame(currentTime) {
   if (goldenActive) {
     goldenX += goldenVx; 
     goldenY += goldenVy;
-    
     if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1; 
     if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
-    
     let gRadius = targetSize / 2; 
     let gCx = goldenX + gRadius; 
     let gCy = goldenY + gRadius;
-
-    ctxTarget.shadowBlur = 15; 
+    ctxTarget.shadowBlur = isContrast ? 0 : 15; 
     ctxTarget.shadowColor = "#FFD700"; 
-    ctxTarget.fillStyle = "#FFD700"; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : "#FFD700"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(gCx, gCy, gRadius, 0, Math.PI*2); 
     ctxTarget.fill();
-    
-    ctxTarget.fillStyle = "#fff"; 
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : "#fff"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(gCx, gCy, gRadius * 0.6, 0, Math.PI*2); 
     ctxTarget.fill();
-    
-    ctxTarget.fillStyle = "#FFD700"; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : "#FFD700"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(gCx, gCy, gRadius * 0.2, 0, Math.PI*2); 
     ctxTarget.fill(); 
     ctxTarget.shadowBlur = 0;
-    
     if (!targetFreeze) goldenTimer--; 
     if (goldenTimer <= 0) goldenActive = false; 
-    
     if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
       targetScore += 2; 
-      targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
-      spawnTargetParticles(gCx, gCy, "#FFD700");
-      
+      targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 0, g: 0, b: 0}); 
+      spawnTargetParticles(gCx, gCy, isContrast ? "#000000" : "#FFD700");
       if (targetScore > targetHighScore) { 
         targetHighScore = targetScore; 
         try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
       }
-      
       goldenActive = false; 
-      ctxTarget.fillStyle = kawaiiActive ? "rgba(255,182,193,0.5)" : "rgba(255, 255, 255, 0.5)"; 
-      ctxTarget.fillRect(0, 0, 400, 200);
     }
   }
 
   if (decoyActive) {
     decoyX += decoyVx; 
     decoyY += decoyVy;
-    
     if (decoyX <= 0 || decoyX + targetSize >= 400) decoyVx *= -1; 
     if (decoyY <= 0 || decoyY + targetSize >= 200) decoyVy *= -1;
-    
     let dRadius = targetSize / 2; 
     let dCx = decoyX + dRadius; 
     let dCy = decoyY + dRadius;
-    
-    ctxTarget.fillStyle = "#ff0000"; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : "#ff0000"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(dCx, dCy, dRadius, 0, Math.PI*2); 
     ctxTarget.fill();
-    
-    ctxTarget.fillStyle = "#000"; 
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : "#000"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(dCx, dCy, dRadius * 0.6, 0, Math.PI*2); 
     ctxTarget.fill();
-    
-    ctxTarget.fillStyle = "#ff0000"; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : "#ff0000"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(dCx, dCy, dRadius * 0.2, 0, Math.PI*2); 
     ctxTarget.fill();
-    
     if (!targetFreeze) decoyTimer--; 
     if (decoyTimer <= 0) decoyActive = false; 
   }
 
   for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
     let f = targetFloatingScores[i];
-    ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`; 
+    ctxTarget.fillStyle = isContrast ? "#000000" : `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`; 
     ctxTarget.font = "bold 16px 'Courier New', monospace"; 
     ctxTarget.fillText(f.text, f.x, f.y);
     f.y -= 1; 
     f.alpha -= 0.02; 
-    
     if (f.alpha <= 0) {
       targetFloatingScores.splice(i, 1); 
     }
@@ -2720,12 +2701,10 @@ function updateTargetGame(currentTime) {
     ctxTarget.fillStyle = p.color; 
     ctxTarget.globalAlpha = p.life; 
     ctxTarget.fillRect(p.x, p.y, 3, 3);
-    
     p.x += p.vx; 
     p.y += p.vy; 
     p.life -= 0.05; 
     ctxTarget.globalAlpha = 1.0;
-    
     if (p.life <= 0) {
       targetParticles.splice(i, 1);
     }
@@ -2736,13 +2715,13 @@ function updateTargetGame(currentTime) {
   ctxTarget.lineTo(mouseX + 15, mouseY); 
   ctxTarget.moveTo(mouseX, mouseY - 15); 
   ctxTarget.lineTo(mouseX, mouseY + 15);
-  ctxTarget.strokeStyle = kawaiiActive ? "#ff1493" : neonColor; 
+  ctxTarget.strokeStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : neonColor); 
   ctxTarget.lineWidth = 1; 
   ctxTarget.stroke();
   ctxTarget.beginPath(); 
   ctxTarget.arc(mouseX, mouseY, 8, 0, Math.PI*2); 
   ctxTarget.stroke();
-
+  
   ctxTarget.fillStyle = canvasTextColor; 
   ctxTarget.font = "bold 14px 'Courier New', monospace"; 
   ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
@@ -2758,10 +2737,8 @@ function initTetris() {
   tetrisGameOver = false;
   tetrisFloaters = [];
   nextPiece = null;
-  
   let speedInput = document.getElementById('modTetrisSpeed');
   if (speedInput) tetrisSpeedMod = parseInt(speedInput.value);
-  
   tReset(); 
   tReset(); 
 }
@@ -2769,7 +2746,6 @@ function initTetris() {
 function tCollide(board, player) {
   const m = player.matrix;
   const o = player.pos;
-  
   for (let y = 0; y < m.length; ++y) {
     for (let x = 0; x < m[y].length; ++x) {
       if (m[y][x] !== 0 && (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
@@ -2793,15 +2769,12 @@ function tMerge() {
 function tReset() {
   const pieces = '1234567'; 
   const type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
-  
   if (!nextPiece) {
     nextPiece = { matrix: T_SHAPES[type], pos: {x: 0, y: 0} };
   }
-  
   currentPiece = nextPiece;
   currentPiece.pos.y = 0;
   currentPiece.pos.x = Math.floor((10 / 2) - (currentPiece.matrix[0].length / 2));
-  
   const nextType = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
   nextPiece = { matrix: T_SHAPES[nextType], pos: {x: 0, y: 0} };
 
@@ -2839,7 +2812,6 @@ function tRotate() {
   const pos = currentPiece.pos.x;
   let offset = 1;
   tRotateMatrix(currentPiece.matrix);
-  
   while (tCollide(tetrisGrid, currentPiece)) {
     currentPiece.pos.x += offset;
     offset = -(offset + (offset > 0 ? 1 : -1));
@@ -2867,28 +2839,23 @@ function tRotateMatrix(matrix, dir = 1) {
 function tSweep() {
   let rowCount = 1;
   let linesCleared = 0;
-  
   outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
     for (let x = 0; x < tetrisGrid[y].length; ++x) {
       if (tetrisGrid[y][x] === 0) {
         continue outer; 
       }
     }
-    
     const row = tetrisGrid.splice(y, 1)[0].fill(0);
     tetrisGrid.unshift(row);
     ++y;
-    
     tetrisScore += (rowCount * 10) * tetrisScoreMult;
     rowCount *= 2;
     linesCleared++;
   }
-  
   if (linesCleared > 0) {
       tetrisLines += linesCleared;
       tetrisLevel = Math.floor(tetrisLines / 10) + 1;
       tetrisFloaters.push({x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!"});
-      
       if (tetrisScore > tetrisHighScore) {
           tetrisHighScore = tetrisScore;
           try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){}
@@ -2899,44 +2866,45 @@ function tSweep() {
 function updateTetris(currentTime) {
   if (!ctxTetris) return; 
   if (!tetrisActive) return;
-  
   tetrisAnimId = requestAnimationFrame(updateTetris); 
-
   if (!currentTime) {
     currentTime = performance.now();
   }
-  
   let dt = currentTime - tetrisLastTime;
   if (dt < FRAME_INTERVAL) return;
-  
   tetrisLastTime = currentTime - (dt % FRAME_INTERVAL);
   
-  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
+  const isContrast = document.body.classList.contains('a11y-contrast');
+  const canvasTextColor = isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : "#fff");
+  const gameNeonColor = isContrast ? "#000000" : neonColor;
   
-  ctxTetris.fillStyle = kawaiiActive ? '#fffafa' : '#000000'; 
+  ctxTetris.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? '#fffafa' : '#000000'); 
   ctxTetris.fillRect(0, 0, 400, 400);
   
-  ctxTetris.fillStyle = kawaiiActive ? 'rgba(255, 182, 193, 0.8)' : 'rgba(255, 255, 255, 0.4)';
-  
-  tetrisStars.forEach(star => { 
-    star.y += star.v; 
-    if (star.y > 400) { 
-      star.y = 0; 
-      star.x = Math.random() * 400; 
-    } 
-    ctxTetris.fillRect(star.x, star.y, star.s, star.s); 
-  });
+  if (!isContrast) {
+    ctxTetris.fillStyle = kawaiiActive ? 'rgba(255, 182, 193, 0.8)' : 'rgba(255, 255, 255, 0.4)';
+    tetrisStars.forEach(star => { 
+      star.y += star.v; 
+      if (star.y > 400) { 
+        star.y = 0; 
+        star.x = Math.random() * 400; 
+      } 
+      ctxTetris.fillRect(star.x, star.y, star.s, star.s); 
+    });
+  }
 
   if (tetrisGameOver) {
-    ctxTetris.fillStyle = kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 20, 20, 0.85)"; 
+    ctxTetris.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 20, 20, 0.85)"); 
     ctxTetris.fillRect(0, 0, 400, 400);
     
-    for(let i = 0; i < 20; i++) { 
-      ctxTetris.fillStyle = kawaiiActive ? `rgba(255, 182, 193, ${Math.random() * 0.3})` : `rgba(0, 255, 255, ${Math.random() * 0.3})`; 
-      ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20); 
+    if (!isContrast) {
+      for(let i = 0; i < 20; i++) { 
+        ctxTetris.fillStyle = kawaiiActive ? `rgba(255, 182, 193, ${Math.random() * 0.3})` : `rgba(0, 255, 255, ${Math.random() * 0.3})`; 
+        ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20); 
+      }
     }
     
-    ctxTetris.fillStyle = kawaiiActive ? "#ff1493" : "cyan"; 
+    ctxTetris.fillStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "cyan"); 
     ctxTetris.font = "bold 24px 'Courier New', monospace"; 
     ctxTetris.textAlign = "center"; 
     ctxTetris.fillText(tetrisCrashMsg, 200, 160); 
@@ -2947,33 +2915,27 @@ function updateTetris(currentTime) {
     
     if (Date.now() - tetrisDeathTime > 1000) { 
       let pulse = Math.floor(Date.now() / 300) % 2 === 0; 
-      
-      ctxTetris.shadowBlur = pulse ? 10 : 0; 
-      ctxTetris.shadowColor = neonColor; 
-      ctxTetris.fillStyle = pulse ? (kawaiiActive ? "#ffb6c1" : "#222") : (kawaiiActive ? "#ff1493" : neonColor); 
-      
+      ctxTetris.shadowBlur = pulse && !isContrast ? 10 : 0; 
+      ctxTetris.shadowColor = gameNeonColor; 
+      ctxTetris.fillStyle = pulse ? (isContrast ? "#aaaaaa" : (kawaiiActive ? "#ffb6c1" : "#222")) : (isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : gameNeonColor)); 
       ctxTetris.fillRect(100, 240, 200, 30); 
       ctxTetris.shadowBlur = 0; 
-      
-      ctxTetris.fillStyle = pulse ? (kawaiiActive ? "#d11a7a" : neonColor) : (kawaiiActive ? "#fff" : "#000"); 
+      ctxTetris.fillStyle = pulse ? (isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : gameNeonColor)) : (isContrast ? "#ffffff" : (kawaiiActive ? "#fff" : "#000")); 
       ctxTetris.font = "bold 16px 'Courier New', monospace"; 
       ctxTetris.fillText("PLAY AGAIN", 200, 260); 
     }
-    
     ctxTetris.textAlign = "left"; 
     return;
   }
 
-  ctxTetris.strokeStyle = kawaiiActive ? 'rgba(255, 105, 180, 0.4)' : 'rgba(255, 255, 255, 0.4)'; 
+  ctxTetris.strokeStyle = isContrast ? "#cccccc" : (kawaiiActive ? 'rgba(255, 105, 180, 0.4)' : 'rgba(255, 255, 255, 0.4)'); 
   ctxTetris.lineWidth = 1;
-  
   for(let i = 100; i <= 300; i += 20) { 
     ctxTetris.beginPath(); 
     ctxTetris.moveTo(i, 0); 
     ctxTetris.lineTo(i, 400); 
     ctxTetris.stroke(); 
   } 
-  
   for(let i = 0; i <= 400; i += 20) { 
     ctxTetris.beginPath(); 
     ctxTetris.moveTo(100, i); 
@@ -2985,10 +2947,10 @@ function updateTetris(currentTime) {
   tetrisGrid.forEach((row, y) => { 
     row.forEach((value, x) => { 
       if (value !== 0) { 
-        let blockColor = tetrisRainbow ? `hsl(${Math.floor(time + (x + y) * 15) % 360}, 100%, 50%)` : T_COLORS[value]; 
+        let blockColor = isContrast ? "#000000" : (tetrisRainbow ? `hsl(${Math.floor(time + (x + y) * 15) % 360}, 100%, 50%)` : T_COLORS[value]); 
         ctxTetris.fillStyle = blockColor; 
         ctxTetris.fillRect(100 + x * 20, y * 20, 20, 20); 
-        ctxTetris.strokeStyle = "#fff"; 
+        ctxTetris.strokeStyle = isContrast ? "#ffffff" : "#fff"; 
         ctxTetris.strokeRect(100 + x * 20, y * 20, 20, 20); 
       } 
     });
@@ -2999,14 +2961,12 @@ function updateTetris(currentTime) {
     while (!tCollide(tetrisGrid, {matrix: currentPiece.matrix, pos: {x: currentPiece.pos.x, y: ghostY + 1}})) { 
       ghostY++; 
     }
-    
     currentPiece.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value !== 0) {
-          ctxTetris.fillStyle = kawaiiActive ? "rgba(255, 105, 180, 0.2)" : "rgba(255, 255, 255, 0.2)";
+          ctxTetris.fillStyle = isContrast ? "rgba(0,0,0,0.2)" : (kawaiiActive ? "rgba(255, 105, 180, 0.2)" : "rgba(255, 255, 255, 0.2)");
           ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
-          
-          ctxTetris.strokeStyle = kawaiiActive ? "rgba(255, 105, 180, 0.5)" : "rgba(255, 255, 255, 0.5)";
+          ctxTetris.strokeStyle = isContrast ? "rgba(0,0,0,0.5)" : (kawaiiActive ? "rgba(255, 105, 180, 0.5)" : "rgba(255, 255, 255, 0.5)");
           ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
         }
       });
@@ -3016,10 +2976,10 @@ function updateTetris(currentTime) {
   currentPiece.matrix.forEach((row, y) => { 
     row.forEach((value, x) => { 
       if (value !== 0) { 
-        let blockColor = tetrisRainbow ? `hsl(${Math.floor(time + (x + currentPiece.pos.x + y + currentPiece.pos.y) * 15) % 360}, 100%, 50%)` : T_COLORS[value]; 
+        let blockColor = isContrast ? "#000000" : (tetrisRainbow ? `hsl(${Math.floor(time + (x + currentPiece.pos.x + y + currentPiece.pos.y) * 15) % 360}, 100%, 50%)` : T_COLORS[value]); 
         ctxTetris.fillStyle = blockColor; 
         ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + currentPiece.pos.y) * 20, 20, 20); 
-        ctxTetris.strokeStyle = "#fff"; 
+        ctxTetris.strokeStyle = isContrast ? "#ffffff" : "#fff"; 
         ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + currentPiece.pos.y) * 20, 20, 20); 
       } 
     });
@@ -3027,21 +2987,16 @@ function updateTetris(currentTime) {
 
   for (let i = tetrisFloaters.length - 1; i >= 0; i--) {
     let f = tetrisFloaters[i];
-    
-    ctxTetris.shadowBlur = 10; 
+    ctxTetris.shadowBlur = isContrast ? 0 : 10; 
     ctxTetris.shadowColor = kawaiiActive ? "#ff1493" : "#00FFFF"; 
-    
-    ctxTetris.fillStyle = kawaiiActive ? `rgba(209, 26, 122, ${f.alpha})` : `rgba(0, 255, 255, ${f.alpha})`; 
+    ctxTetris.fillStyle = isContrast ? `rgba(0, 0, 0, ${f.alpha})` : (kawaiiActive ? `rgba(209, 26, 122, ${f.alpha})` : `rgba(0, 255, 255, ${f.alpha})`); 
     ctxTetris.font = "bold 24px 'Courier New', monospace"; 
     ctxTetris.textAlign = "center"; 
     ctxTetris.fillText(f.text, f.x, f.y); 
-    
     ctxTetris.shadowBlur = 0; 
     ctxTetris.textAlign = "left";
-    
     f.y -= 1; 
     f.alpha -= 0.02; 
-    
     if (f.alpha <= 0) { 
       tetrisFloaters.splice(i, 1); 
     }
@@ -3049,32 +3004,26 @@ function updateTetris(currentTime) {
 
   tetrisDropCounter++; 
   let limit = tetrisSlow ? 200 : 60 - (tetrisSpeedMod * 4); 
-  
   if (!tetrisSlow && limit < 5) limit = 5; 
   if (tetrisDropCounter > limit && !tetrisLock) { 
     tDrop(); 
   }
 
   function tHud(lx,ly,lw,lh,label,val,c){ 
-    let hudBg = kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)';
-    let hudBorder = kawaiiActive ? '#ff69b4' : c; 
-    let hudTextCol = (c === 'cyan' && kawaiiActive) ? '#d11a7a' : c;
-    
+    let hudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)');
+    let hudBorder = isContrast ? '#000000' : (kawaiiActive ? '#ff69b4' : c); 
+    let hudTextCol = isContrast ? '#000000' : ((c === 'cyan' && kawaiiActive) ? '#d11a7a' : c);
     ctxTetris.fillStyle = hudBg; 
     ctxTetris.fillRect(lx,ly,lw,lh); 
-    
     ctxTetris.strokeStyle = hudBorder; 
     ctxTetris.lineWidth = 1.5; 
     ctxTetris.strokeRect(lx,ly,lw,lh); 
-    
     ctxTetris.fillStyle = hudTextCol; 
     ctxTetris.font = 'bold 9px monospace'; 
     ctxTetris.textAlign = 'center'; 
     ctxTetris.fillText(label,lx+lw/2,ly+12); 
-    
     ctxTetris.font = 'bold 13px monospace'; 
     ctxTetris.fillText(String(val),lx+lw/2,ly+28); 
-    
     ctxTetris.textAlign = 'left'; 
     ctxTetris.lineWidth = 1; 
   }
@@ -3084,22 +3033,18 @@ function updateTetris(currentTime) {
   tHud(4, 90, 43, 34, 'LVL', tetrisLevel, '#00ff88'); 
   tHud(51, 90, 43, 34, 'LINES', tetrisLines, '#ffaa00');
 
-  let nHudBg = kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)'; 
-  let nHudBorder = kawaiiActive ? '#ff69b4' : 'cyan'; 
-  let nHudText = kawaiiActive ? '#d11a7a' : 'cyan';
-  
+  let nHudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)'); 
+  let nHudBorder = isContrast ? '#000000' : (kawaiiActive ? '#ff69b4' : 'cyan'); 
+  let nHudText = isContrast ? '#000000' : (kawaiiActive ? '#d11a7a' : 'cyan');
   ctxTetris.fillStyle = nHudBg; 
   ctxTetris.fillRect(307,10,88,88); 
-  
   ctxTetris.strokeStyle = nHudBorder; 
   ctxTetris.lineWidth = 1.5; 
   ctxTetris.strokeRect(307,10,88,88); 
-  
   ctxTetris.fillStyle = nHudText; 
   ctxTetris.font = 'bold 9px monospace'; 
   ctxTetris.textAlign = 'center'; 
   ctxTetris.fillText('NEXT',351,23); 
-  
   ctxTetris.textAlign = 'left'; 
   ctxTetris.lineWidth = 1;
   
@@ -3108,15 +3053,13 @@ function updateTetris(currentTime) {
     const bs = 14; 
     const ox = 351-(nm[0].length*bs)/2; 
     const oy = 58-(nm.length*bs)/2;
-    
     nm.forEach((row,y)=>{ 
       row.forEach((val,x)=>{ 
         if(val!==0){ 
-          let nc = tetrisRainbow ? `hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)` : T_COLORS[val]; 
+          let nc = isContrast ? "#000000" : (tetrisRainbow ? `hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)` : T_COLORS[val]); 
           ctxTetris.fillStyle = nc; 
           ctxTetris.fillRect(ox+x*bs,oy+y*bs,bs-1,bs-1); 
-          
-          ctxTetris.strokeStyle = '#fff'; 
+          ctxTetris.strokeStyle = isContrast ? "#ffffff" : '#fff'; 
           ctxTetris.lineWidth = 0.5; 
           ctxTetris.strokeRect(ox+x*bs,oy+y*bs,bs-1,bs-1); 
         } 
@@ -3126,7 +3069,6 @@ function updateTetris(currentTime) {
   ctxTetris.lineWidth = 1; 
 }
 
-// Start Cyber Runner immediately when the script executes so it's ready
 if (ctx) {
   runnerLastTime = performance.now();
   if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
