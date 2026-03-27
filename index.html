@@ -885,7 +885,7 @@ window.switchGame = function(mode) {
     document.getElementById('jumpGame').style.display = 'block'; document.getElementById('runnerControls').style.display = 'flex'; 
     document.getElementById('gamePrompt').style.display = 'block'; document.getElementById('secretText').style.display = 'block';
     document.getElementById('gameTitle').innerText = "Cyber Runner Game"; document.getElementById('gameTitle').style.color = "var(--neon-color)";
-    gameStarted = false; gameOver = false; playerY = 150; velocity = 0; runnerObstacles = []; runnerParticles = []; score = 0;
+    gameStarted = false; gameOver = false; isJumping = false; playerY = 150; velocity = 0; runnerObstacles = []; runnerParticles = []; score = 0;
     
     runnerLastTime = now;
     runnerAnimId = requestAnimationFrame(updateRunner);
@@ -1905,38 +1905,40 @@ function updateTetris(currentTime) {
 // RUNNER GAME FUNCTIONS
 // ==========================================================================
 function jump() {
+  if (!gameStarted || gameOver) {
+    if (gameOver && Date.now() - runnerDeathTime < 1000) return;
+    
+    gameStarted = true;
+    gameOver = false;
+    score = 0;
+    runnerObstacles = [];
+    runnerParticles = [];
+    playerY = 150;
+    
+    isJumping = true;
+    velocity = -currentJumpPower;
+    return; 
+  }
+
   if (!isJumping) {
     isJumping = true;
     velocity = -currentJumpPower;
-    
-    if (!gameStarted || gameOver) {
-      gameStarted = true;
-      gameOver = false;
-      score = 0;
-      runnerObstacles = [];
-      runnerParticles = [];
-      playerY = 150;
-    }
   }
 }
 
 function drawDino(ctx, x, y, frame) {
   ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
   
-  // Draw main body (square)
   ctx.fillRect(x, y, 20, 20);
   
-  // Draw eye
   ctx.fillStyle = "#fff";
   ctx.fillRect(x + 12, y + 4, 4, 4);
   
-  // Draw legs
   ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
   if (isJumping) {
     ctx.fillRect(x + 2, y + 20, 6, 6);
     ctx.fillRect(x + 12, y + 20, 6, 6);
   } else {
-    // Alternate legs for running animation
     if (Math.floor(frame / 5) % 2 === 0) {
       ctx.fillRect(x + 2, y + 20, 6, 6);
     } else {
@@ -1957,12 +1959,10 @@ function spawnDuck() {
   duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
   
   duckActive = true;
-  duckTimer = 60 + Math.random() * 60; // Frames before it vanishes
+  duckTimer = 60 + Math.random() * 60; 
   
-  // Pick random color
   currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
 
-  // Random chance to spawn decoy (red target that takes away points)
   if (targetDecoyEnabled && Math.random() < 0.3) {
     decoyX = Math.random() * (400 - targetSize);
     decoyY = Math.random() * (200 - targetSize);
@@ -1971,7 +1971,6 @@ function spawnDuck() {
     decoyActive = true;
     decoyTimer = 80;
   } 
-  // Random chance to spawn golden target (extra points)
   else if (Math.random() < 0.1) {
     goldenX = Math.random() * (400 - targetSize);
     goldenY = Math.random() * (200 - targetSize);
@@ -1986,7 +1985,6 @@ function spawnDuck() {
 // TETRIS ENGINE FUNCTIONS
 // ==========================================================================
 function initTetris() {
-  // Create an empty 20x10 grid
   tetrisGrid = Array.from({length: 20}, () => Array(10).fill(0));
   tetrisScore = 0;
   tetrisLines = 0;
@@ -1998,8 +1996,8 @@ function initTetris() {
   let speedInput = document.getElementById('modTetrisSpeed');
   if (speedInput) tetrisSpeedMod = parseInt(speedInput.value);
   
-  tReset(); // Load first piece
-  tReset(); // Load next piece into queue
+  tReset(); 
+  tReset(); 
 }
 
 function tCollide(board, player) {
@@ -2028,7 +2026,7 @@ function tMerge() {
 }
 
 function tReset() {
-  const pieces = '1234567'; // Indexes for T_SHAPES
+  const pieces = '1234567'; 
   const type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
   
   if (!nextPiece) {
@@ -2044,7 +2042,7 @@ function tReset() {
 
   if (tCollide(tetrisGrid, currentPiece)) {
     if (tetrisGodMode) {
-        tetrisGrid.forEach(row => row.fill(0)); // Clear board to prevent game over
+        tetrisGrid.forEach(row => row.fill(0)); 
     } else {
         tetrisGameOver = true;
         tetrisDeathTime = Date.now();
@@ -2057,7 +2055,7 @@ function tReset() {
 function tDrop() {
   currentPiece.pos.y++;
   if (tCollide(tetrisGrid, currentPiece)) {
-    currentPiece.pos.y--; // Move back up one space
+    currentPiece.pos.y--; 
     tMerge();
     tReset();
     tSweep();
@@ -2068,7 +2066,7 @@ function tDrop() {
 function tMove(dir) {
   currentPiece.pos.x += dir;
   if (tCollide(tetrisGrid, currentPiece)) {
-    currentPiece.pos.x -= dir; // Cancel movement if hitting a wall
+    currentPiece.pos.x -= dir; 
   }
 }
 
@@ -2077,12 +2075,11 @@ function tRotate() {
   let offset = 1;
   tRotateMatrix(currentPiece.matrix);
   
-  // Wall kick logic (pushes piece away from wall if rotated into it)
   while (tCollide(tetrisGrid, currentPiece)) {
     currentPiece.pos.x += offset;
     offset = -(offset + (offset > 0 ? 1 : -1));
     if (offset > currentPiece.matrix[0].length) {
-      tRotateMatrix(currentPiece.matrix, -1); // Rotate back if stuck
+      tRotateMatrix(currentPiece.matrix, -1); 
       currentPiece.pos.x = pos;
       return;
     }
@@ -2109,11 +2106,10 @@ function tSweep() {
   outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
     for (let x = 0; x < tetrisGrid[y].length; ++x) {
       if (tetrisGrid[y][x] === 0) {
-        continue outer; // Skip row if it has empty spaces
+        continue outer; 
       }
     }
     
-    // Remove solid row and add empty row at top
     const row = tetrisGrid.splice(y, 1)[0].fill(0);
     tetrisGrid.unshift(row);
     ++y;
