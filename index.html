@@ -329,7 +329,9 @@ canvas {
   width: 100%; 
   max-width: 400px; 
   touch-action: none; 
-  cursor: pointer; 
+  user-select: none;
+  -webkit-user-drag: none;
+  cursor: crosshair; 
   box-shadow: 0 0 15px rgba(255, 0, 255, 0.2); 
 }
 
@@ -664,7 +666,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   <div class="game-screen-wrapper" id="gameScreenWrapper">
     <div class="crt-overlay" id="crtOverlayElement"></div>
     <canvas id="jumpGame" width="400" height="200"></canvas>
-    <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
+    <canvas id="targetGame" width="400" height="200" style="display: none;"></canvas>
     <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
   </div>
 
@@ -908,7 +910,7 @@ input[type=range]::-webkit-slider-thumb:hover {
 // ==========================================================================
 // 1. GLOBAL VARIABLES & UTILITIES
 // ==========================================================================
-const FRAME_INTERVAL = 1000 / 60; // 60 FPS lock
+const FRAME_INTERVAL = 1000 / 60;
 
 let runnerLastTime = 0;
 let targetLastTime = 0;
@@ -949,7 +951,6 @@ const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS",
 const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "TOO SLOW", "SIGNAL LOST"];
 const tetrisCrashMessages = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR", "TETROMINO JAM", "OUT OF MEMORY"];
 
-// Cyber Runner Variables
 let currentGravity = 0.85;
 let currentJumpPower = 11.5;
 let currentBaseSpeed = 5.0;
@@ -968,7 +969,6 @@ let currentRunnerCrash = "";
 let runnerObstacles = [];
 let runnerParticles = []; 
 
-// Target Simulator Variables
 let targetState = 'START';
 let targetScore = 0;
 let targetSpeedMult = 5; 
@@ -991,7 +991,6 @@ let mouseX = 200, mouseY = 100;
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
 let currentDuckColor = rainbowColors[0];
 
-// Tetris Variables
 let tetrisGrid = []; 
 let tetrisScore = 0; 
 let tetrisGameOver = false; 
@@ -1162,6 +1161,35 @@ window.onload = () => {
     document.getElementById('kawaiiToggle')?.click(); 
   }
 };
+
+document.addEventListener("DOMContentLoaded", () => {
+  const techTips = [
+    "Isolate your smart home devices on a separate <b>VLAN</b> to prevent them from accessing your private computers.",
+    "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
+    "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
+    "Applying fresh <b>thermal paste</b> every few years prevents processor throttling.",
+    "Set up <b>WireGuard VPN</b> on your router to safely access your home lab from public Wi-Fi."
+  ];
+  const tipElement = document.getElementById("techTipText");
+  if (tipElement) {
+    const now = new Date();
+    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
+    tipElement.innerHTML = techTips[dayOfYear % techTips.length];
+  }
+  const jokes = [
+    "I would tell you a UDP joke, but you might not get it.", 
+    "Why do programmers prefer dark mode? Because light attracts bugs."
+  ];
+  const footer = document.querySelector("footer");
+  if (footer) {
+    const jokeElement = document.createElement("p"); 
+    jokeElement.style.fontSize = "0.8em"; 
+    jokeElement.style.color = "#888"; 
+    jokeElement.style.marginTop = "10px";
+    jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)]; 
+    footer.appendChild(jokeElement);
+  }
+});
 
 // ==========================================================================
 // 2. MENU AND MOD LOGIC
@@ -1637,7 +1665,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================================================
-// 4. EVENT LISTENERS
+// 4. EVENT LISTENERS & INTERACTION
 // ==========================================================================
 function startTargetGame() {
   targetState = 'PLAYING'; 
@@ -1763,29 +1791,27 @@ if (canvas) {
 }
 
 if (targetCanvas) {
-  targetCanvas.addEventListener('mousemove', e => {
+  targetCanvas.addEventListener('pointermove', e => {
+    e.preventDefault();
     const rect = targetCanvas.getBoundingClientRect();
     mouseX = (e.clientX - rect.left) * (targetCanvas.width / rect.width);
     mouseY = (e.clientY - rect.top) * (targetCanvas.height / rect.height);
-    if (targetState === 'PLAYING') {
-      targetCanvas.style.cursor = 'none'; 
-    } else {
-      targetCanvas.style.cursor = 'crosshair'; 
-    }
   });
 
   targetCanvas.addEventListener("pointerdown", (e) => { 
     e.preventDefault();
+    targetCanvas.setPointerCapture(e.pointerId);
+
     if (targetState === 'GAMEOVER') { 
       if (Date.now() - targetDeathTime < 1000) return; 
       targetState = 'START';
     } else if (targetState === 'START') {
       startTargetGame();
     } else if (targetState === 'PLAYING') {
-      let hitNormal = false; 
       let hitGolden = false; 
       let hitDecoy = false;
       let hitPad = 15;
+      
       if (goldenActive && mouseX >= goldenX - hitPad && mouseX <= goldenX + targetSize + hitPad && mouseY >= goldenY - hitPad && mouseY <= goldenY + targetSize + hitPad) {
         hitGolden = true; 
         targetScore += 2; 
@@ -1806,7 +1832,6 @@ if (targetCanvas) {
         triggerShake();
       }
       else if (duckActive && mouseX >= duckX - hitPad && mouseX <= duckX + targetSize + hitPad && mouseY >= duckY - hitPad && mouseY <= duckY + targetSize + hitPad) {
-        hitNormal = true; 
         targetScore++; 
         targetFloatingScores.push({x: mouseX + 15, y: mouseY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
         spawnTargetParticles(mouseX, mouseY, currentDuckColor);
@@ -1817,11 +1842,12 @@ if (targetCanvas) {
         }
         duckActive = false; 
       }
-      if (hitNormal || hitGolden) { 
-        ctxTarget.fillStyle = kawaiiActive ? "rgba(255, 182, 193, 0.5)" : "rgba(255, 255, 255, 0.5)"; 
-        ctxTarget.fillRect(0,0,400,200); 
-      }
     }
+  });
+
+  targetCanvas.addEventListener("pointerup", (e) => {
+    e.preventDefault();
+    targetCanvas.releasePointerCapture(e.pointerId);
   });
 }
 
@@ -1876,6 +1902,7 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) =>
   document.getElementById("jumpGame").scrollIntoView({behavior: "smooth", block: "center"}); 
   jump(); 
 });
+
 document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => { 
   keySpaceHeld = false; 
 });
@@ -2138,6 +2165,49 @@ function updateRunner(currentTime) {
   }
 }
 
+function spawnTargetParticles(x, y, color) {
+  for (let i = 0; i < 15; i++) {
+    targetParticles.push({ 
+      x: x, 
+      y: y, 
+      vx: (Math.random() - 0.5) * 8, 
+      vy: (Math.random() - 0.5) * 8, 
+      life: 1.0, 
+      color: color 
+    });
+  }
+}
+
+function spawnDuck() {
+  duckX = Math.random() * (400 - targetSize);
+  duckY = Math.random() * (200 - targetSize);
+  let speed = 2 + (targetSpeedMult * 0.5);
+  duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
+  duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
+  duckActive = true;
+  
+  duckTimer = 100 + Math.random() * 80; 
+  
+  currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
+
+  if (targetDecoyEnabled && Math.random() < 0.3) {
+    decoyX = Math.random() * (400 - targetSize);
+    decoyY = Math.random() * (200 - targetSize);
+    decoyVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
+    decoyVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
+    decoyActive = true;
+    decoyTimer = 80;
+  } 
+  else if (Math.random() < 0.1) {
+    goldenX = Math.random() * (400 - targetSize);
+    goldenY = Math.random() * (200 - targetSize);
+    goldenVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
+    goldenVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
+    goldenActive = true;
+    goldenTimer = 50;
+  }
+}
+
 function updateTargetGame(currentTime) {
   if (!ctxTarget) return; 
   if (!targetGameActive) return;
@@ -2275,8 +2345,6 @@ function updateTargetGame(currentTime) {
         try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
       }
       duckActive = false; 
-      ctxTarget.fillStyle = kawaiiActive ? "rgba(255,182,193,0.5)" : "rgba(255, 255, 255, 0.5)"; 
-      ctxTarget.fillRect(0, 0, 400, 200);
     }
   } else { 
     if (Math.random() < 0.05) { spawnDuck(); } 
@@ -2316,8 +2384,6 @@ function updateTargetGame(currentTime) {
         try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
       }
       goldenActive = false; 
-      ctxTarget.fillStyle = kawaiiActive ? "rgba(255,182,193,0.5)" : "rgba(255, 255, 255, 0.5)"; 
-      ctxTarget.fillRect(0, 0, 400, 200);
     }
   }
 
@@ -2379,14 +2445,150 @@ function updateTargetGame(currentTime) {
   ctxTarget.strokeStyle = kawaiiActive ? "#ff1493" : neonColor; 
   ctxTarget.lineWidth = 1; 
   ctxTarget.stroke();
+  
   ctxTarget.beginPath(); 
   ctxTarget.arc(mouseX, mouseY, 8, 0, Math.PI*2); 
   ctxTarget.stroke();
+
   ctxTarget.fillStyle = canvasTextColor; 
   ctxTarget.font = "bold 14px 'Courier New', monospace"; 
   ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
   ctxTarget.fillText("HIGH: " + targetHighScore, 10, 40); 
   ctxTarget.fillText("LIVES: " + (targetFreeze ? "∞" : targetLives), 320, 20);
+}
+
+function initTetris() {
+  tetrisGrid = Array.from({length: 20}, () => Array(10).fill(0));
+  tetrisScore = 0;
+  tetrisLines = 0;
+  tetrisLevel = 1;
+  tetrisGameOver = false;
+  tetrisFloaters = [];
+  nextPiece = null;
+  let speedInput = document.getElementById('modTetrisSpeed');
+  if (speedInput) tetrisSpeedMod = parseInt(speedInput.value);
+  tReset(); 
+  tReset(); 
+}
+
+function tCollide(board, player) {
+  const m = player.matrix;
+  const o = player.pos;
+  for (let y = 0; y < m.length; ++y) {
+    for (let x = 0; x < m[y].length; ++x) {
+      if (m[y][x] !== 0 && (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function tMerge() {
+  currentPiece.matrix.forEach((row, y) => {
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value;
+      }
+    });
+  });
+}
+
+function tReset() {
+  const pieces = '1234567'; 
+  const type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+  if (!nextPiece) {
+    nextPiece = { matrix: T_SHAPES[type], pos: {x: 0, y: 0} };
+  }
+  currentPiece = nextPiece;
+  currentPiece.pos.y = 0;
+  currentPiece.pos.x = Math.floor((10 / 2) - (currentPiece.matrix[0].length / 2));
+  const nextType = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+  nextPiece = { matrix: T_SHAPES[nextType], pos: {x: 0, y: 0} };
+
+  if (tCollide(tetrisGrid, currentPiece)) {
+    if (tetrisGodMode) {
+        tetrisGrid.forEach(row => row.fill(0)); 
+    } else {
+        tetrisGameOver = true;
+        tetrisDeathTime = Date.now();
+        tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)];
+        triggerShake();
+    }
+  }
+}
+
+function tDrop() {
+  currentPiece.pos.y++;
+  if (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.y--; 
+    tMerge();
+    tReset();
+    tSweep();
+  }
+  tetrisDropCounter = 0;
+}
+
+function tMove(dir) {
+  currentPiece.pos.x += dir;
+  if (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.x -= dir; 
+  }
+}
+
+function tRotate() {
+  const pos = currentPiece.pos.x;
+  let offset = 1;
+  tRotateMatrix(currentPiece.matrix);
+  while (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.x += offset;
+    offset = -(offset + (offset > 0 ? 1 : -1));
+    if (offset > currentPiece.matrix[0].length) {
+      tRotateMatrix(currentPiece.matrix, -1); 
+      currentPiece.pos.x = pos;
+      return;
+    }
+  }
+}
+
+function tRotateMatrix(matrix, dir = 1) {
+  for (let y = 0; y < matrix.length; ++y) {
+    for (let x = 0; x < y; ++x) {
+      [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+    }
+  }
+  if (dir > 0) {
+    matrix.forEach(row => row.reverse());
+  } else {
+    matrix.reverse();
+  }
+}
+
+function tSweep() {
+  let rowCount = 1;
+  let linesCleared = 0;
+  outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
+    for (let x = 0; x < tetrisGrid[y].length; ++x) {
+      if (tetrisGrid[y][x] === 0) {
+        continue outer; 
+      }
+    }
+    const row = tetrisGrid.splice(y, 1)[0].fill(0);
+    tetrisGrid.unshift(row);
+    ++y;
+    tetrisScore += (rowCount * 10) * tetrisScoreMult;
+    rowCount *= 2;
+    linesCleared++;
+  }
+  if (linesCleared > 0) {
+      tetrisLines += linesCleared;
+      tetrisLevel = Math.floor(tetrisLines / 10) + 1;
+      tetrisFloaters.push({x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!"});
+      if (tetrisScore > tetrisHighScore) {
+          tetrisHighScore = tetrisScore;
+          try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){}
+      }
+  }
 }
 
 function updateTetris(currentTime) {
@@ -2582,6 +2784,14 @@ function updateTetris(currentTime) {
     });
   }
   ctxTetris.lineWidth = 1; 
+}
+
+// Start Cyber Runner immediately when the script executes so it's ready
+if (ctx) {
+  runnerLastTime = performance.now();
+  
+  if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
+  runnerAnimId = requestAnimationFrame(updateRunner);
 }
 </script>
 </body>
