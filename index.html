@@ -62,6 +62,68 @@ body {
   overflow-x: hidden;
 }
 
+/* Accessibility Split Modes */
+body.a11y-font * {
+  font-family: Arial, Helvetica, sans-serif !important;
+  text-shadow: none !important;
+}
+
+body.a11y-no-anim * {
+  animation: none !important;
+  transition: none !important;
+}
+body.a11y-no-anim #matrixCanvas, 
+body.a11y-no-anim #kawaiiOv {
+  display: none !important;
+}
+
+body.a11y-contrast {
+  --bg-color: #ffffff;
+  --section-bg: #f4f4f4;
+  --text-color: #000000;
+  --neon-color: #000000;
+  --canvas-bg: #ffffff;
+  --grid-color: #cccccc;
+}
+
+/* A11y Floating Button & Panel */
+#a11yBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 32px;
+  background: #0055ff;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10001;
+  user-select: none;
+  box-shadow: 0 0 10px rgba(0,85,255,0.5);
+}
+
+#a11yMenu {
+  display: none; 
+  position: fixed; 
+  bottom: 80px; 
+  right: 20px; 
+  background: #222; 
+  border: 2px solid #0055ff; 
+  padding: 20px; 
+  border-radius: 8px; 
+  z-index: 10002; 
+  flex-direction: column; 
+  gap: 15px; 
+  color: #fff;
+  width: 250px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.8);
+}
+
 header { 
   border-bottom: 2px solid var(--neon-color); 
   margin-bottom: 40px; 
@@ -587,16 +649,19 @@ input[type=range]::-webkit-slider-thumb:hover {
   background: var(--neon-color); 
 }
 
-/* Matrix Canvas */
+/* OVERRIDE MATRIX CANVAS FULLSCREEN */
 #matrixCanvas { 
   position: fixed; 
   top: 0; 
   left: 0; 
   width: 100vw; 
   height: 100vh; 
+  max-width: none; 
+  border: none; 
+  background: transparent; 
   pointer-events: none; 
-  z-index: 1; 
-  opacity: 0.5; 
+  z-index: 0; 
+  opacity: 0.8; 
   display: none; 
   margin: 0; 
   padding: 0; 
@@ -612,6 +677,34 @@ input[type=range]::-webkit-slider-thumb:hover {
 </style>
 </head>
 <body>
+
+<div id="a11yBtn" title="Open Accessibility Menu">♿</div>
+
+<div id="a11yMenu">
+  <h3 style="margin-top: 0; color: #0055ff; font-family: sans-serif; font-size: 1.2em; text-align: center;">Accessibility</h3>
+  <div class="mod-row">
+    <label style="font-family: sans-serif;">Readable Font</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="a11yFontToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div class="mod-row">
+    <label style="font-family: sans-serif;">Disable Animations</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="a11yAnimToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <div class="mod-row">
+    <label style="font-family: sans-serif;">High Contrast</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="a11yContrastToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+  <button onclick="document.getElementById('a11yMenu').style.display='none'" class="nuke-btn" style="background: #444; border: none; margin-top: 10px; font-family: sans-serif;">Close</button>
+</div>
 
 <canvas id="matrixCanvas"></canvas>
 
@@ -666,12 +759,12 @@ input[type=range]::-webkit-slider-thumb:hover {
   <div class="game-screen-wrapper" id="gameScreenWrapper">
     <div class="crt-overlay" id="crtOverlayElement"></div>
     <canvas id="jumpGame" width="400" height="200"></canvas>
-    <canvas id="targetGame" width="400" height="200" style="display: none;"></canvas>
+    <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
     <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
   </div>
 
-  <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump.</p>
-  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type or Tap <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
+  <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> to Jump. Press <b>Down Arrow</b> to Crouch.</p>
+  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;">Type <b style="color: var(--neon-color);">duck</b> or <b style="color: var(--neon-color);">tetr</b> for secret game modes.</p>
 
   <div id="publicDifficulty" style="display:none; margin-top: 15px;">
     <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -910,7 +1003,7 @@ input[type=range]::-webkit-slider-thumb:hover {
 // ==========================================================================
 // 1. GLOBAL VARIABLES & UTILITIES
 // ==========================================================================
-const FRAME_INTERVAL = 1000 / 60;
+const FRAME_INTERVAL = 1000 / 60; 
 
 let runnerLastTime = 0;
 let targetLastTime = 0;
@@ -959,6 +1052,7 @@ let runnerAutoBot = false;
 let runnerJetpack = false; 
 let keySpaceHeld = false;  
 let isJumping = false;
+let isCrouching = false;
 let velocity = 0;
 let playerY = 150;
 let score = 0;
@@ -1189,6 +1283,36 @@ document.addEventListener("DOMContentLoaded", () => {
     jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)]; 
     footer.appendChild(jokeElement);
   }
+  
+  // Accessibility Toggles
+  document.getElementById('a11yBtn')?.addEventListener('click', () => {
+    const menu = document.getElementById('a11yMenu');
+    menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
+  });
+
+  document.getElementById('a11yFontToggle')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      document.body.classList.add('a11y-font');
+    } else {
+      document.body.classList.remove('a11y-font');
+    }
+  });
+
+  document.getElementById('a11yAnimToggle')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      document.body.classList.add('a11y-no-anim');
+    } else {
+      document.body.classList.remove('a11y-no-anim');
+    }
+  });
+
+  document.getElementById('a11yContrastToggle')?.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      document.body.classList.add('a11y-contrast');
+    } else {
+      document.body.classList.remove('a11y-contrast');
+    }
+  });
 });
 
 // ==========================================================================
@@ -1313,6 +1437,7 @@ window.switchGame = function(mode) {
     gameStarted = false; 
     gameOver = false; 
     isJumping = false; 
+    isCrouching = false;
     playerY = 150; 
     velocity = 0; 
     runnerObstacles = []; 
@@ -1665,7 +1790,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================================================
-// 4. EVENT LISTENERS & INTERACTION
+// 4. EVENT LISTENERS & INPUT
 // ==========================================================================
 function startTargetGame() {
   targetState = 'PLAYING'; 
@@ -1683,15 +1808,20 @@ function startTargetGame() {
 }
 
 window.addEventListener("keydown", function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+    return;
+  }
   if (e.code === 'Escape') {
     const menu = document.getElementById('modMenu');
     menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
   }
   if (e.code === 'Space' || e.key === " ") {
-    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
-      e.preventDefault(); 
-      keySpaceHeld = true; 
-    }
+    e.preventDefault(); 
+    keySpaceHeld = true; 
+  }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+    e.preventDefault();
+    isCrouching = true;
   }
   if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
     keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
@@ -1727,9 +1857,6 @@ window.addEventListener("keydown", function(e) {
         delay += 600; 
       });
     }
-  }
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
-    return;
   }
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
     e.preventDefault();
@@ -1776,6 +1903,9 @@ window.addEventListener("keyup", e => {
   if (e.code === 'Space' || e.key === " ") {
     keySpaceHeld = false;
   }
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+    isCrouching = false;
+  }
 });
 
 if (canvas) {
@@ -1801,7 +1931,6 @@ if (targetCanvas) {
   targetCanvas.addEventListener("pointerdown", (e) => { 
     e.preventDefault();
     targetCanvas.setPointerCapture(e.pointerId);
-
     if (targetState === 'GAMEOVER') { 
       if (Date.now() - targetDeathTime < 1000) return; 
       targetState = 'START';
@@ -1811,7 +1940,6 @@ if (targetCanvas) {
       let hitGolden = false; 
       let hitDecoy = false;
       let hitPad = 15;
-      
       if (goldenActive && mouseX >= goldenX - hitPad && mouseX <= goldenX + targetSize + hitPad && mouseY >= goldenY - hitPad && mouseY <= goldenY + targetSize + hitPad) {
         hitGolden = true; 
         targetScore += 2; 
@@ -1902,7 +2030,6 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerdown", (e) =>
   document.getElementById("jumpGame").scrollIntoView({behavior: "smooth", block: "center"}); 
   jump(); 
 });
-
 document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => { 
   keySpaceHeld = false; 
 });
@@ -1910,7 +2037,6 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => {
 // ==========================================================================
 // 5. GAME ENGINES (RUNNER, TARGET, TETRIS)
 // ==========================================================================
-
 function drawDino(ctx, x, y, frame) {
   if (runnerGodMode && frame % 10 < 5) {
     ctx.globalAlpha = 0.5;
@@ -1918,18 +2044,30 @@ function drawDino(ctx, x, y, frame) {
     ctx.globalAlpha = 1.0;
   }
   ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
-  ctx.fillRect(x, y, 20, 20);
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(x + 12, y + 4, 4, 4);
-  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
-  if (isJumping) {
-    ctx.fillRect(x + 2, y + 20, 6, 6);
-    ctx.fillRect(x + 12, y + 20, 6, 6);
-  } else {
+  if (isCrouching && !isJumping) {
+    ctx.fillRect(x, y + 10, 30, 10);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x + 22, y + 12, 4, 4);
+    ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
     if (Math.floor(frame / 5) % 2 === 0) {
       ctx.fillRect(x + 2, y + 20, 6, 6);
     } else {
+      ctx.fillRect(x + 20, y + 20, 6, 6);
+    }
+  } else {
+    ctx.fillRect(x, y, 20, 20);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(x + 12, y + 4, 4, 4);
+    ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
+    if (isJumping) {
+      ctx.fillRect(x + 2, y + 20, 6, 6);
       ctx.fillRect(x + 12, y + 20, 6, 6);
+    } else {
+      if (Math.floor(frame / 5) % 2 === 0) {
+        ctx.fillRect(x + 2, y + 20, 6, 6);
+      } else {
+        ctx.fillRect(x + 12, y + 20, 6, 6);
+      }
     }
   }
   ctx.globalAlpha = 1.0;
@@ -1988,7 +2126,7 @@ function updateRunner(currentTime) {
   ctx.setLineDash([]);
   
   if (gameStarted && !gameOver) {
-    if (runnerJetpack && keySpaceHeld) {
+    if (runnerJetpack && keySpaceHeld && !isCrouching) {
       velocity -= 1.5; 
       if(velocity < -currentJumpPower) {
         velocity = -currentJumpPower;
@@ -1996,6 +2134,9 @@ function updateRunner(currentTime) {
       isJumping = true;
     } else if (isJumping && !runnerJetpack && !keySpaceHeld) {
       if (velocity < -4) velocity = -4;
+    }
+    if (isCrouching && isJumping) {
+      velocity += 1.5; 
     }
     velocity += currentGravity; 
     playerY += velocity;
@@ -2028,10 +2169,15 @@ function updateRunner(currentTime) {
         nextObs = runnerObstacles[1]; 
       }
       if (nextObs.x < jumpTriggerDist && nextObs.x > 30) {
-        if (nextObs.type !== 'flying' && !isJumping) { 
+        if (nextObs.type === 'flying') {
+           isCrouching = true;
+        } else if (!isJumping) { 
           isJumping = true; 
+          isCrouching = false;
           velocity = -currentJumpPower; 
         }
+      } else {
+        isCrouching = false;
       }
     }
     
@@ -2042,7 +2188,12 @@ function updateRunner(currentTime) {
         obs.passed = true; 
         score++; 
       }
-      let px = 20, pw = 24, py = playerY - 4, ph = 26; 
+      
+      let px = 20, py = playerY; 
+      let pw = isCrouching && !isJumping ? 30 : 20;
+      let ph = isCrouching && !isJumping ? 10 : 20;
+      if (isCrouching && !isJumping) { py += 10; }
+      
       let ox = obs.x, oy, ow, oh;
       if (obs.type === 'tall') { 
         oy = 130; ow = 12; oh = 40; 
@@ -2185,9 +2336,7 @@ function spawnDuck() {
   duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckActive = true;
-  
   duckTimer = 100 + Math.random() * 80; 
-  
   currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
 
   if (targetDecoyEnabled && Math.random() < 0.3) {
@@ -2445,11 +2594,9 @@ function updateTargetGame(currentTime) {
   ctxTarget.strokeStyle = kawaiiActive ? "#ff1493" : neonColor; 
   ctxTarget.lineWidth = 1; 
   ctxTarget.stroke();
-  
   ctxTarget.beginPath(); 
   ctxTarget.arc(mouseX, mouseY, 8, 0, Math.PI*2); 
   ctxTarget.stroke();
-
   ctxTarget.fillStyle = canvasTextColor; 
   ctxTarget.font = "bold 14px 'Courier New', monospace"; 
   ctxTarget.fillText("SCORE: " + targetScore, 10, 20); 
@@ -2789,7 +2936,6 @@ function updateTetris(currentTime) {
 // Start Cyber Runner immediately when the script executes so it's ready
 if (ctx) {
   runnerLastTime = performance.now();
-  
   if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
   runnerAnimId = requestAnimationFrame(updateRunner);
 }
