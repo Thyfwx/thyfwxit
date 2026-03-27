@@ -403,7 +403,7 @@ canvas {
   border-radius: 10px; 
   max-height: 90vh; 
   flex-direction: column; 
-  transition: all 0.3s;
+  transition: border-color 0.3s, box-shadow 0.3s;
 }
 
 #modMenuHeader { 
@@ -2248,7 +2248,7 @@ function updateRunner(currentTime) {
       isJumping = false; 
       velocity = 0; 
     }
-    
+
     currentSpeed = currentBaseSpeed + (score / 8); 
     let minGap = 350 + (currentSpeed * 20); 
 
@@ -2439,7 +2439,7 @@ function updateRunner(currentTime) {
 }
 
 // ==========================================================================
-// 11. TARGET SIMULATOR ENGINE (FPS LOCKED)
+// TARGET SIMULATOR FUNCTIONS
 // ==========================================================================
 function spawnTargetParticles(x, y, color) {
   for (let i = 0; i < 15; i++) {
@@ -2451,6 +2451,37 @@ function spawnTargetParticles(x, y, color) {
       life: 1.0, 
       color: color 
     });
+  }
+}
+
+function spawnDuck() {
+  duckX = Math.random() * (400 - targetSize);
+  duckY = Math.random() * (200 - targetSize);
+  
+  let speed = 2 + (targetSpeedMult * 0.5);
+  duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
+  duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
+  
+  duckActive = true;
+  duckTimer = 60 + Math.random() * 60; 
+  
+  currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
+
+  if (targetDecoyEnabled && Math.random() < 0.3) {
+    decoyX = Math.random() * (400 - targetSize);
+    decoyY = Math.random() * (200 - targetSize);
+    decoyVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
+    decoyVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
+    decoyActive = true;
+    decoyTimer = 80;
+  } 
+  else if (Math.random() < 0.1) {
+    goldenX = Math.random() * (400 - targetSize);
+    goldenY = Math.random() * (200 - targetSize);
+    goldenVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
+    goldenVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
+    goldenActive = true;
+    goldenTimer = 50;
   }
 }
 
@@ -2764,6 +2795,153 @@ function updateTargetGame(currentTime) {
 // ==========================================================================
 // 12. TETRIS GAME ENGINE (FPS LOCKED)
 // ==========================================================================
+function initTetris() {
+  tetrisGrid = Array.from({length: 20}, () => Array(10).fill(0));
+  tetrisScore = 0;
+  tetrisLines = 0;
+  tetrisLevel = 1;
+  tetrisGameOver = false;
+  tetrisFloaters = [];
+  nextPiece = null;
+  
+  let speedInput = document.getElementById('modTetrisSpeed');
+  if (speedInput) tetrisSpeedMod = parseInt(speedInput.value);
+  
+  tReset(); 
+  tReset(); 
+}
+
+function tCollide(board, player) {
+  const m = player.matrix;
+  const o = player.pos;
+  
+  for (let y = 0; y < m.length; ++y) {
+    for (let x = 0; x < m[y].length; ++x) {
+      if (m[y][x] !== 0 &&
+         (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+function tMerge() {
+  currentPiece.matrix.forEach((row, y) => {
+    row.forEach((value, x) => {
+      if (value !== 0) {
+        tetrisGrid[y + currentPiece.pos.y][x + currentPiece.pos.x] = value;
+      }
+    });
+  });
+}
+
+function tReset() {
+  const pieces = '1234567'; 
+  const type = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+  
+  if (!nextPiece) {
+    nextPiece = { matrix: T_SHAPES[type], pos: {x: 0, y: 0} };
+  }
+  
+  currentPiece = nextPiece;
+  currentPiece.pos.y = 0;
+  currentPiece.pos.x = Math.floor((10 / 2) - (currentPiece.matrix[0].length / 2));
+  
+  const nextType = parseInt(pieces[Math.floor(Math.random() * pieces.length)]);
+  nextPiece = { matrix: T_SHAPES[nextType], pos: {x: 0, y: 0} };
+
+  if (tCollide(tetrisGrid, currentPiece)) {
+    if (tetrisGodMode) {
+        tetrisGrid.forEach(row => row.fill(0)); 
+    } else {
+        tetrisGameOver = true;
+        tetrisDeathTime = Date.now();
+        tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)];
+        triggerShake();
+    }
+  }
+}
+
+function tDrop() {
+  currentPiece.pos.y++;
+  if (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.y--; 
+    tMerge();
+    tReset();
+    tSweep();
+  }
+  tetrisDropCounter = 0;
+}
+
+function tMove(dir) {
+  currentPiece.pos.x += dir;
+  if (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.x -= dir; 
+  }
+}
+
+function tRotate() {
+  const pos = currentPiece.pos.x;
+  let offset = 1;
+  tRotateMatrix(currentPiece.matrix);
+  
+  while (tCollide(tetrisGrid, currentPiece)) {
+    currentPiece.pos.x += offset;
+    offset = -(offset + (offset > 0 ? 1 : -1));
+    if (offset > currentPiece.matrix[0].length) {
+      tRotateMatrix(currentPiece.matrix, -1); 
+      currentPiece.pos.x = pos;
+      return;
+    }
+  }
+}
+
+function tRotateMatrix(matrix, dir = 1) {
+  for (let y = 0; y < matrix.length; ++y) {
+    for (let x = 0; x < y; ++x) {
+      [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
+    }
+  }
+  if (dir > 0) {
+    matrix.forEach(row => row.reverse());
+  } else {
+    matrix.reverse();
+  }
+}
+
+function tSweep() {
+  let rowCount = 1;
+  let linesCleared = 0;
+  
+  outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
+    for (let x = 0; x < tetrisGrid[y].length; ++x) {
+      if (tetrisGrid[y][x] === 0) {
+        continue outer; 
+      }
+    }
+    
+    const row = tetrisGrid.splice(y, 1)[0].fill(0);
+    tetrisGrid.unshift(row);
+    ++y;
+    
+    tetrisScore += (rowCount * 10) * tetrisScoreMult;
+    rowCount *= 2;
+    linesCleared++;
+  }
+  
+  if (linesCleared > 0) {
+      tetrisLines += linesCleared;
+      tetrisLevel = Math.floor(tetrisLines / 10) + 1;
+      tetrisFloaters.push({x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!"});
+      
+      if (tetrisScore > tetrisHighScore) {
+          tetrisHighScore = tetrisScore;
+          try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e){}
+      }
+  }
+}
+
 function updateTetris(currentTime) {
   if (!ctxTetris) return; 
   if (!tetrisActive) return;
