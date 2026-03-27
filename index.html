@@ -1143,8 +1143,17 @@ document.addEventListener('click', (e) => {
 // UNIVERSAL INPUT ROUTER
 // ==========================================================================
 window.addEventListener("keydown", function(e) {
-  if (e.code === 'Space') {
-    keySpaceHeld = true; 
+  if (e.code === 'Escape') {
+    const menu = document.getElementById('modMenu');
+    menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
+  }
+
+  // Strictly prevent Spacebar from scrolling the page down
+  if (e.code === 'Space' || e.key === " ") {
+    if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault(); 
+      keySpaceHeld = true; 
+    }
   }
 
   if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
@@ -1191,7 +1200,7 @@ window.addEventListener("keydown", function(e) {
     return;
   }
 
-  if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1 || e.key === " ") {
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
     e.preventDefault();
   }
 
@@ -1235,7 +1244,7 @@ window.addEventListener("keydown", function(e) {
 }, { passive: false });
 
 window.addEventListener("keyup", e => { 
-  if (e.code === 'Space') {
+  if (e.code === 'Space' || e.key === " ") {
     keySpaceHeld = false;
   }
   
@@ -1491,7 +1500,8 @@ function updateRunner(currentTime) {
       velocity = 0; 
     }
 
-    currentSpeed = currentBaseSpeed + (score / 15); 
+    // Increased speed scaling 
+    currentSpeed = currentBaseSpeed + (score / 8); 
     let minGap = 350 + (currentSpeed * 20); 
 
     let lastObs = runnerObstacles[runnerObstacles.length - 1];
@@ -1500,11 +1510,12 @@ function updateRunner(currentTime) {
       let r = Math.random(); 
       let oType = 'normal';
       
-      if (score > 10 && r < 0.25) {
+      // Birds spawn earlier and more often
+      if (score > 5 && r < 0.40) {
         oType = 'flying'; 
-      } else if (r < 0.5) {
+      } else if (r < 0.60) {
         oType = 'tall';
-      } else if (r < 0.75) {
+      } else if (r < 0.80) {
         oType = 'wide';
       }
       
@@ -1927,6 +1938,13 @@ function jump() {
 }
 
 function drawDino(ctx, x, y, frame) {
+  // Turn ghost mode on if God Mode is active
+  if (runnerGodMode && frame % 10 < 5) {
+    ctx.globalAlpha = 0.5;
+  } else {
+    ctx.globalAlpha = 1.0;
+  }
+
   ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
   
   ctx.fillRect(x, y, 20, 20);
@@ -1945,6 +1963,9 @@ function drawDino(ctx, x, y, frame) {
       ctx.fillRect(x + 12, y + 20, 6, 6);
     }
   }
+
+  // Reset alpha back to normal
+  ctx.globalAlpha = 1.0;
 }
 
 // ==========================================================================
