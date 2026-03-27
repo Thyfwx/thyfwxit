@@ -803,6 +803,7 @@ input[type=range]::-webkit-slider-thumb:hover {
         <span class="toggle-slider"></span>
       </label>
     </div>
+    
     <button id="modRunnerReset" class="nuke-btn" style="background: #444; color: #fff; margin-top: 15px;">RESET RUNNER SETTINGS</button>
   </div>
 
@@ -1160,11 +1161,9 @@ let drops = [];
 let matrixDrawActive = false;
 
 function resizeMatrix() {
-  // Ensure we grab the maximum screen width to prevent the rain from stopping on the left
   mCanvas.width = window.innerWidth || window.screen.width;
   mCanvas.height = window.innerHeight || window.screen.height;
   
-  // Force a minimum of 250 columns so it spans wide screens properly
   const newColumns = Math.max(Math.floor(mCanvas.width / fontSize) + 1, 250);
   
   drops = [];
@@ -1627,7 +1626,7 @@ let kawaiiActive = false;
 let kawaiiInterval = null;
 
 function startKawaiiParticles() {
-  const emojis = ['♡', '★', '✧', '❀', '✿', '☾', '♪', '☆', '🎀', '💖', '✨', '🌸', '☁️', '🍓', '🍰', '🧸', '☁️', '🍒', '🌷'];
+  const emojis = ['♡', '★', '✧', '❀', '✿', '☾', '♪', '☆', '🎀', '💖', '✨', '🌸', '☁️', '🍓', '🍰', '🧸', '🍒', '🌷'];
   const ov = document.getElementById('kawaiiOv');
   
   kawaiiInterval = setInterval(() => {
@@ -2016,7 +2015,7 @@ if (targetCanvas) {
     mouseY = (e.clientY - rect.top) * (targetCanvas.height / rect.height);
     
     if (targetState === 'PLAYING') {
-      targetCanvas.style.cursor = 'none'; 
+      targetCanvas.style.cursor = 'crosshair'; 
     } else {
       targetCanvas.style.cursor = 'crosshair'; 
     }
@@ -2050,8 +2049,10 @@ if (targetCanvas) {
       let hitNormal = false; 
       let hitGolden = false; 
       let hitDecoy = false;
+      
+      let hitPad = 15;
 
-      if (goldenActive && mouseX >= goldenX - (targetSize/2) && mouseX <= goldenX + targetSize + (targetSize/2) && mouseY >= goldenY - (targetSize/2) && mouseY <= goldenY + targetSize + (targetSize/2)) {
+      if (goldenActive && mouseX >= goldenX - hitPad && mouseX <= goldenX + targetSize + hitPad && mouseY >= goldenY - hitPad && mouseY <= goldenY + targetSize + hitPad) {
         hitGolden = true; 
         targetScore += 2; 
         targetFloatingScores.push({x: mouseX + 15, y: mouseY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
@@ -2063,7 +2064,7 @@ if (targetCanvas) {
         }
         goldenActive = false; 
       }
-      else if (decoyActive && mouseX >= decoyX - (targetSize/2) && mouseX <= decoyX + targetSize + (targetSize/2) && mouseY >= decoyY - (targetSize/2) && mouseY <= decoyY + targetSize + (targetSize/2)) {
+      else if (decoyActive && mouseX >= decoyX - hitPad && mouseX <= decoyX + targetSize + hitPad && mouseY >= decoyY - hitPad && mouseY <= decoyY + targetSize + hitPad) {
         hitDecoy = true; 
         targetScore -= 5; 
         targetFloatingScores.push({x: mouseX + 15, y: mouseY, alpha: 1.0, text: "-5", r: 255, g: 0, b: 0}); 
@@ -2072,7 +2073,7 @@ if (targetCanvas) {
         decoyActive = false; 
         triggerShake();
       }
-      else if (duckActive && mouseX >= duckX - (targetSize/2) && mouseX <= duckX + targetSize + (targetSize/2) && mouseY >= duckY - (targetSize/2) && mouseY <= duckY + targetSize + (targetSize/2)) {
+      else if (duckActive && mouseX >= duckX - hitPad && mouseX <= duckX + targetSize + hitPad && mouseY >= duckY - hitPad && mouseY <= duckY + targetSize + hitPad) {
         hitNormal = true; 
         targetScore++; 
         targetFloatingScores.push({x: mouseX + 15, y: mouseY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
@@ -2157,59 +2158,10 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => {
   keySpaceHeld = false; 
 });
 
+
 // ==========================================================================
-// RUNNER GAME FUNCTIONS
+// 10. RUNNER GAME ENGINE (FPS LOCKED)
 // ==========================================================================
-function jump() {
-  if (!gameStarted || gameOver) {
-    if (gameOver && Date.now() - runnerDeathTime < 1000) return;
-    
-    gameStarted = true;
-    gameOver = false;
-    score = 0;
-    runnerObstacles = [];
-    runnerParticles = [];
-    playerY = 150;
-    
-    isJumping = true;
-    velocity = -currentJumpPower;
-    return; 
-  }
-
-  if (!isJumping) {
-    isJumping = true;
-    velocity = -currentJumpPower;
-  }
-}
-
-function drawDino(ctx, x, y, frame) {
-  if (runnerGodMode && frame % 10 < 5) {
-    ctx.globalAlpha = 0.5;
-  } else {
-    ctx.globalAlpha = 1.0;
-  }
-
-  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
-  ctx.fillRect(x, y, 20, 20);
-  
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(x + 12, y + 4, 4, 4);
-  
-  ctx.fillStyle = kawaiiActive ? "#ff69b4" : neonColor;
-  if (isJumping) {
-    ctx.fillRect(x + 2, y + 20, 6, 6);
-    ctx.fillRect(x + 12, y + 20, 6, 6);
-  } else {
-    if (Math.floor(frame / 5) % 2 === 0) {
-      ctx.fillRect(x + 2, y + 20, 6, 6);
-    } else {
-      ctx.fillRect(x + 12, y + 20, 6, 6);
-    }
-  }
-
-  ctx.globalAlpha = 1.0;
-}
-
 function spawnRunnerParticles(x, y, color) {
   for (let i = 0; i < 20; i++) {
     runnerParticles.push({
@@ -2292,7 +2244,7 @@ function updateRunner(currentTime) {
       isJumping = false; 
       velocity = 0; 
     }
-    
+
     currentSpeed = currentBaseSpeed + (score / 8); 
     let minGap = 350 + (currentSpeed * 20); 
 
@@ -2482,10 +2434,540 @@ function updateRunner(currentTime) {
   }
 }
 
-// Start Cyber Runner immediately when the script executes so it's ready
-if (ctx) {
-  runnerLastTime = performance.now();
-  requestAnimationFrame(updateRunner);
+// ==========================================================================
+// 11. TARGET SIMULATOR ENGINE (FPS LOCKED)
+// ==========================================================================
+function spawnTargetParticles(x, y, color) {
+  for (let i = 0; i < 15; i++) {
+    targetParticles.push({ 
+      x: x, 
+      y: y, 
+      vx: (Math.random() - 0.5) * 8, 
+      vy: (Math.random() - 0.5) * 8, 
+      life: 1.0, 
+      color: color 
+    });
+  }
+}
+
+function updateTargetGame(currentTime) {
+  if (!ctxTarget) return; 
+  if (!targetGameActive) return;
+  
+  targetAnimId = requestAnimationFrame(updateTargetGame); 
+
+  if (!currentTime) {
+    currentTime = performance.now();
+  }
+  
+  let dt = currentTime - targetLastTime;
+  if (dt < FRAME_INTERVAL) return;
+  
+  targetLastTime = currentTime - (dt % FRAME_INTERVAL);
+  
+  ctxTarget.clearRect(0, 0, 400, 200);
+  
+  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
+  const bgCol = kawaiiActive ? "#fff0f5" : "#050510";
+  const lineCol = kawaiiActive ? "rgba(255, 182, 193, 0.4)" : "rgba(0, 255, 255, 0.2)";
+  
+  if (targetState === 'START') {
+    ctxTarget.fillStyle = bgCol; 
+    ctxTarget.fillRect(0, 0, 400, 200);
+    
+    ctxTarget.strokeStyle = lineCol; 
+    ctxTarget.lineWidth = 2;
+    
+    for(let i = 0; i <= 400; i += 40) { 
+      ctxTarget.beginPath(); 
+      ctxTarget.moveTo(i, 0); 
+      ctxTarget.lineTo(i, 200); 
+      ctxTarget.stroke(); 
+    }
+    
+    for(let i = 0; i <= 200; i += 40) { 
+      ctxTarget.beginPath(); 
+      ctxTarget.moveTo(0, i); 
+      ctxTarget.lineTo(400, i); 
+      ctxTarget.stroke(); 
+    }
+    
+    ctxTarget.fillStyle = kawaiiActive ? "rgba(255,228,225,0.8)" : "rgba(0, 0, 0, 0.7)"; 
+    ctxTarget.fillRect(0,0,400,200);
+    
+    ctxTarget.fillStyle = canvasTextColor; 
+    ctxTarget.font = "bold 20px 'Courier New', monospace"; 
+    ctxTarget.textAlign = "center"; 
+    ctxTarget.fillText("MATRIX TARGET SIMULATOR", 200, 80);
+    
+    let pulse = Math.floor(Date.now() / 400) % 2 === 0; 
+    ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#ff1493" : "#00ff00") : canvasTextColor; 
+    ctxTarget.font = "bold 14px 'Courier New', monospace"; 
+    ctxTarget.fillText("Select Difficulty below, then Tap to Start", 200, 120); 
+    
+    ctxTarget.textAlign = "left"; 
+    return;
+  }
+
+  if (targetState === 'GAMEOVER') {
+    ctxTarget.fillStyle = kawaiiActive ? "rgba(255, 228, 225, 0.85)" : "rgba(50, 0, 0, 0.85)"; 
+    ctxTarget.fillRect(0, 0, 400, 200);
+    
+    for (let i = 0; i < 20; i++) { 
+      ctxTarget.strokeStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.5})` : `rgba(255, 0, 0, ${Math.random() * 0.5})`; 
+      ctxTarget.strokeRect(Math.random() * 400, Math.random() * 200, Math.random() * 40, Math.random() * 40); 
+    }
+    
+    ctxTarget.fillStyle = kawaiiActive ? "#ff1493" : "#ff0000"; 
+    ctxTarget.font = "bold 24px 'Courier New', monospace"; 
+    ctxTarget.textAlign = "center"; 
+    ctxTarget.fillText(currentTargetCrash, 200, 80);
+    
+    ctxTarget.fillStyle = canvasTextColor; 
+    ctxTarget.font = "bold 16px 'Courier New', monospace"; 
+    ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
+    
+    if (Date.now() - targetDeathTime > 1000) { 
+      let pulse = Math.floor(Date.now() / 300) % 2 === 0; 
+      
+      ctxTarget.shadowBlur = pulse ? 10 : 0; 
+      ctxTarget.shadowColor = neonColor; 
+      ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#ffb6c1" : "#222") : (kawaiiActive ? "#ff1493" : neonColor); 
+      
+      ctxTarget.fillRect(100, 130, 200, 30); 
+      
+      ctxTarget.shadowBlur = 0; 
+      ctxTarget.fillStyle = pulse ? (kawaiiActive ? "#d11a7a" : neonColor) : (kawaiiActive ? "#fff" : "#000"); 
+      ctxTarget.font = "bold 16px 'Courier New', monospace"; 
+      ctxTarget.fillText("PLAY AGAIN", 200, 150); 
+    }
+    
+    ctxTarget.textAlign = "left"; 
+    return;
+  }
+
+  ctxTarget.fillStyle = bgCol; 
+  ctxTarget.fillRect(0, 0, 400, 200);
+  
+  ctxTarget.strokeStyle = lineCol; 
+  ctxTarget.lineWidth = 2;
+  
+  let timeOffset = (Date.now() / 20) % 40;
+  
+  for(let i = -40; i < 200; i += 40) { 
+    ctxTarget.beginPath(); 
+    ctxTarget.moveTo(0, i + timeOffset); 
+    ctxTarget.lineTo(400, i + timeOffset); 
+    ctxTarget.stroke(); 
+  }
+  
+  for(let i = 0; i <= 400; i += 40) { 
+    ctxTarget.beginPath(); 
+    ctxTarget.moveTo(i, 0); 
+    ctxTarget.lineTo(i, 200); 
+    ctxTarget.stroke(); 
+  }
+
+  if (duckActive) {
+    duckX += duckVelX; 
+    duckY += duckVelY;
+    
+    if (duckX <= 0 || duckX + targetSize >= 400) duckVelX *= -1; 
+    if (duckY <= 0 || duckY + targetSize >= 200) duckVelY *= -1;
+    
+    let radius = targetSize / 2; 
+    let centerX = duckX + radius; 
+    let centerY = duckY + radius;
+    
+    ctxTarget.fillStyle = currentDuckColor; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(centerX, centerY, radius, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    ctxTarget.fillStyle = "#000"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(centerX, centerY, radius * 0.6, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    ctxTarget.fillStyle = currentDuckColor; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(centerX, centerY, radius * 0.2, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    if (!targetFreeze) duckTimer--; 
+    
+    if (duckTimer <= 0) { 
+      duckActive = false; 
+      targetLives--; 
+      
+      if (targetLives <= 0) { 
+        if (targetState !== 'GAMEOVER') { 
+          targetState = 'GAMEOVER'; 
+          targetDeathTime = Date.now(); 
+          currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)]; 
+          triggerShake(); 
+        } 
+      } 
+    }
+    
+    if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
+      targetScore++; 
+      targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0}); 
+      spawnTargetParticles(centerX, centerY, currentDuckColor);
+      
+      if (targetScore > 0 && targetScore % 5 === 0) { targetSpeedMult += 1; }
+      if (targetScore > targetHighScore) { 
+        targetHighScore = targetScore; 
+        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
+      }
+      
+      duckActive = false; 
+      ctxTarget.fillStyle = kawaiiActive ? "rgba(255,182,193,0.5)" : "rgba(255, 255, 255, 0.5)"; 
+      ctxTarget.fillRect(0, 0, 400, 200);
+    }
+  } else { 
+    if (Math.random() < 0.05) { spawnDuck(); } 
+  }
+  
+  if (goldenActive) {
+    goldenX += goldenVx; 
+    goldenY += goldenVy;
+    
+    if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1; 
+    if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
+    
+    let gRadius = targetSize / 2; 
+    let gCx = goldenX + gRadius; 
+    let gCy = goldenY + gRadius;
+
+    ctxTarget.shadowBlur = 15; 
+    ctxTarget.shadowColor = "#FFD700"; 
+    ctxTarget.fillStyle = "#FFD700"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(gCx, gCy, gRadius, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    ctxTarget.fillStyle = "#fff"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(gCx, gCy, gRadius * 0.6, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    ctxTarget.fillStyle = "#FFD700"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(gCx, gCy, gRadius * 0.2, 0, Math.PI*2); 
+    ctxTarget.fill(); 
+    ctxTarget.shadowBlur = 0;
+    
+    if (!targetFreeze) goldenTimer--; 
+    if (goldenTimer <= 0) goldenActive = false; 
+    
+    if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
+      targetScore += 2; 
+      targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
+      spawnTargetParticles(gCx, gCy, "#FFD700");
+      
+      if (targetScore > targetHighScore) { 
+        targetHighScore = targetScore; 
+        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
+      }
+      
+      goldenActive = false; 
+      ctxTarget.fillStyle = kawaiiActive ? "rgba(255,182,193,0.5)" : "rgba(255, 255, 255, 0.5)"; 
+      ctxTarget.fillRect(0, 0, 400, 200);
+    }
+  }
+
+  if (decoyActive) {
+    decoyX += decoyVx; 
+    decoyY += decoyVy;
+    
+    if (decoyX <= 0 || decoyX + targetSize >= 400) decoyVx *= -1; 
+    if (decoyY <= 0 || decoyY + targetSize >= 200) decoyVy *= -1;
+    
+    let dRadius = targetSize / 2; 
+    let dCx = decoyX + dRadius; 
+    let dCy = decoyY + dRadius;
+    
+    ctxTarget.fillStyle = "#ff0000"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(dCx, dCy, dRadius, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    ctxTarget.fillStyle = "#000"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(dCx, dCy, dRadius * 0.6, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    ctxTarget.fillStyle = "#ff0000"; 
+    ctxTarget.beginPath(); 
+    ctxTarget.arc(dCx, dCy, dRadius * 0.2, 0, Math.PI*2); 
+    ctxTarget.fill();
+    
+    if (!targetFreeze) decoyTimer--; 
+    if (decoyTimer <= 0) decoyActive = false; 
+  }
+
+  for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
+    let f = targetFloatingScores[i];
+    ctxTarget.fillStyle = `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`; 
+    ctxTarget.font = "bold 16px 'Courier New', monospace"; 
+    ctxTarget.fillText(f.text, f.x, f.y);
+    f.y -= 1; 
+    f.alpha -= 0.02; 
+    
+    if (f.alpha <= 0) {
+      targetFloatingScores.splice(i, 1); 
+    }
+  }
+ 
+  for (let i = targetParticles.length - 1; i >= 0; i--) {
+    let p = targetParticles[i]; 
+    ctxTarget.fillStyle = p.color; 
+    ctxTarget.globalAlpha = p.life; 
+    ctxTarget.fillRect(p.x, p.y, 3, 3);
+    
+    p.x += p.vx; 
+    p.y += p.vy; 
+    p.life -= 0.05; 
+    ctxTarget.globalAlpha = 1.0;
+    
+    if (p.life <= 0) {
+      targetParticles.splice(i, 1);
+    }
+  }
+}
+
+// ==========================================================================
+// 12. TETRIS GAME ENGINE (FPS LOCKED)
+// ==========================================================================
+function updateTetris(currentTime) {
+  if (!ctxTetris) return; 
+  if (!tetrisActive) return;
+  
+  tetrisAnimId = requestAnimationFrame(updateTetris); 
+
+  if (!currentTime) {
+    currentTime = performance.now();
+  }
+  
+  let dt = currentTime - tetrisLastTime;
+  if (dt < FRAME_INTERVAL) return;
+  
+  tetrisLastTime = currentTime - (dt % FRAME_INTERVAL);
+  
+  const canvasTextColor = kawaiiActive ? "#d11a7a" : "#fff";
+  
+  ctxTetris.fillStyle = kawaiiActive ? '#fffafa' : '#000000'; 
+  ctxTetris.fillRect(0, 0, 400, 400);
+  
+  ctxTetris.fillStyle = kawaiiActive ? 'rgba(255, 182, 193, 0.8)' : 'rgba(255, 255, 255, 0.4)';
+  
+  tetrisStars.forEach(star => { 
+    star.y += star.v; 
+    if (star.y > 400) { 
+      star.y = 0; 
+      star.x = Math.random() * 400; 
+    } 
+    ctxTetris.fillRect(star.x, star.y, star.s, star.s); 
+  });
+
+  if (tetrisGameOver) {
+    ctxTetris.fillStyle = kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 20, 20, 0.85)"; 
+    ctxTetris.fillRect(0, 0, 400, 400);
+    
+    for(let i = 0; i < 20; i++) { 
+      ctxTetris.fillStyle = kawaiiActive ? `rgba(255, 182, 193, ${Math.random() * 0.3})` : `rgba(0, 255, 255, ${Math.random() * 0.3})`; 
+      ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20); 
+    }
+    
+    ctxTetris.fillStyle = kawaiiActive ? "#ff1493" : "cyan"; 
+    ctxTetris.font = "bold 24px 'Courier New', monospace"; 
+    ctxTetris.textAlign = "center"; 
+    ctxTetris.fillText(tetrisCrashMsg, 200, 160); 
+    
+    ctxTetris.fillStyle = canvasTextColor; 
+    ctxTetris.font = "bold 16px 'Courier New', monospace"; 
+    ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200); 
+    
+    if (Date.now() - tetrisDeathTime > 1000) { 
+      let pulse = Math.floor(Date.now() / 300) % 2 === 0; 
+      
+      ctxTetris.shadowBlur = pulse ? 10 : 0; 
+      ctxTetris.shadowColor = neonColor; 
+      ctxTetris.fillStyle = pulse ? (kawaiiActive ? "#ffb6c1" : "#222") : (kawaiiActive ? "#ff1493" : neonColor); 
+      
+      ctxTetris.fillRect(100, 240, 200, 30); 
+      ctxTetris.shadowBlur = 0; 
+      
+      ctxTetris.fillStyle = pulse ? (kawaiiActive ? "#d11a7a" : neonColor) : (kawaiiActive ? "#fff" : "#000"); 
+      ctxTetris.font = "bold 16px 'Courier New', monospace"; 
+      ctxTetris.fillText("PLAY AGAIN", 200, 260); 
+    }
+    
+    ctxTetris.textAlign = "left"; 
+    return;
+  }
+
+  ctxTetris.strokeStyle = kawaiiActive ? 'rgba(255, 105, 180, 0.4)' : 'rgba(255, 255, 255, 0.4)'; 
+  ctxTetris.lineWidth = 1;
+  
+  for(let i = 100; i <= 300; i += 20) { 
+    ctxTetris.beginPath(); 
+    ctxTetris.moveTo(i, 0); 
+    ctxTetris.lineTo(i, 400); 
+    ctxTetris.stroke(); 
+  } 
+  
+  for(let i = 0; i <= 400; i += 20) { 
+    ctxTetris.beginPath(); 
+    ctxTetris.moveTo(100, i); 
+    ctxTetris.lineTo(300, i); 
+    ctxTetris.stroke(); 
+  }
+
+  let time = Date.now() / 5; 
+  tetrisGrid.forEach((row, y) => { 
+    row.forEach((value, x) => { 
+      if (value !== 0) { 
+        let blockColor = tetrisRainbow ? `hsl(${Math.floor(time + (x + y) * 15) % 360}, 100%, 50%)` : T_COLORS[value]; 
+        ctxTetris.fillStyle = blockColor; 
+        ctxTetris.fillRect(100 + x * 20, y * 20, 20, 20); 
+        ctxTetris.strokeStyle = "#fff"; 
+        ctxTetris.strokeRect(100 + x * 20, y * 20, 20, 20); 
+      } 
+    });
+  });
+  
+  if (tetrisGhost && currentPiece) {
+    let ghostY = currentPiece.pos.y;
+    while (!tCollide(tetrisGrid, {matrix: currentPiece.matrix, pos: {x: currentPiece.pos.x, y: ghostY + 1}})) { 
+      ghostY++; 
+    }
+    
+    currentPiece.matrix.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value !== 0) {
+          ctxTetris.fillStyle = kawaiiActive ? "rgba(255, 105, 180, 0.2)" : "rgba(255, 255, 255, 0.2)";
+          ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
+          
+          ctxTetris.strokeStyle = kawaiiActive ? "rgba(255, 105, 180, 0.5)" : "rgba(255, 255, 255, 0.5)";
+          ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
+        }
+      });
+    });
+  }
+  
+  currentPiece.matrix.forEach((row, y) => { 
+    row.forEach((value, x) => { 
+      if (value !== 0) { 
+        let blockColor = tetrisRainbow ? `hsl(${Math.floor(time + (x + currentPiece.pos.x + y + currentPiece.pos.y) * 15) % 360}, 100%, 50%)` : T_COLORS[value]; 
+        ctxTetris.fillStyle = blockColor; 
+        ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + currentPiece.pos.y) * 20, 20, 20); 
+        ctxTetris.strokeStyle = "#fff"; 
+        ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + currentPiece.pos.y) * 20, 20, 20); 
+      } 
+    });
+  });
+
+  for (let i = tetrisFloaters.length - 1; i >= 0; i--) {
+    let f = tetrisFloaters[i];
+    
+    ctxTetris.shadowBlur = 10; 
+    ctxTetris.shadowColor = kawaiiActive ? "#ff1493" : "#00FFFF"; 
+    
+    ctxTetris.fillStyle = kawaiiActive ? `rgba(209, 26, 122, ${f.alpha})` : `rgba(0, 255, 255, ${f.alpha})`; 
+    ctxTetris.font = "bold 24px 'Courier New', monospace"; 
+    ctxTetris.textAlign = "center"; 
+    ctxTetris.fillText(f.text, f.x, f.y); 
+    
+    ctxTetris.shadowBlur = 0; 
+    ctxTetris.textAlign = "left";
+    
+    f.y -= 1; 
+    f.alpha -= 0.02; 
+    
+    if (f.alpha <= 0) { 
+      tetrisFloaters.splice(i, 1); 
+    }
+  }
+
+  tetrisDropCounter++; 
+  let limit = tetrisSlow ? 200 : 60 - (tetrisSpeedMod * 4); 
+  
+  if (!tetrisSlow && limit < 5) limit = 5; 
+  if (tetrisDropCounter > limit && !tetrisLock) { 
+    tDrop(); 
+  }
+
+  function tHud(lx,ly,lw,lh,label,val,c){ 
+    let hudBg = kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)';
+    let hudBorder = kawaiiActive ? '#ff69b4' : c; 
+    let hudTextCol = (c === 'cyan' && kawaiiActive) ? '#d11a7a' : c;
+    
+    ctxTetris.fillStyle = hudBg; 
+    ctxTetris.fillRect(lx,ly,lw,lh); 
+    
+    ctxTetris.strokeStyle = hudBorder; 
+    ctxTetris.lineWidth = 1.5; 
+    ctxTetris.strokeRect(lx,ly,lw,lh); 
+    
+    ctxTetris.fillStyle = hudTextCol; 
+    ctxTetris.font = 'bold 9px monospace'; 
+    ctxTetris.textAlign = 'center'; 
+    ctxTetris.fillText(label,lx+lw/2,ly+12); 
+    
+    ctxTetris.font = 'bold 13px monospace'; 
+    ctxTetris.fillText(String(val),lx+lw/2,ly+28); 
+    
+    ctxTetris.textAlign = 'left'; 
+    ctxTetris.lineWidth = 1; 
+  }
+  
+  tHud(4, 10, 90, 34, 'SCORE', tetrisScore, 'cyan'); 
+  tHud(4, 50, 90, 34, 'HIGH', tetrisHighScore, '#ff00ff'); 
+  tHud(4, 90, 43, 34, 'LVL', tetrisLevel, '#00ff88'); 
+  tHud(51, 90, 43, 34, 'LINES', tetrisLines, '#ffaa00');
+
+  let nHudBg = kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)'; 
+  let nHudBorder = kawaiiActive ? '#ff69b4' : 'cyan'; 
+  let nHudText = kawaiiActive ? '#d11a7a' : 'cyan';
+  
+  ctxTetris.fillStyle = nHudBg; 
+  ctxTetris.fillRect(307,10,88,88); 
+  
+  ctxTetris.strokeStyle = nHudBorder; 
+  ctxTetris.lineWidth = 1.5; 
+  ctxTetris.strokeRect(307,10,88,88); 
+  
+  ctxTetris.fillStyle = nHudText; 
+  ctxTetris.font = 'bold 9px monospace'; 
+  ctxTetris.textAlign = 'center'; 
+  ctxTetris.fillText('NEXT',351,23); 
+  
+  ctxTetris.textAlign = 'left'; 
+  ctxTetris.lineWidth = 1;
+  
+  if(nextPiece){
+    const nm = nextPiece.matrix; 
+    const bs = 14; 
+    const ox = 351-(nm[0].length*bs)/2; 
+    const oy = 58-(nm.length*bs)/2;
+    
+    nm.forEach((row,y)=>{ 
+      row.forEach((val,x)=>{ 
+        if(val!==0){ 
+          let nc = tetrisRainbow ? `hsl(${Math.floor(time+(x+y)*15)%360},100%,50%)` : T_COLORS[val]; 
+          ctxTetris.fillStyle = nc; 
+          ctxTetris.fillRect(ox+x*bs,oy+y*bs,bs-1,bs-1); 
+          
+          ctxTetris.strokeStyle = '#fff'; 
+          ctxTetris.lineWidth = 0.5; 
+          ctxTetris.strokeRect(ox+x*bs,oy+y*bs,bs-1,bs-1); 
+        } 
+      }); 
+    });
+  }
+  ctxTetris.lineWidth = 1; 
 }
 </script>
 </body>
