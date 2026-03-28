@@ -1,5 +1,3 @@
-html
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -461,7 +459,7 @@ footer {
   right: 0;
   bottom: 0;
   background:
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0,0,0,0.25) 50%),
+    linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%),
     linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
   background-size: 100% 4px, 3px 100%;
   pointer-events: none;
@@ -803,7 +801,7 @@ input[type=range]::-webkit-slider-thumb:hover {
     </label>
   </div>
 
-  <button onclick="document.getElementById('a11yMenu').style.display='none'" class="nuke-btn" style="background: #444; border: none; margin-top: 10px; font-family: Arial, sans-serif;">Close Menu</button>
+  <button onclick="document.getElementById('a11yMenu').style.display='none'" class="nuke-btn" style="background:#444; border:none; margin-top:10px; font-family:Arial, sans-serif;">Close Menu</button>
 </div>
 
 <canvas id="matrixCanvas"></canvas>
@@ -859,7 +857,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   <div class="game-screen-wrapper" id="gameScreenWrapper">
     <div class="crt-overlay" id="crtOverlayElement"></div>
     <canvas id="jumpGame" width="400" height="200"></canvas>
-    <canvas id="targetGame" width="400" height="200" style="display:none; cursor: crosshair;"></canvas>
+    <canvas id="targetGame" width="400" height="200" style="display:none; cursor:crosshair;"></canvas>
     <canvas id="tetrisGame" width="400" height="400" style="display:none;"></canvas>
   </div>
 
@@ -919,9 +917,9 @@ input[type=range]::-webkit-slider-thumb:hover {
   </div>
 
   <div id="tab-system" class="mod-tab-content active">
-    <button class="nuke-btn" style="background: #222; color: var(--neon-color); border: 1px solid var(--neon-color); margin-top: 5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
-    <button class="nuke-btn" style="background: #222; color: #ff0000; border: 1px solid #ff0000; margin-top: 5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
-    <button class="nuke-btn" style="background: #222; color: cyan; border: 1px solid cyan; margin-top: 5px; margin-bottom: 15px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
+    <button class="nuke-btn" style="background:#222; color:var(--neon-color); border:1px solid var(--neon-color); margin-top:5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
+    <button class="nuke-btn" style="background:#222; color:#ff0000; border:1px solid #ff0000; margin-top:5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
+    <button class="nuke-btn" style="background:#222; color:cyan; border:1px solid cyan; margin-top:5px; margin-bottom:15px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
 
     <div class="mod-row">
       <label style="color:#ff69b4;font-family:serif;">&#9825; UwU Kawaii Mode</label>
@@ -952,7 +950,7 @@ input[type=range]::-webkit-slider-thumb:hover {
       </label>
     </div>
 
-    <button id="resetProgressBtn" class="nuke-btn" style="background: #ff8800; color: #000; margin-top: 20px;">RESET ALL PROGRESS</button>
+    <button id="resetProgressBtn" class="nuke-btn" style="background:#ff8800; color:#000; margin-top:20px;">RESET ALL PROGRESS</button>
     <button id="nukeToggle" class="nuke-btn">&#9760; INITIATE BREACH &#9760;</button>
   </div>
 
@@ -1000,7 +998,7 @@ input[type=range]::-webkit-slider-thumb:hover {
         <span class="toggle-slider"></span>
       </label>
     </div>
-    <button id="modRunnerReset" class="nuke-btn" style="background: #444; color: #fff; margin-top: 15px;">RESET RUNNER SETTINGS</button>
+    <button id="modRunnerReset" class="nuke-btn" style="background:#444; color:#fff; margin-top:15px;">RESET RUNNER SETTINGS</button>
   </div>
 
   <div id="tab-tetris" class="mod-tab-content">
@@ -1096,7 +1094,7 @@ input[type=range]::-webkit-slider-thumb:hover {
     </div>
   </div>
 
-  <div style="padding: 0 15px 15px 15px;">
+  <div style="padding:0 15px 15px 15px;">
     <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background:#444;color:#fff;width:100%;padding:10px;margin-top:15px;font-weight:bold;border:none;cursor:pointer;border-radius:5px;">Close Menu</button>
   </div>
 </div>
@@ -1114,6 +1112,7 @@ let tetrisActive = false;
 let nukeModeActive = false;
 let runnerDiscoActive = false;
 let runnerLoopActive = true;
+let activeGameMode = 'runner';
 
 let runnerAnimId = 0;
 let targetAnimId = 0;
@@ -1144,6 +1143,7 @@ const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS",
 const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "TOO SLOW", "SIGNAL LOST"];
 const tetrisCrashMessages = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR", "TETROMINO JAM", "OUT OF MEMORY"];
 
+// Runner
 let currentGravity = 0.85;
 let currentJumpPower = 11.5;
 let currentBaseSpeed = 5.0;
@@ -1162,6 +1162,7 @@ let currentRunnerCrash = "";
 let runnerObstacles = [];
 let runnerParticles = [];
 
+// Target
 let targetState = 'START';
 let targetScore = 0;
 let targetSpeedMult = 5;
@@ -1169,6 +1170,8 @@ let targetSize = 30;
 let aimbotEnabled = false;
 let targetFreeze = false;
 let targetDecoyEnabled = false;
+let aimbotShotDelay = 0;
+let aimbotPulse = 0;
 
 let duckX = 0, duckY = 0, duckActive = false, duckVelX = 0, duckVelY = 0, duckTimer = 0;
 let goldenActive = false, goldenX = 0, goldenY = 0, goldenVx = 0, goldenVy = 0, goldenTimer = 0;
@@ -1184,6 +1187,7 @@ let mouseX = 200, mouseY = 100;
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
 let currentDuckColor = rainbowColors[0];
 
+// Tetris
 let tetrisGrid = [];
 let tetrisScore = 0;
 let tetrisGameOver = false;
@@ -1307,7 +1311,10 @@ function playExplosionSound() {
   const bufferSize = audioCtx.sampleRate * 0.5;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = Math.random() * 2 - 1;
+  }
 
   const noise = audioCtx.createBufferSource();
   noise.buffer = buffer;
@@ -1435,6 +1442,8 @@ function resetTargetState() {
   targetLives = maxLives;
   currentTargetCrash = "";
   targetDeathTime = 0;
+  aimbotShotDelay = 0;
+  aimbotPulse = 0;
 }
 
 function setTargetDifficulty(value) {
@@ -1463,6 +1472,7 @@ function startTargetGame() {
   decoyActive = false;
   targetLives = maxLives;
   targetSpeedMult = (maxLives === 3) ? 8 : 5;
+  aimbotShotDelay = aimbotEnabled ? 12 : 0;
   spawnDuck();
 }
 
@@ -1657,9 +1667,11 @@ document.addEventListener("touchend", () => { isDraggingMenu = false; });
 
 window.switchGame = function(mode) {
   stopGameLoops();
+
   runnerLoopActive = false;
   targetGameActive = false;
   tetrisActive = false;
+  activeGameMode = mode;
 
   const jumpCanvas = document.getElementById('jumpGame');
   const tgtCanvas = document.getElementById('targetGame');
@@ -1871,6 +1883,7 @@ document.getElementById('modTargetSize')?.addEventListener('input', (e) => {
 
 document.getElementById('modAimbot')?.addEventListener('change', (e) => {
   aimbotEnabled = e.target.checked;
+  aimbotShotDelay = aimbotEnabled ? 10 : 0;
 });
 
 document.getElementById('modTargetDecoy')?.addEventListener('change', (e) => {
@@ -2016,7 +2029,7 @@ document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
   doomOverlay.style.left = "0";
   doomOverlay.style.width = "100vw";
   doomOverlay.style.height = "100vh";
-  doomOverlay.style.backgroundColor = "rgba(255, 0, 0, 0.2)";
+  doomOverlay.style.backgroundColor = "rgba(255,0,0,0.2)";
   doomOverlay.style.mixBlendMode = "multiply";
   doomOverlay.style.pointerEvents = "none";
   doomOverlay.style.zIndex = "9998";
@@ -2088,8 +2101,6 @@ function jump() {
   isJumping = true;
 }
 
-let activeGameMode = 'runner';
-
 window.addEventListener("keydown", function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
@@ -2115,6 +2126,7 @@ window.addEventListener("keydown", function(e) {
       const termText = document.getElementById('terminalText');
       termOverlay.style.display = 'block';
       termText.innerHTML = "";
+
       const bootSequence = [
         "INITIALIZING ROOT ACCESS...",
         "BYPASSING MAINFRAME FIREWALL...",
@@ -2122,6 +2134,7 @@ window.addEventListener("keydown", function(e) {
         "ACCESS GRANTED.",
         "LAUNCHING OVERRIDE PROTOCOL..."
       ];
+
       let delay = 0;
       bootSequence.forEach((line, index) => {
         setTimeout(() => {
@@ -2323,7 +2336,6 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => {
 
 function drawDino(ctx, x, y, frame) {
   const isContrast = document.body.classList.contains('a11y-contrast');
-  const reducedMotion = isReducedMotion();
   const gameNeonColor = isContrast ? "#000000" : (kawaiiActive ? "#ff69b4" : neonColor);
   const secondaryColor = isContrast ? "#ffffff" : "#fff";
 
@@ -2637,6 +2649,11 @@ function spawnDuck() {
     goldenActive = true;
     goldenTimer = 50;
   }
+
+  if (aimbotEnabled) {
+    aimbotShotDelay = 10;
+    aimbotPulse = 10;
+  }
 }
 
 function updateTargetGame(currentTime) {
@@ -2850,11 +2867,12 @@ function updateTargetGame(currentTime) {
     if (decoyTimer <= 0) decoyActive = false;
   }
 
-  if (aimbotEnabled && targetState === 'PLAYING') {
+  if (aimbotEnabled) {
+    aimbotPulse = Math.max(aimbotPulse - 1, 0);
     ctxTarget.save();
     ctxTarget.shadowBlur = 18;
-    ctxTarget.shadowColor = "#00ffff";
-    ctxTarget.fillStyle = "#00ffff";
+    ctxTarget.shadowColor = aimbotPulse > 0 ? "#00ffff" : "#ff00ff";
+    ctxTarget.fillStyle = aimbotPulse > 0 ? "#00ffff" : "#ff00ff";
     ctxTarget.font = "bold 14px 'Courier New', monospace";
     ctxTarget.textAlign = "right";
     ctxTarget.fillText("AIMBOT: ON", 390, 20);
@@ -2886,17 +2904,21 @@ function updateTargetGame(currentTime) {
   }
 
   if (aimbotEnabled && duckActive && targetState === 'PLAYING') {
-    const duckCx = duckX + targetSize / 2;
-    const duckCy = duckY + targetSize / 2;
-    targetScore++;
-    targetFloatingScores.push({ x: duckCx + 10, y: duckCy, alpha: 1.0, text: "+1", r: 0, g: 255, b: 255 });
-    spawnTargetParticles(duckCx, duckCy, "#00ffff");
-    duckActive = false;
-    triggerShake();
-    if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1;
-    if (targetScore > targetHighScore) {
-      targetHighScore = targetScore;
-      try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err) {}
+    if (aimbotShotDelay > 0) {
+      aimbotShotDelay--;
+    } else {
+      const duckCx = duckX + targetSize / 2;
+      const duckCy = duckY + targetSize / 2;
+      targetScore++;
+      targetFloatingScores.push({ x: duckCx + 10, y: duckCy, alpha: 1.0, text: "+1", r: 0, g: 255, b: 255 });
+      spawnTargetParticles(duckCx, duckCy, "#00ffff");
+      duckActive = false;
+      aimbotPulse = 8;
+      if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1;
+      if (targetScore > targetHighScore) {
+        targetHighScore = targetScore;
+        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err) {}
+      }
     }
   }
 
@@ -3265,6 +3287,19 @@ function updateTetris(currentTime) {
 
   ctxTetris.lineWidth = 1;
 }
+
+document.getElementById('startRunnerBtn')?.addEventListener('click', () => {
+  startRunner();
+});
+
+document.getElementById('startTargetBtn')?.addEventListener('click', () => {
+  switchGame('target');
+  startTargetGame();
+});
+
+document.getElementById('startTetrisBtn')?.addEventListener('click', () => {
+  switchGame('tetris');
+});
 
 if (ctx) {
   runnerLastTime = performance.now();
