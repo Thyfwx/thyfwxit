@@ -1,3 +1,5 @@
+html
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,7 +23,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;
 }
@@ -62,19 +63,22 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility Split Modes */
 body.a11y-font * {
   font-family: Arial, Helvetica, sans-serif !important;
   text-shadow: none !important;
 }
 
-body.a11y-no-anim * {
+body.a11y-no-anim *,
+body.a11y-no-anim *::before,
+body.a11y-no-anim *::after {
   animation: none !important;
   transition: none !important;
+  scroll-behavior: auto !important;
 }
 
 body.a11y-no-anim #matrixCanvas,
-body.a11y-no-anim #kawaiiOv {
+body.a11y-no-anim #kawaiiOv,
+body.a11y-no-anim #crtOverlayElement {
   display: none !important;
 }
 
@@ -162,7 +166,6 @@ body.a11y-contrast .mod-row label {
   color: #000000 !important;
 }
 
-/* A11y Floating Help Button & Panel */
 #a11yBtn {
   position: fixed;
   bottom: 20px;
@@ -182,7 +185,7 @@ body.a11y-contrast .mod-row label {
   cursor: pointer;
   z-index: 10001;
   user-select: none;
-  box-shadow: 0 0 15px rgba(0, 85, 255, 0.6);
+  box-shadow: 0 0 15px rgba(0,85,255,0.6);
   transition: transform 0.2s;
 }
 
@@ -204,7 +207,7 @@ body.a11y-contrast .mod-row label {
   gap: 15px;
   color: #fff;
   width: 280px;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.9);
 }
 
 header {
@@ -234,7 +237,7 @@ section {
   background: var(--section-bg);
   padding: 25px;
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6);
   transition: all 0.4s ease;
   position: relative;
   z-index: 2;
@@ -242,7 +245,7 @@ section {
 
 section:hover {
   transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.8);
 }
 
 ul {
@@ -274,7 +277,6 @@ footer {
   z-index: 2;
 }
 
-/* Project Grid */
 .project-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -297,11 +299,10 @@ footer {
 }
 
 .project-card:hover {
-  box-shadow: inset 0 0 15px rgba(255, 0, 255, 0.2), 0 0 15px var(--neon-color);
+  box-shadow: inset 0 0 15px rgba(255,0,255,0.2), 0 0 15px var(--neon-color);
   transform: scale(1.02);
 }
 
-/* Pulsing Neon Indicator */
 .pulse-indicator {
   color: var(--neon-color);
   animation: pulse 1.5s infinite;
@@ -309,23 +310,11 @@ footer {
 }
 
 @keyframes pulse {
-  0% {
-    opacity: 1;
-    text-shadow: 0 0 10px var(--neon-color);
-  }
-
-  50% {
-    opacity: 0.3;
-    text-shadow: none;
-  }
-
-  100% {
-    opacity: 1;
-    text-shadow: 0 0 10px var(--neon-color);
-  }
+  0% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+  50% { opacity: 0.3; text-shadow: none; }
+  100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
 }
 
-/* Custom Status Badges */
 .status-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -363,7 +352,6 @@ footer {
   box-shadow: 0 0 8px #ff0000;
 }
 
-/* Contact Form */
 .contact-form {
   display: flex;
   flex-direction: column;
@@ -386,9 +374,8 @@ footer {
 .contact-form input:focus,
 .contact-form select:focus,
 .contact-form textarea:focus {
-  outline: none;
-  border-color: var(--neon-color);
-  box-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
+  outline: 3px solid var(--neon-color);
+  outline-offset: 2px;
 }
 
 .contact-form button {
@@ -411,88 +398,31 @@ footer {
   transform: scale(0.97);
 }
 
-/* Screen Shake Animation */
 @keyframes shake {
-  0% {
-    transform: translate(1px, 1px) rotate(0deg);
-  }
-
-  10% {
-    transform: translate(-1px, -2px) rotate(-1deg);
-  }
-
-  20% {
-    transform: translate(-3px, 0px) rotate(1deg);
-  }
-
-  30% {
-    transform: translate(3px, 2px) rotate(0deg);
-  }
-
-  40% {
-    transform: translate(1px, -1px) rotate(1deg);
-  }
-
-  50% {
-    transform: translate(-1px, 2px) rotate(-1deg);
-  }
-
-  60% {
-    transform: translate(-3px, 1px) rotate(0deg);
-  }
-
-  70% {
-    transform: translate(3px, 1px) rotate(-1deg);
-  }
-
-  80% {
-    transform: translate(-1px, -1px) rotate(1deg);
-  }
-
-  90% {
-    transform: translate(1px, 2px) rotate(0deg);
-  }
-
-  100% {
-    transform: translate(1px, -2px) rotate(-1deg);
-  }
+  0% { transform: translate(1px, 1px) rotate(0deg); }
+  10% { transform: translate(-1px, -2px) rotate(-1deg); }
+  20% { transform: translate(-3px, 0px) rotate(1deg); }
+  30% { transform: translate(3px, 2px) rotate(0deg); }
+  40% { transform: translate(1px, -1px) rotate(1deg); }
+  50% { transform: translate(-1px, 2px) rotate(-1deg); }
+  60% { transform: translate(-3px, 1px) rotate(0deg); }
+  70% { transform: translate(3px, 1px) rotate(-1deg); }
+  80% { transform: translate(-1px, -1px) rotate(1deg); }
+  90% { transform: translate(1px, 2px) rotate(0deg); }
+  100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
 
 .shake-effect {
-  animation: shake 0.4s cubic-bezier(.36, .07, .19, .97) both;
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
-/* Safe Nuke Mode Animation */
 @keyframes terrifyingTear {
-  0% {
-    transform: skewX(0deg);
-    filter: invert(0) hue-rotate(0deg) contrast(1);
-  }
-
-  5% {
-    transform: skewX(10deg);
-    filter: invert(1) hue-rotate(90deg) contrast(3);
-  }
-
-  10% {
-    transform: skewX(-10deg);
-    filter: invert(0) hue-rotate(0deg) contrast(1);
-  }
-
-  50% {
-    transform: skewX(0deg);
-    filter: invert(0);
-  }
-
-  95% {
-    transform: skewX(0deg) scale(1);
-    filter: invert(0);
-  }
-
-  100% {
-    transform: skewX(20deg) scale(1.05);
-    filter: invert(1) contrast(5) blur(2px);
-  }
+  0% { transform: skewX(0deg); filter: invert(0) hue-rotate(0deg) contrast(1); }
+  5% { transform: skewX(10deg); filter: invert(1) hue-rotate(90deg) contrast(3); }
+  10% { transform: skewX(-10deg); filter: invert(0) hue-rotate(0deg) contrast(1); }
+  50% { transform: skewX(0deg); filter: invert(0); }
+  95% { transform: skewX(0deg) scale(1); filter: invert(0); }
+  100% { transform: skewX(20deg) scale(1.05); filter: invert(1) contrast(5) blur(2px); }
 }
 
 .nuke-terrifying {
@@ -500,31 +430,13 @@ footer {
   overflow: hidden;
 }
 
-/* CRT Flicker */
 @keyframes crt-flicker {
-  0% {
-    opacity: 0.8;
-  }
-
-  5% {
-    opacity: 0.95;
-  }
-
-  10% {
-    opacity: 0.8;
-  }
-
-  15% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.9;
-  }
-
-  100% {
-    opacity: 0.85;
-  }
+  0% { opacity: 0.8; }
+  5% { opacity: 0.95; }
+  10% { opacity: 0.8; }
+  15% { opacity: 1; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0.85; }
 }
 
 .game-container {
@@ -549,8 +461,8 @@ footer {
   right: 0;
   bottom: 0;
   background:
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0,0,0,0.25) 50%),
+    linear-gradient(90deg, rgba(255,0,0,0.06), rgba(0,255,0,0.02), rgba(0,0,255,0.06));
   background-size: 100% 4px, 3px 100%;
   pointer-events: none;
   z-index: 10;
@@ -568,16 +480,14 @@ canvas {
   user-select: none;
   -webkit-user-drag: none;
   cursor: crosshair;
-  box-shadow: 0 0 15px rgba(255, 0, 255, 0.2);
+  box-shadow: 0 0 15px rgba(255,0,255,0.2);
 }
 
-.controls-wrapper,
-.game-start-controls {
+.controls-wrapper {
   display: flex;
   gap: 10px;
   justify-content: center;
   margin-top: 15px;
-  flex-wrap: wrap;
 }
 
 .jump-btn {
@@ -624,20 +534,19 @@ canvas {
   line-height: 1.5;
 }
 
-/* Mod Menu */
 #modMenu {
   display: none;
   position: fixed;
   top: 10%;
   left: 50%;
   margin-left: -170px;
-  background: rgba(10, 10, 10, 0.85);
+  background: rgba(10,10,10,0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 2px solid var(--neon-color);
   padding: 0;
   z-index: 10000;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.5);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 15px rgba(255,0,0,0.5);
   color: #fff;
   width: 340px;
   border-radius: 10px;
@@ -650,20 +559,18 @@ canvas {
   cursor: move;
   padding: 15px;
   margin: 0;
-  background: rgba(30, 0, 0, 0.8);
+  background: rgba(30,0,0,0.8);
   border-bottom: 2px solid #ff0000;
   border-radius: 8px 8px 0 0;
   text-align: center;
   font-size: 1.1em;
   letter-spacing: 2px;
-  transition: all 0.3s;
 }
 
-/* Tab Navigation */
 .mod-tabs {
   display: flex;
   border-bottom: 1px solid #444;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.5);
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -713,6 +620,7 @@ canvas {
   align-items: center;
   margin-bottom: 12px;
   font-size: 0.9em;
+  gap: 10px;
 }
 
 .nuke-btn {
@@ -737,12 +645,12 @@ canvas {
   transform: scale(0.95);
 }
 
-/* CUSTOM NEON TOGGLE SWITCHES */
 .toggle-switch {
   position: relative;
   display: inline-block;
   width: 44px;
   height: 22px;
+  flex-shrink: 0;
 }
 
 .toggle-switch input {
@@ -788,7 +696,6 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 0 10px var(--neon-color);
 }
 
-/* CUSTOM NEON RANGE SLIDERS */
 input[type=range] {
   -webkit-appearance: none;
   width: 120px;
@@ -825,11 +732,9 @@ input[type=range]::-webkit-slider-thumb:hover {
   background: var(--neon-color);
 }
 
-/* OVERRIDE MATRIX CANVAS FULLSCREEN */
 #matrixCanvas {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100vw;
   height: 100vh;
   max-width: none;
@@ -837,26 +742,17 @@ input[type=range]::-webkit-slider-thumb:hover {
   background: transparent;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.8;
+  opacity: 0.85;
   display: none;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
-/* SOFT GIRLY PINK BACKGROUND ANIMATION */
 @keyframes kawaiiGradient {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 </style>
 </head>
@@ -963,19 +859,11 @@ input[type=range]::-webkit-slider-thumb:hover {
   <div class="game-screen-wrapper" id="gameScreenWrapper">
     <div class="crt-overlay" id="crtOverlayElement"></div>
     <canvas id="jumpGame" width="400" height="200"></canvas>
-    <canvas id="targetGame" width="400" height="200" style="display: none; cursor: crosshair;"></canvas>
-    <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
+    <canvas id="targetGame" width="400" height="200" style="display:none; cursor: crosshair;"></canvas>
+    <canvas id="tetrisGame" width="400" height="400" style="display:none;"></canvas>
   </div>
 
   <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump.</p>
-
-  <div class="game-start-controls" id="gameStartControls">
-    <button id="startRunnerBtn" class="jump-btn">Start Runner</button>
-    <button id="startTargetBtn" class="jump-btn">Start Target</button>
-    <button id="startTetrisBtn" class="jump-btn">Start Tetris</button>
-  </div>
-
-  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type or Tap <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
   <div id="publicDifficulty" style="display:none; margin-top: 15px;">
     <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -1039,6 +927,7 @@ input[type=range]::-webkit-slider-thumb:hover {
       <label style="color:#ff69b4;font-family:serif;">&#9825; UwU Kawaii Mode</label>
       <button id="kawaiiToggle" style="background:linear-gradient(135deg,#ff69b4,#ffb6c1);color:#fff;border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-weight:bold;font-size:0.85em;letter-spacing:1px;">OFF</button>
     </div>
+
     <div class="mod-row">
       <label>Screen Shake</label>
       <label class="toggle-switch">
@@ -1046,6 +935,7 @@ input[type=range]::-webkit-slider-thumb:hover {
         <span class="toggle-slider"></span>
       </label>
     </div>
+
     <div class="mod-row">
       <label style="color:#ffcc00;">CRT Scanlines</label>
       <label class="toggle-switch">
@@ -1053,6 +943,7 @@ input[type=range]::-webkit-slider-thumb:hover {
         <span class="toggle-slider"></span>
       </label>
     </div>
+
     <div class="mod-row">
       <label style="color:#0f0;">Matrix Rain</label>
       <label class="toggle-switch">
@@ -1206,14 +1097,11 @@ input[type=range]::-webkit-slider-thumb:hover {
   </div>
 
   <div style="padding: 0 15px 15px 15px;">
-    <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background: #444; color: #fff; width: 100%; padding: 10px; margin-top: 15px; font-weight: bold; border: none; cursor: pointer; border-radius: 5px;">Close Menu</button>
+    <button class="close-mod" onclick="document.getElementById('modMenu').style.display='none'" style="background:#444;color:#fff;width:100%;padding:10px;margin-top:15px;font-weight:bold;border:none;cursor:pointer;border-radius:5px;">Close Menu</button>
   </div>
 </div>
 
 <script>
-// ==========================================================================
-// 1. GLOBAL VARIABLES & UTILITIES
-// ==========================================================================
 const FRAME_INTERVAL = 1000 / 60;
 
 let runnerLastTime = 0;
@@ -1225,6 +1113,7 @@ let targetGameActive = false;
 let tetrisActive = false;
 let nukeModeActive = false;
 let runnerDiscoActive = false;
+let runnerLoopActive = true;
 
 let runnerAnimId = 0;
 let targetAnimId = 0;
@@ -1242,14 +1131,11 @@ let runnerHighScore = 0;
 let targetHighScore = 0;
 let tetrisHighScore = 0;
 
-let activeGameMode = 'runner';
-let runnerLoopActive = true;
-
 try {
   runnerHighScore = parseInt(localStorage.getItem('cyberRunnerHighScore')) || 0;
   targetHighScore = parseInt(localStorage.getItem('matrixTargetHighScore')) || 0;
   tetrisHighScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0;
-} catch (e) {}
+} catch(e) {}
 
 let shakeEnabled = true;
 let matrixRainEnabled = false;
@@ -1258,7 +1144,6 @@ const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS",
 const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "TOO SLOW", "SIGNAL LOST"];
 const tetrisCrashMessages = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR", "TETROMINO JAM", "OUT OF MEMORY"];
 
-// Cyber Runner Variables
 let currentGravity = 0.85;
 let currentJumpPower = 11.5;
 let currentBaseSpeed = 5.0;
@@ -1277,7 +1162,6 @@ let currentRunnerCrash = "";
 let runnerObstacles = [];
 let runnerParticles = [];
 
-// Target Simulator Variables
 let targetState = 'START';
 let targetScore = 0;
 let targetSpeedMult = 5;
@@ -1300,7 +1184,6 @@ let mouseX = 200, mouseY = 100;
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
 let currentDuckColor = rainbowColors[0];
 
-// Tetris Variables
 let tetrisGrid = [];
 let tetrisScore = 0;
 let tetrisGameOver = false;
@@ -1352,9 +1235,18 @@ const ctxTarget = targetCanvas ? targetCanvas.getContext("2d") : null;
 const tetrisCanvas = document.getElementById("tetrisGame");
 const ctxTetris = tetrisCanvas ? tetrisCanvas.getContext("2d") : null;
 
+const mCanvas = document.getElementById('matrixCanvas');
+const mCtx = mCanvas.getContext('2d');
+
 const style = getComputedStyle(document.body);
 const neonColor = style.getPropertyValue('--neon-color').trim() || '#ff00ff';
 const gridColor = style.getPropertyValue('--grid-color').trim() || '#330033';
+const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+/?".split("");
+const fontSize = 16;
+let drops = [];
+let matrixDrawActive = false;
+let kawaiiActive = false;
+let kawaiiInterval = null;
 
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
@@ -1376,6 +1268,30 @@ function circleHit(px, py, cx, cy, radius, pad = 0) {
   return Math.hypot(px - cx, py - cy) <= radius + pad;
 }
 
+function isReducedMotion() {
+  return document.body.classList.contains('a11y-no-anim');
+}
+
+function syncReducedMotionState() {
+  if (isReducedMotion()) {
+    shakeEnabled = false;
+    matrixRainEnabled = false;
+
+    const matrix = document.getElementById('matrixCanvas');
+    const kawaii = document.getElementById('kawaiiOv');
+    const crt = document.getElementById('crtOverlayElement');
+
+    if (matrix) matrix.style.display = 'none';
+    if (kawaii) kawaii.style.display = 'none';
+    if (crt) crt.style.display = 'none';
+
+    if (kawaiiInterval) {
+      clearInterval(kawaiiInterval);
+      kawaiiInterval = null;
+    }
+  }
+}
+
 function stopGameLoops() {
   cancelAnimationFrame(runnerAnimId);
   cancelAnimationFrame(targetAnimId);
@@ -1386,16 +1302,12 @@ function playExplosionSound() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
   const bufferSize = audioCtx.sampleRate * 0.5;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const data = buffer.getChannelData(0);
-
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
   const noise = audioCtx.createBufferSource();
   noise.buffer = buffer;
@@ -1414,17 +1326,19 @@ function playExplosionSound() {
   noise.start();
 }
 
-const mCanvas = document.getElementById('matrixCanvas');
-const mCtx = mCanvas.getContext('2d');
-const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const fontSize = 16;
-let drops = [];
-let matrixDrawActive = false;
-
 function resizeMatrix() {
-  mCanvas.width = window.innerWidth || document.documentElement.clientWidth;
-  mCanvas.height = window.innerHeight || document.documentElement.clientHeight;
-  const newColumns = Math.max(Math.floor(mCanvas.width / fontSize) + 1, 250);
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = window.innerWidth || document.documentElement.clientWidth;
+  const cssH = window.innerHeight || document.documentElement.clientHeight;
+
+  mCanvas.width = Math.floor(cssW * dpr);
+  mCanvas.height = Math.floor(cssH * dpr);
+  mCanvas.style.width = cssW + 'px';
+  mCanvas.style.height = cssH + 'px';
+
+  mCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const newColumns = Math.max(Math.floor(cssW / fontSize) + 1, 250);
   drops = [];
   for (let x = 0; x < newColumns; x++) {
     drops[x] = Math.random() * -100;
@@ -1435,52 +1349,50 @@ window.addEventListener('resize', resizeMatrix);
 resizeMatrix();
 
 function drawMatrix(currentTime) {
-  if (!matrixRainEnabled) {
+  if (!matrixRainEnabled || isReducedMotion()) {
     matrixDrawActive = false;
     return;
   }
 
   requestAnimationFrame(drawMatrix);
 
-  if (!currentTime) {
-    currentTime = performance.now();
-  }
-
+  if (!currentTime) currentTime = performance.now();
   const dt = currentTime - matrixLastTime;
   if (dt < FRAME_INTERVAL) return;
   matrixLastTime = currentTime - (dt % FRAME_INTERVAL);
 
-  mCtx.fillStyle = "rgba(0, 0, 0, 0.1)";
-  mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
+  const cssW = window.innerWidth || document.documentElement.clientWidth;
+  const cssH = window.innerHeight || document.documentElement.clientHeight;
 
-  mCtx.fillStyle = kawaiiActive ? "#ff69b4" : "#0F0";
+  mCtx.fillStyle = "rgba(0, 0, 0, 0.12)";
+  mCtx.fillRect(0, 0, cssW, cssH);
+
+  const hue = kawaiiActive ? 330 : 120;
   mCtx.font = "bold " + fontSize + "px monospace";
 
   for (let i = 0; i < drops.length; i++) {
+    const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    const alpha = 0.5 + Math.random() * 0.5;
+    mCtx.fillStyle = kawaiiActive ? `hsla(${hue}, 100%, 75%, ${alpha})` : `hsla(${hue}, 100%, 50%, ${alpha})`;
+    mCtx.shadowBlur = kawaiiActive ? 12 : 8;
+    mCtx.shadowColor = kawaiiActive ? "#ff69b4" : "#00ff66";
     if (drops[i] > 0) {
-      const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
       mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
     }
-
-    if (drops[i] * fontSize > mCanvas.height && Math.random() > 0.975) {
-      drops[i] = 0;
-    }
-
+    if (drops[i] * fontSize > cssH && Math.random() > 0.975) drops[i] = 0;
     drops[i]++;
   }
+  mCtx.shadowBlur = 0;
 }
 
 function triggerShake() {
-  if (!shakeEnabled) return;
+  if (!shakeEnabled || isReducedMotion()) return;
   const gameArea = document.getElementById("gameArea");
-  if (gameArea) {
-    gameArea.classList.remove("shake-effect");
-    void gameArea.offsetWidth;
-    gameArea.classList.add("shake-effect");
-    setTimeout(() => {
-      gameArea.classList.remove("shake-effect");
-    }, 400);
-  }
+  if (!gameArea) return;
+  gameArea.classList.remove("shake-effect");
+  void gameArea.offsetWidth;
+  gameArea.classList.add("shake-effect");
+  setTimeout(() => gameArea.classList.remove("shake-effect"), 400);
 }
 
 async function fetchUptimeStatus() {
@@ -1490,7 +1402,6 @@ async function fetchUptimeStatus() {
       dot.classList.add('status-online');
     });
   };
-
   try {
     await fetch('https://uptime.thyfwxit.com/api/status-page/status');
     setOnline();
@@ -1526,6 +1437,14 @@ function resetTargetState() {
   targetDeathTime = 0;
 }
 
+function setTargetDifficulty(value) {
+  maxLives = parseInt(value) || 6;
+  const modSelect = document.getElementById('modDifficulty');
+  const publicSelect = document.getElementById('publicDiffSelect');
+  if (modSelect) modSelect.value = String(maxLives);
+  if (publicSelect) publicSelect.value = String(maxLives);
+}
+
 function startRunner() {
   switchGame('runner');
   gameStarted = true;
@@ -1553,14 +1472,10 @@ window.onload = () => {
   if (document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.85;
   if (document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 5.0;
   if (document.getElementById('modJump')) document.getElementById('modJump').value = 11.5;
-
   if (document.getElementById('modShakeToggle')) {
     document.getElementById('modShakeToggle').checked = true;
     shakeEnabled = true;
   }
-
-  activeGameMode = 'runner';
-  runnerLoopActive = true;
 
   if (ctx) {
     runnerLastTime = performance.now();
@@ -1570,6 +1485,8 @@ window.onload = () => {
   if (localStorage.getItem('themePref') === 'kawaii') {
     document.getElementById('kawaiiToggle')?.click();
   }
+
+  syncReducedMotionState();
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1609,34 +1526,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById('a11yFontToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) document.body.classList.add('a11y-font');
-    else document.body.classList.remove('a11y-font');
+    document.body.classList.toggle('a11y-font', e.target.checked);
   });
 
   document.getElementById('a11yAnimToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) document.body.classList.add('a11y-no-anim');
-    else document.body.classList.remove('a11y-no-anim');
+    document.body.classList.toggle('a11y-no-anim', e.target.checked);
+    syncReducedMotionState();
   });
 
   document.getElementById('a11yTextToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) document.body.classList.add('a11y-large-text');
-    else document.body.classList.remove('a11y-large-text');
+    document.body.classList.toggle('a11y-large-text', e.target.checked);
   });
 
   document.getElementById('a11ySpaceToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) document.body.classList.add('a11y-spaced');
-    else document.body.classList.remove('a11y-spaced');
+    document.body.classList.toggle('a11y-spaced', e.target.checked);
   });
 
   document.getElementById('a11yContrastToggle')?.addEventListener('change', (e) => {
-    if (e.target.checked) document.body.classList.add('a11y-contrast');
-    else document.body.classList.remove('a11y-contrast');
+    document.body.classList.toggle('a11y-contrast', e.target.checked);
   });
 });
 
-// ==========================================================================
-// 2. MENU AND MOD LOGIC
-// ==========================================================================
 document.getElementById("secureContactForm")?.addEventListener("submit", async function(event) {
   event.preventDefault();
   const form = event.target;
@@ -1698,9 +1608,7 @@ const handleHeaderInteraction = () => {
     document.getElementById('modMenu').style.display = 'flex';
     headerTapCount = 0;
   }
-  setTimeout(() => {
-    headerTapCount = 0;
-  }, 1500);
+  setTimeout(() => { headerTapCount = 0; }, 1500);
 };
 
 document.getElementById('mainHeader')?.addEventListener('pointerdown', handleHeaderInteraction);
@@ -1744,20 +1652,14 @@ document.addEventListener("touchmove", (e) => {
   dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`;
 }, { passive: false });
 
-document.addEventListener("mouseup", () => {
-  isDraggingMenu = false;
-});
-
-document.addEventListener("touchend", () => {
-  isDraggingMenu = false;
-});
+document.addEventListener("mouseup", () => { isDraggingMenu = false; });
+document.addEventListener("touchend", () => { isDraggingMenu = false; });
 
 window.switchGame = function(mode) {
   stopGameLoops();
   runnerLoopActive = false;
   targetGameActive = false;
   tetrisActive = false;
-  activeGameMode = mode;
 
   const jumpCanvas = document.getElementById('jumpGame');
   const tgtCanvas = document.getElementById('targetGame');
@@ -1777,7 +1679,6 @@ window.switchGame = function(mode) {
     if (jumpCanvas) jumpCanvas.style.display = 'block';
     document.getElementById('runnerControls').style.display = 'flex';
     document.getElementById('gamePrompt').style.display = 'block';
-    document.getElementById('secretText').style.display = 'block';
     document.getElementById('gameTitle').innerText = "Cyber Runner Game";
     document.getElementById('gameTitle').style.color = "var(--neon-color)";
     resetRunnerState();
@@ -1788,7 +1689,6 @@ window.switchGame = function(mode) {
     if (tgtCanvas) tgtCanvas.style.display = 'block';
     document.getElementById('publicDifficulty').style.display = 'block';
     document.getElementById('gamePrompt').style.display = 'none';
-    document.getElementById('secretText').style.display = 'block';
     document.getElementById('gameTitle').innerText = "Matrix Target Simulator";
     document.getElementById('gameTitle').style.color = "red";
     resetTargetState();
@@ -1798,7 +1698,6 @@ window.switchGame = function(mode) {
     tetrisActive = true;
     if (tetCanvas) tetCanvas.style.display = 'block';
     document.getElementById('gamePrompt').style.display = 'none';
-    document.getElementById('secretText').style.display = 'block';
     document.getElementById('gameTitle').innerText = "TETRIS TERMINAL";
     document.getElementById('gameTitle').style.color = "cyan";
     initTetris();
@@ -1807,42 +1706,29 @@ window.switchGame = function(mode) {
   }
 };
 
-document.getElementById('startRunnerBtn')?.addEventListener('click', () => {
-  startRunner();
-});
-
-document.getElementById('startTargetBtn')?.addEventListener('click', () => {
-  switchGame('target');
-  startTargetGame();
-});
-
-document.getElementById('startTetrisBtn')?.addEventListener('click', () => {
-  switchGame('tetris');
-});
-
 document.getElementById('modShakeToggle')?.addEventListener('change', (e) => {
   shakeEnabled = e.target.checked;
+  if (isReducedMotion()) shakeEnabled = false;
 });
 
 document.getElementById('modMatrixRain')?.addEventListener('change', (e) => {
-  matrixRainEnabled = e.target.checked;
+  matrixRainEnabled = e.target.checked && !isReducedMotion();
+  const matrixCanvas = document.getElementById('matrixCanvas');
   if (matrixRainEnabled) {
     matrixLastTime = performance.now();
-    document.getElementById('matrixCanvas').style.display = 'block';
+    matrixCanvas.style.display = 'block';
     if (!matrixDrawActive) {
       matrixDrawActive = true;
       requestAnimationFrame(drawMatrix);
     }
   } else {
-    document.getElementById('matrixCanvas').style.display = 'none';
+    matrixCanvas.style.display = 'none';
   }
 });
 
 document.getElementById('modCrtToggle')?.addEventListener('change', (e) => {
   const crt = document.getElementById('crtOverlayElement');
-  if (crt) {
-    crt.style.display = e.target.checked ? 'block' : 'none';
-  }
+  if (crt) crt.style.display = e.target.checked ? 'block' : 'none';
 });
 
 document.getElementById('modGravity')?.addEventListener('input', (e) => {
@@ -1947,7 +1833,7 @@ document.getElementById('modTetrisScoreBtn')?.addEventListener('click', () => {
   tetrisScore = v;
   if (v > tetrisHighScore) {
     tetrisHighScore = v;
-    try { localStorage.setItem('tetrisHighScore', v); } catch (e) {}
+    try { localStorage.setItem('tetrisHighScore', v); } catch(e) {}
   }
 });
 
@@ -1963,7 +1849,7 @@ document.getElementById('modTetrisAddJunkBtn')?.addEventListener('click', () => 
   if (!tetrisActive || tetrisGameOver) return;
   tetrisGrid.shift();
   let junkRow = [];
-  for (let i = 0; i < 10; i++) {
+  for(let i = 0; i < 10; i++) {
     junkRow.push(Math.random() > 0.3 ? Math.floor(Math.random() * 7) + 1 : 0);
   }
   tetrisGrid.push(junkRow);
@@ -1971,19 +1857,11 @@ document.getElementById('modTetrisAddJunkBtn')?.addEventListener('click', () => 
 });
 
 document.getElementById('modDifficulty')?.addEventListener('change', (e) => {
-  document.getElementById('publicDiffSelect').value = e.target.value;
-  maxLives = parseInt(e.target.value);
-  if (targetGameActive && targetState === 'START') {
-    targetLives = maxLives;
-  }
+  setTargetDifficulty(e.target.value);
 });
 
 document.getElementById('publicDiffSelect')?.addEventListener('change', (e) => {
-  document.getElementById('modDifficulty').value = e.target.value;
-  maxLives = parseInt(e.target.value);
-  if (targetGameActive && targetState === 'START') {
-    targetLives = maxLives;
-  }
+  setTargetDifficulty(e.target.value);
 });
 
 document.getElementById('modTargetSize')?.addEventListener('input', (e) => {
@@ -2008,29 +1886,23 @@ document.getElementById('resetProgressBtn')?.addEventListener('click', () => {
     localStorage.removeItem('cyberRunnerHighScore');
     localStorage.removeItem('matrixTargetHighScore');
     localStorage.removeItem('tetrisHighScore');
-  } catch (e) {}
+  } catch(e) {}
   runnerHighScore = 0;
   targetHighScore = 0;
   tetrisHighScore = 0;
   alert("SYSTEM PURGED: All local high scores have been wiped.");
 });
 
-// ==========================================================================
-// 3. KAWAII & NUKE MODES
-// ==========================================================================
-let kawaiiActive = false;
-let kawaiiInterval = null;
+let kawaiiIntervalCleanup = null;
 
 function startKawaiiParticles() {
   const emojis = ['♡', '★', '✧', '❀', '✿', '☾', '♪', '☆', '🎀', '💖', '✨', '🌸', '☁️', '🍓', '🍰', '🧸', '🍒', '🌷'];
   const ov = document.getElementById('kawaiiOv');
 
-  if (kawaiiInterval) {
-    clearInterval(kawaiiInterval);
-  }
+  if (kawaiiIntervalCleanup) clearInterval(kawaiiIntervalCleanup);
 
-  kawaiiInterval = setInterval(() => {
-    if (!kawaiiActive) return;
+  kawaiiIntervalCleanup = setInterval(() => {
+    if (!kawaiiActive || isReducedMotion()) return;
 
     const el = document.createElement('div');
     el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
@@ -2041,17 +1913,15 @@ function startKawaiiParticles() {
     el.style.whiteSpace = 'nowrap';
     el.style.userSelect = 'none';
     el.style.color = '#ff69b4';
-    el.style.filter = 'drop-shadow(0 0 5px rgba(255, 105, 180, 0.8))';
+    el.style.filter = 'drop-shadow(0 0 5px rgba(255,105,180,0.8))';
 
     const duration = Math.random() * 4000 + 4000;
-
     el.animate([
       { transform: `translateY(0) rotate(${Math.random() * 20 - 10}deg)`, opacity: 1 },
       { transform: `translateY(110vh) rotate(${Math.random() * 40 - 20}deg)`, opacity: 0 }
-    ], { duration: duration, easing: 'linear' });
+    ], { duration, easing: 'linear' });
 
     ov.appendChild(el);
-
     setTimeout(() => {
       if (el.parentNode) el.remove();
     }, duration);
@@ -2071,7 +1941,6 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     document.documentElement.style.setProperty('--text-color', '#d11a7a');
     document.documentElement.style.setProperty('--canvas-bg', '#fffafa');
     document.body.style.fontFamily = "'Comic Sans MS', 'Chalkboard SE', sans-serif";
-    document.getElementById('mainTitle').innerText = "Systems Specialist & Network Infrastructure";
     document.body.style.background = "linear-gradient(135deg, #fff0f5, #ffe4e1, #ffd1dc, #fff0f5)";
     document.body.style.backgroundSize = "400% 400%";
     document.body.style.animation = "kawaiiGradient 20s ease infinite";
@@ -2086,8 +1955,8 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
           border: 3px dashed #ffb6c1 !important;
         }
         .mod-tab-content { border-radius: 20px !important; }
-        #modMenu { background: rgba(255, 240, 245, 0.95) !important; color: #d11a7a !important; border-color: #ff69b4 !important; }
-        #modMenuHeader { background: rgba(255, 182, 193, 0.9) !important; border-bottom: 2px solid #ff1493 !important; color: #fff !important; }
+        #modMenu { background: rgba(255,240,245,0.95) !important; color: #d11a7a !important; border-color: #ff69b4 !important; }
+        #modMenuHeader { background: rgba(255,182,193,0.9) !important; border-bottom: 2px solid #ff1493 !important; color: #fff !important; }
         .mod-tab-btn { color: #ff69b4 !important; font-weight: bold !important; }
         .mod-tab-btn.active { color: #ff1493 !important; border-bottom: 2px solid #ff1493 !important; text-shadow: none !important; }
         .mod-row label { color: #d11a7a !important; font-weight: bold; }
@@ -2096,12 +1965,11 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
         input:checked + .toggle-slider:before { background-color: #fff !important; box-shadow: none !important; }
         .nuke-btn { background: #ffb6c1 !important; color: #fff !important; border: 1px solid #ff69b4 !important; text-shadow: none !important; }
         select { background: #ffe4e1 !important; color: #d11a7a !important; font-weight: bold; }
-        .close-mod { background: #ff69b4 !important; color: #fff !important; }
       `;
       document.head.appendChild(s);
     }
 
-    startKawaiiParticles();
+    if (!isReducedMotion()) startKawaiiParticles();
     document.getElementById('modMenu').style.borderColor = '#ff69b4';
     document.getElementById('modMenu').style.boxShadow = '0 0 30px #ff69b4';
     btn.innerText = '[KAWAII] ON!';
@@ -2119,15 +1987,8 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     document.body.style.animation = "none";
     document.getElementById('mainTitle').innerText = "Systems Specialist & Network Infrastructure";
     document.body.style.cursor = "auto";
-
-    if (document.getElementById('kawaiiStyle')) {
-      document.getElementById('kawaiiStyle').remove();
-    }
-
-    if (kawaiiInterval) {
-      clearInterval(kawaiiInterval);
-    }
-
+    if (document.getElementById('kawaiiStyle')) document.getElementById('kawaiiStyle').remove();
+    if (kawaiiIntervalCleanup) clearInterval(kawaiiIntervalCleanup);
     document.getElementById('kawaiiOv').innerHTML = '';
     document.getElementById('modMenu').style.borderColor = '#ff0000';
     document.getElementById('modMenu').style.boxShadow = '0 0 20px #ff0000';
@@ -2174,9 +2035,7 @@ document.addEventListener('click', (e) => {
     e.target.tagName === 'HTML' ||
     e.target.tagName === 'BODY' ||
     e.target.tagName === 'CANVAS'
-  ) {
-    return;
-  }
+  ) return;
 
   playExplosionSound();
 
@@ -2191,12 +2050,10 @@ document.addEventListener('click', (e) => {
     glitch.style.pointerEvents = 'none';
     glitch.style.zIndex = 10001;
     glitch.style.mixBlendMode = 'difference';
-
     glitch.animate([
       { transform: `scaleX(1) translate(0, 0)`, opacity: 1 },
       { transform: `scaleX(3) translate(${Math.random() > 0.5 ? 100 : -100}px, 0)`, opacity: 0 }
     ], { duration: 400, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' });
-
     document.body.appendChild(glitch);
     setTimeout(() => glitch.remove(), 400);
   }
@@ -2214,17 +2071,27 @@ document.addEventListener('click', (e) => {
   }, 300);
 });
 
-// ==========================================================================
-// 4. EVENT LISTENERS & INPUT
-// ==========================================================================
-function startTargetGameIfReady() {
-  startTargetGame();
-}
+function jump() {
+  if (!runnerLoopActive || activeGameMode !== 'runner') return;
 
-window.addEventListener("keydown", function(e) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+  if (gameOver) {
+    if (Date.now() - runnerDeathTime > 1000) {
+      startRunner();
+      velocity = -currentJumpPower;
+      isJumping = true;
+    }
     return;
   }
+
+  if (!gameStarted) gameStarted = true;
+  velocity = -currentJumpPower;
+  isJumping = true;
+}
+
+let activeGameMode = 'runner';
+
+window.addEventListener("keydown", function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
 
   if (e.code === 'Escape') {
     document.getElementById('modMenu').style.display = 'none';
@@ -2239,21 +2106,15 @@ window.addEventListener("keydown", function(e) {
   if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
     keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
 
-    if (keyBuffer.endsWith("hack")) {
-      document.getElementById('modMenu').style.display = 'flex';
-    }
-    if (keyBuffer.endsWith("duck")) {
-      switchGame('target');
-    }
-    if (keyBuffer.endsWith("runn")) {
-      switchGame('runner');
-    }
+    if (keyBuffer.endsWith("hack")) document.getElementById('modMenu').style.display = 'flex';
+    if (keyBuffer.endsWith("duck")) switchGame('target');
+    if (keyBuffer.endsWith("runn")) switchGame('runner');
+
     if (keyBuffer.endsWith("sudo")) {
       const termOverlay = document.getElementById('terminalOverlay');
       const termText = document.getElementById('terminalText');
       termOverlay.style.display = 'block';
       termText.innerHTML = "";
-
       const bootSequence = [
         "INITIALIZING ROOT ACCESS...",
         "BYPASSING MAINFRAME FIREWALL...",
@@ -2261,14 +2122,12 @@ window.addEventListener("keydown", function(e) {
         "ACCESS GRANTED.",
         "LAUNCHING OVERRIDE PROTOCOL..."
       ];
-
       let delay = 0;
       bootSequence.forEach((line, index) => {
         setTimeout(() => {
           termText.innerHTML += `> ${line}<br>`;
           termOverlay.style.boxShadow = "inset 0 0 50px #00ff00";
           setTimeout(() => termOverlay.style.boxShadow = "none", 100);
-
           if (index === bootSequence.length - 1) {
             setTimeout(() => {
               termOverlay.style.display = 'none';
@@ -2281,9 +2140,7 @@ window.addEventListener("keydown", function(e) {
     }
   }
 
-  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
-    e.preventDefault();
-  }
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) e.preventDefault();
 
   if (tetrisActive) {
     if (tetrisGameOver) {
@@ -2296,18 +2153,14 @@ window.addEventListener("keydown", function(e) {
 
     if (e.code === "ArrowLeft" || e.code === "KeyA") tMove(-1);
     if (e.code === "ArrowRight" || e.code === "KeyD") tMove(1);
-
     if (e.code === "ArrowDown" || e.code === "KeyS") {
       tDrop();
       tetrisScore += (1 * tetrisScoreMult);
     }
-
     if (e.code === "ArrowUp" || e.code === "KeyW") tRotate();
 
     if (e.code === "Space" || e.key === " ") {
-      while (!tCollide(tetrisGrid, currentPiece)) {
-        currentPiece.pos.y++;
-      }
+      while(!tCollide(tetrisGrid, currentPiece)) currentPiece.pos.y++;
       currentPiece.pos.y--;
       tMerge();
       tReset();
@@ -2319,43 +2172,14 @@ window.addEventListener("keydown", function(e) {
       if (targetState === 'GAMEOVER' && Date.now() - targetDeathTime < 1000) return;
       startTargetGame();
     }
-
-    if (targetState === 'PLAYING' && aimbotEnabled && duckActive) {
-      targetScore++;
-      duckActive = false;
-    }
   } else {
-    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
-      jump();
-    }
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") jump();
   }
 }, { passive: false });
 
 window.addEventListener("keyup", e => {
-  if (e.code === 'Space' || e.key === " ") {
-    keySpaceHeld = false;
-  }
+  if (e.code === 'Space' || e.key === " ") keySpaceHeld = false;
 });
-
-function jump() {
-  if (!runnerLoopActive || activeGameMode !== 'runner') return;
-
-  if (gameOver) {
-    if (Date.now() - runnerDeathTime > 1000) {
-      startRunner();
-      velocity = -currentJumpPower;
-      isJumping = true;
-    }
-    return;
-  }
-
-  if (!gameStarted) {
-    gameStarted = true;
-  }
-
-  velocity = -currentJumpPower;
-  isJumping = true;
-}
 
 if (canvas) {
   canvas.addEventListener("pointerdown", (e) => {
@@ -2364,7 +2188,6 @@ if (canvas) {
     document.getElementById("jumpGame").scrollIntoView({ behavior: "smooth", block: "center" });
     jump();
   });
-
   canvas.addEventListener("pointerup", () => {
     keySpaceHeld = false;
   });
@@ -2380,7 +2203,6 @@ if (targetCanvas) {
 
   targetCanvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-
     const p = getCanvasPoint(targetCanvas, e);
     mouseX = p.x;
     mouseY = p.y;
@@ -2398,7 +2220,6 @@ if (targetCanvas) {
 
     if (targetState === 'PLAYING') {
       const hitPad = 28;
-
       const duckCx = duckX + targetSize / 2;
       const duckCy = duckY + targetSize / 2;
       const goldenCx = goldenX + targetSize / 2;
@@ -2425,14 +2246,13 @@ if (targetCanvas) {
         targetScore++;
         targetFloatingScores.push({ x: p.x + 15, y: p.y, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0 });
         spawnTargetParticles(p.x, p.y, currentDuckColor);
-
         if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1;
         duckActive = false;
       }
 
       if (targetScore > targetHighScore) {
         targetHighScore = targetScore;
-        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch (err) {}
+        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err) {}
       }
     }
   });
@@ -2443,7 +2263,7 @@ if (targetCanvas) {
       if (targetCanvas.hasPointerCapture(e.pointerId)) {
         targetCanvas.releasePointerCapture(e.pointerId);
       }
-    } catch (err) {}
+    } catch(err) {}
   });
 }
 
@@ -2462,10 +2282,8 @@ if (tetrisCanvas) {
   tetrisCanvas.addEventListener("touchmove", (e) => {
     e.preventDefault();
     if (!tetrisActive || tetrisGameOver) return;
-
     let dx = e.touches[0].clientX - tPointerStartX;
     let dy = e.touches[0].clientY - tPointerStartY;
-
     if (Math.abs(dx) > 30) {
       tMove(dx > 0 ? 1 : -1);
       tPointerStartX = e.touches[0].clientX;
@@ -2479,9 +2297,7 @@ if (tetrisCanvas) {
 
   tetrisCanvas.addEventListener("touchend", (e) => {
     e.preventDefault();
-    if (!tPointerHandled && tetrisActive && !tetrisGameOver) {
-      tRotate();
-    }
+    if (!tPointerHandled && tetrisActive && !tetrisGameOver) tRotate();
   }, { passive: false });
 
   tetrisCanvas.addEventListener("mousedown", (e) => {
@@ -2505,43 +2321,32 @@ document.getElementById("mobileJumpBtn")?.addEventListener("pointerup", () => {
   keySpaceHeld = false;
 });
 
-// ==========================================================================
-// 5. GAME ENGINES (RUNNER, TARGET, TETRIS)
-// ==========================================================================
-
 function drawDino(ctx, x, y, frame) {
   const isContrast = document.body.classList.contains('a11y-contrast');
+  const reducedMotion = isReducedMotion();
   const gameNeonColor = isContrast ? "#000000" : (kawaiiActive ? "#ff69b4" : neonColor);
   const secondaryColor = isContrast ? "#ffffff" : "#fff";
 
-  if (runnerGodMode && frame % 10 < 5) {
-    ctx.globalAlpha = 0.5;
-  } else {
-    ctx.globalAlpha = 1.0;
-  }
-
+  ctx.globalAlpha = (runnerGodMode && frame % 10 < 5) ? 0.5 : 1.0;
   ctx.fillStyle = gameNeonColor;
   ctx.fillRect(x, y, 20, 20);
-
   ctx.fillStyle = secondaryColor;
   ctx.fillRect(x + 12, y + 4, 4, 4);
-
   ctx.fillStyle = gameNeonColor;
+
   if (isJumping) {
     ctx.fillRect(x + 2, y + 20, 6, 6);
     ctx.fillRect(x + 12, y + 20, 6, 6);
   } else {
-    if (Math.floor(frame / 5) % 2 === 0) {
-      ctx.fillRect(x + 2, y + 20, 6, 6);
-    } else {
-      ctx.fillRect(x + 12, y + 20, 6, 6);
-    }
+    if (Math.floor(frame / 5) % 2 === 0) ctx.fillRect(x + 2, y + 20, 6, 6);
+    else ctx.fillRect(x + 12, y + 20, 6, 6);
   }
 
   ctx.globalAlpha = 1.0;
 }
 
 function spawnRunnerParticles(x, y, color) {
+  if (isReducedMotion()) return;
   for (let i = 0; i < 20; i++) {
     runnerParticles.push({
       x: x + Math.random() * 20,
@@ -2549,7 +2354,7 @@ function spawnRunnerParticles(x, y, color) {
       vx: (Math.random() - 0.5) * 10,
       vy: (Math.random() - 0.5) * 10,
       life: 1.0,
-      color: color
+      color
     });
   }
 }
@@ -2560,57 +2365,58 @@ function updateRunner(currentTime) {
 
   runnerAnimId = requestAnimationFrame(updateRunner);
 
-  if (!currentTime) {
-    currentTime = performance.now();
-  }
-
+  if (!currentTime) currentTime = performance.now();
   let dt = currentTime - runnerLastTime;
   if (dt < FRAME_INTERVAL) return;
   runnerLastTime = currentTime - (dt % FRAME_INTERVAL);
   gameFrame++;
 
   const isContrast = document.body.classList.contains('a11y-contrast');
+  const reducedMotion = isReducedMotion();
   const gameNeonColor = isContrast ? "#000000" : (kawaiiActive ? "#ff69b4" : neonColor);
   const canvasTextColor = isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : "#fff");
-  const canvasLineCol = isContrast ? "#cccccc" : (kawaiiActive ? "rgba(255, 105, 180, 0.4)" : gridColor);
-  const gameBgColor = isContrast ? "#ffffff" : (kawaiiActive ? "#fffafa" : "rgba(0, 0, 0, 0.85)");
+  const canvasLineCol = isContrast ? "#cccccc" : (kawaiiActive ? "rgba(255,105,180,0.4)" : gridColor);
+  const gameBgColor = isContrast ? "#ffffff" : (kawaiiActive ? "#fffafa" : "rgba(0,0,0,0.85)");
   const floorCol = isContrast ? "#dddddd" : (kawaiiActive ? "#ffe4e1" : "#444");
 
   ctx.clearRect(0, 0, 400, 200);
 
-  if (kawaiiActive || isContrast) {
-    ctx.fillStyle = gameBgColor;
+  if (kawaiiActive || isContrast || reducedMotion) {
+    ctx.fillStyle = reducedMotion ? (isContrast ? "#ffffff" : "#0a0a0a") : gameBgColor;
     ctx.fillRect(0, 0, 400, 200);
   }
 
-  ctx.strokeStyle = canvasLineCol;
-  for (let i = 0; i <= 400; i += 20) {
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i, 200);
-    ctx.stroke();
-  }
-  for (let i = 0; i <= 200; i += 20) {
-    ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(400, i);
-    ctx.stroke();
-  }
+  if (!reducedMotion) {
+    ctx.strokeStyle = canvasLineCol;
+    for (let i = 0; i <= 400; i += 20) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 200);
+      ctx.stroke();
+    }
+    for (let i = 0; i <= 200; i += 20) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(400, i);
+      ctx.stroke();
+    }
 
-  ctx.strokeStyle = gameNeonColor;
-  ctx.setLineDash([5, 5]);
-  ctx.beginPath();
-  ctx.moveTo(0 - (gameFrame * currentSpeed) % 10, 170);
-  ctx.lineTo(400, 170);
-  ctx.stroke();
-  ctx.setLineDash([]);
+    ctx.strokeStyle = gameNeonColor;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0 - (gameFrame * currentSpeed) % 10, 170);
+    ctx.lineTo(400, 170);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  } else {
+    ctx.fillStyle = floorCol;
+    ctx.fillRect(0, 170, 400, 30);
+  }
 
   if (gameStarted && !gameOver) {
     if (runnerJetpack && keySpaceHeld) {
       velocity -= 1.5;
-      if (velocity < -currentJumpPower) {
-        velocity = -currentJumpPower;
-      }
+      if (velocity < -currentJumpPower) velocity = -currentJumpPower;
       isJumping = true;
     } else if (isJumping && !runnerJetpack && !keySpaceHeld) {
       if (velocity < -4) velocity = -4;
@@ -2632,22 +2438,16 @@ function updateRunner(currentTime) {
     if (!lastObs || lastObs.x < (400 - minGap)) {
       let r = Math.random();
       let oType = 'normal';
-      if (score > 5 && r < 0.40) {
-        oType = 'flying';
-      } else if (r < 0.60) {
-        oType = 'tall';
-      } else if (r < 0.80) {
-        oType = 'wide';
-      }
+      if (score > 5 && r < 0.40) oType = 'flying';
+      else if (r < 0.60) oType = 'tall';
+      else if (r < 0.80) oType = 'wide';
       runnerObstacles.push({ x: 400, passed: false, type: oType });
     }
 
     let jumpTriggerDist = 80 + (currentSpeed * 5);
     if (runnerAutoBot && runnerObstacles.length > 0) {
       let nextObs = runnerObstacles[0];
-      if (nextObs.passed && runnerObstacles.length > 1) {
-        nextObs = runnerObstacles[1];
-      }
+      if (nextObs.passed && runnerObstacles.length > 1) nextObs = runnerObstacles[1];
       if (nextObs.x < jumpTriggerDist && nextObs.x > 30) {
         if (nextObs.type !== 'flying' && !isJumping) {
           isJumping = true;
@@ -2689,7 +2489,7 @@ function updateRunner(currentTime) {
 
           if (score > runnerHighScore) {
             runnerHighScore = score;
-            try { localStorage.setItem('cyberRunnerHighScore', runnerHighScore); } catch (e) {}
+            try { localStorage.setItem('cyberRunnerHighScore', runnerHighScore); } catch(e) {}
           }
         }
       }
@@ -2699,12 +2499,12 @@ function updateRunner(currentTime) {
   }
 
   if (gameOver) {
-    ctx.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 0, 0, 0.85)");
+    ctx.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255,240,245,0.85)" : "rgba(0,0,0,0.85)");
     ctx.fillRect(0, 0, 400, 200);
 
-    if (!isContrast) {
+    if (!isContrast && !reducedMotion) {
       for (let i = 0; i < 15; i++) {
-        ctx.fillStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.4})` : `rgba(255, 0, 0, ${Math.random() * 0.4})`;
+        ctx.fillStyle = kawaiiActive ? `rgba(255,105,180,${Math.random() * 0.4})` : `rgba(255,0,0,${Math.random() * 0.4})`;
         ctx.fillRect(Math.random() * 400, Math.random() * 200, Math.random() * 200 + 50, Math.random() * 5 + 1);
       }
     }
@@ -2721,10 +2521,9 @@ function updateRunner(currentTime) {
         ctx.fillStyle = isContrast ? "#ffffff" : "#fff";
         ctx.fillRect(obs.x + 4, flyY + 2, 4, 4);
         ctx.fillStyle = isContrast ? "#000000" : (runnerDiscoActive ? "#fff" : (kawaiiActive ? "#ff1493" : "#ff0055"));
-        if (gameFrame % 20 < 10) {
-          ctx.fillRect(obs.x + 8, flyY - 6, 4, 6);
-        } else {
-          ctx.fillRect(obs.x + 8, flyY + 10, 4, 6);
+        if (!reducedMotion) {
+          if (gameFrame % 20 < 10) ctx.fillRect(obs.x + 8, flyY - 6, 4, 6);
+          else ctx.fillRect(obs.x + 8, flyY + 10, 4, 6);
         }
       } else {
         ctx.fillStyle = isContrast ? "#000000" : (runnerDiscoActive ? `hsl(${(gameFrame * 15 + obs.x) % 360}, 100%, 50%)` : (kawaiiActive ? "#ffb6c1" : "#00ff00"));
@@ -2747,17 +2546,17 @@ function updateRunner(currentTime) {
     });
   }
 
-  for (let i = runnerParticles.length - 1; i >= 0; i--) {
-    let p = runnerParticles[i];
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = p.life;
-    ctx.fillRect(p.x, p.y, 4, 4);
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life -= 0.05;
-    ctx.globalAlpha = 1.0;
-    if (p.life <= 0) {
-      runnerParticles.splice(i, 1);
+  if (!reducedMotion) {
+    for (let i = runnerParticles.length - 1; i >= 0; i--) {
+      let p = runnerParticles[i];
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = p.life;
+      ctx.fillRect(p.x, p.y, 4, 4);
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.05;
+      ctx.globalAlpha = 1.0;
+      if (p.life <= 0) runnerParticles.splice(i, 1);
     }
   }
 
@@ -2770,7 +2569,7 @@ function updateRunner(currentTime) {
 
   if (!gameStarted) {
     ctx.textAlign = "center";
-    ctx.fillText("Tap Start or Press Space", 200, 100);
+    ctx.fillText("Tap or Press Space to Start", 200, 100);
     ctx.textAlign = "left";
   } else if (gameOver) {
     ctx.fillStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "#ff0000");
@@ -2799,14 +2598,15 @@ function updateRunner(currentTime) {
 }
 
 function spawnTargetParticles(x, y, color) {
+  if (isReducedMotion()) return;
   for (let i = 0; i < 15; i++) {
     targetParticles.push({
-      x: x,
-      y: y,
+      x,
+      y,
       vx: (Math.random() - 0.5) * 8,
       vy: (Math.random() - 0.5) * 8,
       life: 1.0,
-      color: color
+      color
     });
   }
 }
@@ -2814,22 +2614,22 @@ function spawnTargetParticles(x, y, color) {
 function spawnDuck() {
   duckX = randInRange(0, 400 - targetSize);
   duckY = randInRange(0, 200 - targetSize);
-
   let speed = 2 + (targetSpeedMult * 0.5);
+  if (aimbotEnabled) speed *= 1.15;
   duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckActive = true;
-  duckTimer = 100 + Math.random() * 80;
+  duckTimer = aimbotEnabled ? (55 + Math.random() * 35) : (100 + Math.random() * 80);
   currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
 
-  if (targetDecoyEnabled && Math.random() < 0.3) {
+  if (targetDecoyEnabled && Math.random() < (aimbotEnabled ? 0.45 : 0.3)) {
     decoyX = randInRange(0, 400 - targetSize);
     decoyY = randInRange(0, 200 - targetSize);
     decoyVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
     decoyVy = (Math.random() > 0.5 ? 1 : -1) * (speed * 0.8);
     decoyActive = true;
     decoyTimer = 80;
-  } else if (Math.random() < 0.1) {
+  } else if (Math.random() < (aimbotEnabled ? 0.18 : 0.1)) {
     goldenX = randInRange(0, 400 - targetSize);
     goldenY = randInRange(0, 200 - targetSize);
     goldenVx = (Math.random() > 0.5 ? 1 : -1) * (speed * 1.5);
@@ -2845,66 +2645,60 @@ function updateTargetGame(currentTime) {
 
   targetAnimId = requestAnimationFrame(updateTargetGame);
 
-  if (!currentTime) {
-    currentTime = performance.now();
-  }
-
+  if (!currentTime) currentTime = performance.now();
   let dt = currentTime - targetLastTime;
   if (dt < FRAME_INTERVAL) return;
   targetLastTime = currentTime - (dt % FRAME_INTERVAL);
 
-  ctxTarget.clearRect(0, 0, 400, 200);
-
   const isContrast = document.body.classList.contains('a11y-contrast');
+  const reducedMotion = isReducedMotion();
   const canvasTextColor = isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : "#fff");
   const bgCol = isContrast ? "#ffffff" : (kawaiiActive ? "#fff0f5" : "#050510");
-  const lineCol = isContrast ? "#cccccc" : (kawaiiActive ? "rgba(255, 182, 193, 0.4)" : "rgba(0, 255, 255, 0.2)");
+  const lineCol = isContrast ? "#cccccc" : (kawaiiActive ? "rgba(255,182,193,0.4)" : "rgba(0,255,255,0.2)");
   const gameNeonColor = isContrast ? "#000000" : neonColor;
+
+  ctxTarget.clearRect(0, 0, 400, 200);
 
   if (targetState === 'START') {
     ctxTarget.fillStyle = bgCol;
     ctxTarget.fillRect(0, 0, 400, 200);
-
-    ctxTarget.strokeStyle = lineCol;
-    ctxTarget.lineWidth = 2;
-
-    for (let i = 0; i <= 400; i += 40) {
-      ctxTarget.beginPath();
-      ctxTarget.moveTo(i, 0);
-      ctxTarget.lineTo(i, 200);
-      ctxTarget.stroke();
+    if (!reducedMotion) {
+      ctxTarget.strokeStyle = lineCol;
+      ctxTarget.lineWidth = 2;
+      for (let i = 0; i <= 400; i += 40) {
+        ctxTarget.beginPath();
+        ctxTarget.moveTo(i, 0);
+        ctxTarget.lineTo(i, 200);
+        ctxTarget.stroke();
+      }
+      for (let i = 0; i <= 200; i += 40) {
+        ctxTarget.beginPath();
+        ctxTarget.moveTo(0, i);
+        ctxTarget.lineTo(400, i);
+        ctxTarget.stroke();
+      }
     }
-
-    for (let i = 0; i <= 200; i += 40) {
-      ctxTarget.beginPath();
-      ctxTarget.moveTo(0, i);
-      ctxTarget.lineTo(400, i);
-      ctxTarget.stroke();
-    }
-
-    ctxTarget.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255,228,225,0.8)" : "rgba(0, 0, 0, 0.7)");
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255,228,225,0.8)" : "rgba(0,0,0,0.7)");
     ctxTarget.fillRect(0, 0, 400, 200);
-
     ctxTarget.fillStyle = canvasTextColor;
     ctxTarget.font = "bold 20px 'Courier New', monospace";
     ctxTarget.textAlign = "center";
     ctxTarget.fillText("MATRIX TARGET SIMULATOR", 200, 80);
-
     let pulse = Math.floor(Date.now() / 400) % 2 === 0;
     ctxTarget.fillStyle = pulse ? (isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "#00ff00")) : canvasTextColor;
     ctxTarget.font = "bold 14px 'Courier New', monospace";
-    ctxTarget.fillText("Select Difficulty below, then Tap to Start", 200, 120);
+    ctxTarget.fillText("Tap the canvas to start. Select difficulty above.", 200, 120);
     ctxTarget.textAlign = "left";
     return;
   }
 
   if (targetState === 'GAMEOVER') {
-    ctxTarget.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255, 228, 225, 0.85)" : "rgba(50, 0, 0, 0.85)");
+    ctxTarget.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255,228,225,0.85)" : "rgba(50,0,0,0.85)");
     ctxTarget.fillRect(0, 0, 400, 200);
 
-    if (!isContrast) {
+    if (!isContrast && !reducedMotion) {
       for (let i = 0; i < 20; i++) {
-        ctxTarget.strokeStyle = kawaiiActive ? `rgba(255, 105, 180, ${Math.random() * 0.5})` : `rgba(255, 0, 0, ${Math.random() * 0.5})`;
+        ctxTarget.strokeStyle = kawaiiActive ? `rgba(255,105,180,${Math.random() * 0.5})` : `rgba(255,0,0,${Math.random() * 0.5})`;
         ctxTarget.strokeRect(Math.random() * 400, Math.random() * 200, Math.random() * 40, Math.random() * 40);
       }
     }
@@ -2913,7 +2707,6 @@ function updateTargetGame(currentTime) {
     ctxTarget.font = "bold 24px 'Courier New', monospace";
     ctxTarget.textAlign = "center";
     ctxTarget.fillText(currentTargetCrash, 200, 80);
-
     ctxTarget.fillStyle = canvasTextColor;
     ctxTarget.font = "bold 16px 'Courier New', monospace";
     ctxTarget.fillText("Final Score: " + targetScore, 200, 110);
@@ -2936,28 +2729,28 @@ function updateTargetGame(currentTime) {
 
   ctxTarget.fillStyle = bgCol;
   ctxTarget.fillRect(0, 0, 400, 200);
-  ctxTarget.strokeStyle = lineCol;
-  ctxTarget.lineWidth = 2;
 
-  let timeOffset = (Date.now() / 20) % 40;
-  for (let i = -40; i < 200; i += 40) {
-    ctxTarget.beginPath();
-    ctxTarget.moveTo(0, i + timeOffset);
-    ctxTarget.lineTo(400, i + timeOffset);
-    ctxTarget.stroke();
-  }
-
-  for (let i = 0; i <= 400; i += 40) {
-    ctxTarget.beginPath();
-    ctxTarget.moveTo(i, 0);
-    ctxTarget.lineTo(i, 200);
-    ctxTarget.stroke();
+  if (!reducedMotion) {
+    ctxTarget.strokeStyle = lineCol;
+    ctxTarget.lineWidth = 2;
+    let timeOffset = (Date.now() / 20) % 40;
+    for (let i = -40; i < 200; i += 40) {
+      ctxTarget.beginPath();
+      ctxTarget.moveTo(0, i + timeOffset);
+      ctxTarget.lineTo(400, i + timeOffset);
+      ctxTarget.stroke();
+    }
+    for (let i = 0; i <= 400; i += 40) {
+      ctxTarget.beginPath();
+      ctxTarget.moveTo(i, 0);
+      ctxTarget.lineTo(i, 200);
+      ctxTarget.stroke();
+    }
   }
 
   if (duckActive) {
     duckX += duckVelX;
     duckY += duckVelY;
-
     if (duckX <= 0 || duckX + targetSize >= 400) duckVelX *= -1;
     if (duckY <= 0 || duckY + targetSize >= 200) duckVelY *= -1;
 
@@ -2984,26 +2777,21 @@ function updateTargetGame(currentTime) {
     if (duckTimer <= 0) {
       duckActive = false;
       targetLives--;
-
-      if (targetLives <= 0) {
-        if (targetState !== 'GAMEOVER') {
-          targetState = 'GAMEOVER';
-          targetDeathTime = Date.now();
-          currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)];
-          triggerShake();
-        }
+      if (targetLives <= 0 && targetState !== 'GAMEOVER') {
+        targetState = 'GAMEOVER';
+        targetDeathTime = Date.now();
+        currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)];
+        triggerShake();
       }
     }
   } else {
-    if (Math.random() < 0.05) {
-      spawnDuck();
-    }
+    const spawnChance = aimbotEnabled ? 0.18 : 0.05;
+    if (Math.random() < spawnChance) spawnDuck();
   }
 
   if (goldenActive) {
     goldenX += goldenVx;
     goldenY += goldenVy;
-
     if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1;
     if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
 
@@ -3036,7 +2824,6 @@ function updateTargetGame(currentTime) {
   if (decoyActive) {
     decoyX += decoyVx;
     decoyY += decoyVy;
-
     if (decoyX <= 0 || decoyX + targetSize >= 400) decoyVx *= -1;
     if (decoyY <= 0 || decoyY + targetSize >= 200) decoyVy *= -1;
 
@@ -3063,6 +2850,17 @@ function updateTargetGame(currentTime) {
     if (decoyTimer <= 0) decoyActive = false;
   }
 
+  if (aimbotEnabled && targetState === 'PLAYING') {
+    ctxTarget.save();
+    ctxTarget.shadowBlur = 18;
+    ctxTarget.shadowColor = "#00ffff";
+    ctxTarget.fillStyle = "#00ffff";
+    ctxTarget.font = "bold 14px 'Courier New', monospace";
+    ctxTarget.textAlign = "right";
+    ctxTarget.fillText("AIMBOT: ON", 390, 20);
+    ctxTarget.restore();
+  }
+
   for (let i = targetFloatingScores.length - 1; i >= 0; i--) {
     let f = targetFloatingScores[i];
     ctxTarget.fillStyle = isContrast ? "#000000" : `rgba(${f.r}, ${f.g}, ${f.b}, ${f.alpha})`;
@@ -3070,28 +2868,36 @@ function updateTargetGame(currentTime) {
     ctxTarget.fillText(f.text, f.x, f.y);
     f.y -= 1;
     f.alpha -= 0.02;
-    if (f.alpha <= 0) {
-      targetFloatingScores.splice(i, 1);
-    }
+    if (f.alpha <= 0) targetFloatingScores.splice(i, 1);
   }
 
-  for (let i = targetParticles.length - 1; i >= 0; i--) {
-    let p = targetParticles[i];
-    ctxTarget.fillStyle = p.color;
-    ctxTarget.globalAlpha = p.life;
-    ctxTarget.fillRect(p.x, p.y, 3, 3);
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life -= 0.05;
-    ctxTarget.globalAlpha = 1.0;
-    if (p.life <= 0) {
-      targetParticles.splice(i, 1);
+  if (!reducedMotion) {
+    for (let i = targetParticles.length - 1; i >= 0; i--) {
+      let p = targetParticles[i];
+      ctxTarget.fillStyle = p.color;
+      ctxTarget.globalAlpha = p.life;
+      ctxTarget.fillRect(p.x, p.y, 3, 3);
+      p.x += p.vx;
+      p.y += p.vy;
+      p.life -= 0.05;
+      ctxTarget.globalAlpha = 1.0;
+      if (p.life <= 0) targetParticles.splice(i, 1);
     }
   }
 
   if (aimbotEnabled && duckActive && targetState === 'PLAYING') {
+    const duckCx = duckX + targetSize / 2;
+    const duckCy = duckY + targetSize / 2;
     targetScore++;
+    targetFloatingScores.push({ x: duckCx + 10, y: duckCy, alpha: 1.0, text: "+1", r: 0, g: 255, b: 255 });
+    spawnTargetParticles(duckCx, duckCy, "#00ffff");
     duckActive = false;
+    triggerShake();
+    if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1;
+    if (targetScore > targetHighScore) {
+      targetHighScore = targetScore;
+      try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err) {}
+    }
   }
 
   ctxTarget.beginPath();
@@ -3099,7 +2905,7 @@ function updateTargetGame(currentTime) {
   ctxTarget.lineTo(mouseX + 15, mouseY);
   ctxTarget.moveTo(mouseX, mouseY - 15);
   ctxTarget.lineTo(mouseX, mouseY + 15);
-  ctxTarget.strokeStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : neonColor);
+  ctxTarget.strokeStyle = isContrast ? "#000000" : (aimbotEnabled ? "#00ffff" : (kawaiiActive ? "#ff1493" : neonColor));
   ctxTarget.lineWidth = 1;
   ctxTarget.stroke();
 
@@ -3131,14 +2937,9 @@ function initTetris() {
 function tCollide(board, player) {
   const m = player.matrix;
   const o = player.pos;
-
   for (let y = 0; y < m.length; ++y) {
     for (let x = 0; x < m[y].length; ++x) {
-      if (
-        m[y][x] !== 0 &&
-        board[y + o.y] &&
-        board[y + o.y][x + o.x] !== 0
-      ) {
+      if (m[y][x] !== 0 && board[y + o.y] && board[y + o.y][x + o.x] !== 0) {
         return true;
       }
     }
@@ -3223,25 +3024,17 @@ function tRotateMatrix(matrix, dir = 1) {
       [matrix[x][y], matrix[y][x]] = [matrix[y][x], matrix[x][y]];
     }
   }
-
-  if (dir > 0) {
-    matrix.forEach(row => row.reverse());
-  } else {
-    matrix.reverse();
-  }
+  if (dir > 0) matrix.forEach(row => row.reverse());
+  else matrix.reverse();
 }
 
 function tSweep() {
   let rowCount = 1;
   let linesCleared = 0;
-
   outer: for (let y = tetrisGrid.length - 1; y >= 0; --y) {
     for (let x = 0; x < tetrisGrid[y].length; ++x) {
-      if (tetrisGrid[y][x] === 0) {
-        continue outer;
-      }
+      if (tetrisGrid[y][x] === 0) continue outer;
     }
-
     const row = tetrisGrid.splice(y, 1)[0].fill(0);
     tetrisGrid.unshift(row);
     ++y;
@@ -3254,10 +3047,9 @@ function tSweep() {
     tetrisLines += linesCleared;
     tetrisLevel = Math.floor(tetrisLines / 10) + 1;
     tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!" });
-
     if (tetrisScore > tetrisHighScore) {
       tetrisHighScore = tetrisScore;
-      try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch (e) {}
+      try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e) {}
     }
   }
 }
@@ -3268,23 +3060,21 @@ function updateTetris(currentTime) {
 
   tetrisAnimId = requestAnimationFrame(updateTetris);
 
-  if (!currentTime) {
-    currentTime = performance.now();
-  }
-
+  if (!currentTime) currentTime = performance.now();
   let dt = currentTime - tetrisLastTime;
   if (dt < FRAME_INTERVAL) return;
   tetrisLastTime = currentTime - (dt % FRAME_INTERVAL);
 
   const isContrast = document.body.classList.contains('a11y-contrast');
+  const reducedMotion = isReducedMotion();
   const canvasTextColor = isContrast ? "#000000" : (kawaiiActive ? "#d11a7a" : "#fff");
   const gameNeonColor = isContrast ? "#000000" : neonColor;
 
   ctxTetris.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? '#fffafa' : '#000000');
   ctxTetris.fillRect(0, 0, 400, 400);
 
-  if (!isContrast) {
-    ctxTetris.fillStyle = kawaiiActive ? 'rgba(255, 182, 193, 0.8)' : 'rgba(255, 255, 255, 0.4)';
+  if (!isContrast && !reducedMotion) {
+    ctxTetris.fillStyle = kawaiiActive ? 'rgba(255,182,193,0.8)' : 'rgba(255,255,255,0.4)';
     tetrisStars.forEach(star => {
       star.y += star.v;
       if (star.y > 400) {
@@ -3296,12 +3086,12 @@ function updateTetris(currentTime) {
   }
 
   if (tetrisGameOver) {
-    ctxTetris.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255, 240, 245, 0.85)" : "rgba(0, 20, 20, 0.85)");
+    ctxTetris.fillStyle = isContrast ? "#ffffff" : (kawaiiActive ? "rgba(255,240,245,0.85)" : "rgba(0,20,20,0.85)");
     ctxTetris.fillRect(0, 0, 400, 400);
 
-    if (!isContrast) {
-      for (let i = 0; i < 20; i++) {
-        ctxTetris.fillStyle = kawaiiActive ? `rgba(255, 182, 193, ${Math.random() * 0.3})` : `rgba(0, 255, 255, ${Math.random() * 0.3})`;
+    if (!isContrast && !reducedMotion) {
+      for(let i = 0; i < 20; i++) {
+        ctxTetris.fillStyle = kawaiiActive ? `rgba(255,182,193,${Math.random() * 0.3})` : `rgba(0,255,255,${Math.random() * 0.3})`;
         ctxTetris.fillRect(Math.floor(Math.random() * 20) * 20, Math.floor(Math.random() * 20) * 20, 20, 20);
       }
     }
@@ -3310,7 +3100,6 @@ function updateTetris(currentTime) {
     ctxTetris.font = "bold 24px 'Courier New', monospace";
     ctxTetris.textAlign = "center";
     ctxTetris.fillText(tetrisCrashMsg, 200, 160);
-
     ctxTetris.fillStyle = canvasTextColor;
     ctxTetris.font = "bold 16px 'Courier New', monospace";
     ctxTetris.fillText("Final Score: " + tetrisScore, 200, 200);
@@ -3331,25 +3120,24 @@ function updateTetris(currentTime) {
     return;
   }
 
-  ctxTetris.strokeStyle = isContrast ? "#cccccc" : (kawaiiActive ? 'rgba(255, 105, 180, 0.4)' : 'rgba(255, 255, 255, 0.4)');
-  ctxTetris.lineWidth = 1;
-
-  for (let i = 100; i <= 300; i += 20) {
-    ctxTetris.beginPath();
-    ctxTetris.moveTo(i, 0);
-    ctxTetris.lineTo(i, 400);
-    ctxTetris.stroke();
-  }
-
-  for (let i = 0; i <= 400; i += 20) {
-    ctxTetris.beginPath();
-    ctxTetris.moveTo(100, i);
-    ctxTetris.lineTo(300, i);
-    ctxTetris.stroke();
+  if (!reducedMotion) {
+    ctxTetris.strokeStyle = isContrast ? "#cccccc" : (kawaiiActive ? 'rgba(255,105,180,0.4)' : 'rgba(255,255,255,0.4)');
+    ctxTetris.lineWidth = 1;
+    for(let i = 100; i <= 300; i += 20) {
+      ctxTetris.beginPath();
+      ctxTetris.moveTo(i, 0);
+      ctxTetris.lineTo(i, 400);
+      ctxTetris.stroke();
+    }
+    for(let i = 0; i <= 400; i += 20) {
+      ctxTetris.beginPath();
+      ctxTetris.moveTo(100, i);
+      ctxTetris.lineTo(300, i);
+      ctxTetris.stroke();
+    }
   }
 
   let time = Date.now() / 5;
-
   tetrisGrid.forEach((row, y) => {
     row.forEach((value, x) => {
       if (value !== 0) {
@@ -3364,16 +3152,13 @@ function updateTetris(currentTime) {
 
   if (tetrisGhost && currentPiece) {
     let ghostY = currentPiece.pos.y;
-    while (!tCollide(tetrisGrid, { matrix: currentPiece.matrix, pos: { x: currentPiece.pos.x, y: ghostY + 1 } })) {
-      ghostY++;
-    }
-
+    while (!tCollide(tetrisGrid, { matrix: currentPiece.matrix, pos: { x: currentPiece.pos.x, y: ghostY + 1 } })) ghostY++;
     currentPiece.matrix.forEach((row, y) => {
       row.forEach((value, x) => {
         if (value !== 0) {
-          ctxTetris.fillStyle = isContrast ? "rgba(0,0,0,0.2)" : (kawaiiActive ? "rgba(255, 105, 180, 0.2)" : "rgba(255, 255, 255, 0.2)");
+          ctxTetris.fillStyle = isContrast ? "rgba(0,0,0,0.2)" : (kawaiiActive ? "rgba(255,105,180,0.2)" : "rgba(255,255,255,0.2)");
           ctxTetris.fillRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
-          ctxTetris.strokeStyle = isContrast ? "rgba(0,0,0,0.5)" : (kawaiiActive ? "rgba(255, 105, 180, 0.5)" : "rgba(255, 255, 255, 0.5)");
+          ctxTetris.strokeStyle = isContrast ? "rgba(0,0,0,0.5)" : (kawaiiActive ? "rgba(255,105,180,0.5)" : "rgba(255,255,255,0.5)");
           ctxTetris.strokeRect(100 + (x + currentPiece.pos.x) * 20, (y + ghostY) * 20, 20, 20);
         }
       });
@@ -3392,48 +3177,46 @@ function updateTetris(currentTime) {
     });
   });
 
-  for (let i = tetrisFloaters.length - 1; i >= 0; i--) {
-    let f = tetrisFloaters[i];
-    ctxTetris.shadowBlur = isContrast ? 0 : 10;
-    ctxTetris.shadowColor = kawaiiActive ? "#ff1493" : "#00FFFF";
-    ctxTetris.fillStyle = isContrast ? `rgba(0, 0, 0, ${f.alpha})` : (kawaiiActive ? `rgba(209, 26, 122, ${f.alpha})` : `rgba(0, 255, 255, ${f.alpha})`);
-    ctxTetris.font = "bold 24px 'Courier New', monospace";
-    ctxTetris.textAlign = "center";
-    ctxTetris.fillText(f.text, f.x, f.y);
-    ctxTetris.shadowBlur = 0;
-    ctxTetris.textAlign = "left";
-    f.y -= 1;
-    f.alpha -= 0.02;
-    if (f.alpha <= 0) {
-      tetrisFloaters.splice(i, 1);
+  if (!reducedMotion) {
+    for (let i = tetrisFloaters.length - 1; i >= 0; i--) {
+      let f = tetrisFloaters[i];
+      ctxTetris.shadowBlur = isContrast ? 0 : 10;
+      ctxTetris.shadowColor = kawaiiActive ? "#ff1493" : "#00FFFF";
+      ctxTetris.fillStyle = isContrast ? `rgba(0,0,0,${f.alpha})` : (kawaiiActive ? `rgba(209,26,122,${f.alpha})` : `rgba(0,255,255,${f.alpha})`);
+      ctxTetris.font = "bold 24px 'Courier New', monospace";
+      ctxTetris.textAlign = "center";
+      ctxTetris.fillText(f.text, f.x, f.y);
+      ctxTetris.shadowBlur = 0;
+      ctxTetris.textAlign = "left";
+      f.y -= 1;
+      f.alpha -= 0.02;
+      if (f.alpha <= 0) tetrisFloaters.splice(i, 1);
     }
   }
 
   tetrisDropCounter++;
   let limit = tetrisSlow ? 200 : 60 - (tetrisSpeedMod * 4);
   if (!tetrisSlow && limit < 5) limit = 5;
-  if (tetrisDropCounter > limit && !tetrisLock) {
-    tDrop();
-  }
+  if (tetrisDropCounter > limit && !tetrisLock) tDrop();
 
-  function tHud(lx, ly, lw, lh, label, val, c) {
-    let hudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)');
+  function tHud(lx,ly,lw,lh,label,val,c) {
+    let hudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255,228,225,0.9)' : 'rgba(0,0,0,0.8)');
     let hudBorder = isContrast ? '#000000' : (kawaiiActive ? '#ff69b4' : c);
     let hudTextCol = isContrast ? '#000000' : ((c === 'cyan' && kawaiiActive) ? '#d11a7a' : c);
 
     ctxTetris.fillStyle = hudBg;
-    ctxTetris.fillRect(lx, ly, lw, lh);
+    ctxTetris.fillRect(lx,ly,lw,lh);
     ctxTetris.strokeStyle = hudBorder;
     ctxTetris.lineWidth = 1.5;
-    ctxTetris.strokeRect(lx, ly, lw, lh);
+    ctxTetris.strokeRect(lx,ly,lw,lh);
 
     ctxTetris.fillStyle = hudTextCol;
     ctxTetris.font = 'bold 9px monospace';
     ctxTetris.textAlign = 'center';
-    ctxTetris.fillText(label, lx + lw / 2, ly + 12);
+    ctxTetris.fillText(label,lx+lw/2,ly+12);
 
     ctxTetris.font = 'bold 13px monospace';
-    ctxTetris.fillText(String(val), lx + lw / 2, ly + 28);
+    ctxTetris.fillText(String(val),lx+lw/2,ly+28);
 
     ctxTetris.textAlign = 'left';
     ctxTetris.lineWidth = 1;
@@ -3444,32 +3227,32 @@ function updateTetris(currentTime) {
   tHud(4, 90, 43, 34, 'LVL', tetrisLevel, '#00ff88');
   tHud(51, 90, 43, 34, 'LINES', tetrisLines, '#ffaa00');
 
-  let nHudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)');
+  let nHudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255,228,225,0.9)' : 'rgba(0,0,0,0.8)');
   let nHudBorder = isContrast ? '#000000' : (kawaiiActive ? '#ff69b4' : 'cyan');
   let nHudText = isContrast ? '#000000' : (kawaiiActive ? '#d11a7a' : 'cyan');
 
   ctxTetris.fillStyle = nHudBg;
-  ctxTetris.fillRect(307, 10, 88, 88);
+  ctxTetris.fillRect(307,10,88,88);
   ctxTetris.strokeStyle = nHudBorder;
   ctxTetris.lineWidth = 1.5;
-  ctxTetris.strokeRect(307, 10, 88, 88);
+  ctxTetris.strokeRect(307,10,88,88);
   ctxTetris.fillStyle = nHudText;
   ctxTetris.font = 'bold 9px monospace';
   ctxTetris.textAlign = 'center';
-  ctxTetris.fillText('NEXT', 351, 23);
+  ctxTetris.fillText('NEXT',351,23);
   ctxTetris.textAlign = 'left';
   ctxTetris.lineWidth = 1;
 
-  if (nextPiece) {
+  if(nextPiece){
     const nm = nextPiece.matrix;
     const bs = 14;
     const ox = 351 - (nm[0].length * bs) / 2;
     const oy = 58 - (nm.length * bs) / 2;
 
-    nm.forEach((row, y) => {
-      row.forEach((val, x) => {
+    nm.forEach((row,y) => {
+      row.forEach((val,x) => {
         if (val !== 0) {
-          let nc = isContrast ? "#000000" : (tetrisRainbow ? `hsl(${Math.floor(time + (x + y) * 15) % 360},100%,50%)` : T_COLORS[val]);
+          let nc = isContrast ? "#000000" : (tetrisRainbow ? `hsl(${Math.floor(time + (x+y)*15) % 360},100%,50%)` : T_COLORS[val]);
           ctxTetris.fillStyle = nc;
           ctxTetris.fillRect(ox + x * bs, oy + y * bs, bs - 1, bs - 1);
           ctxTetris.strokeStyle = isContrast ? "#ffffff" : '#fff';
