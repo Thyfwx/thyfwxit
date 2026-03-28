@@ -62,7 +62,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Accessibility Modes */
+/* Accessibility Split Modes */
 body.a11y-font * {
   font-family: Arial, Helvetica, sans-serif !important;
   text-shadow: none !important;
@@ -72,6 +72,7 @@ body.a11y-no-anim * {
   animation: none !important;
   transition: none !important;
 }
+
 body.a11y-no-anim #matrixCanvas, 
 body.a11y-no-anim #kawaiiOv {
   display: none !important;
@@ -156,6 +157,9 @@ body.a11y-contrast .mod-row label {
   position: fixed;
   bottom: 20px;
   right: 20px;
+  font-size: 28px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
   background: #0055ff;
   color: #ffffff;
   border: 3px solid #ffffff;
@@ -747,9 +751,7 @@ input[type=range]::-webkit-slider-thumb:hover {
 </head>
 <body>
 
-<div id="a11yBtn" title="Open Help & Accessibility Menu">
-  <svg fill="currentColor" viewBox="0 0 24 24" width="35px" height="35px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
-</div>
+<div id="a11yBtn" title="Open Help & Accessibility Menu">?</div>
 
 <div id="a11yMenu">
   <h3 style="margin-top: 0; color: #0055ff; font-family: Arial, sans-serif; font-size: 1.2em; text-align: center;">Help & Accessibility</h3>
@@ -854,8 +856,9 @@ input[type=range]::-webkit-slider-thumb:hover {
     <canvas id="tetrisGame" width="400" height="400" style="display: none;"></canvas>
   </div>
 
-  <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> to Jump. Press <b>Down Arrow</b> to Crouch.</p>
-  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;">Type <b style="color: var(--neon-color);">duck</b> for a secret game mode.</p>
+  <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump.</p>
+  
+  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type or Tap <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
   <div id="publicDifficulty" style="display:none; margin-top: 15px;">
     <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
@@ -1135,6 +1138,7 @@ const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS",
 const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "TOO SLOW", "SIGNAL LOST"];
 const tetrisCrashMessages = ["STACK OVERFLOW", "BLOCK CORRUPTION", "GRID FATAL ERROR", "TETROMINO JAM", "OUT OF MEMORY"];
 
+// Cyber Runner Variables
 let currentGravity = 0.85;
 let currentJumpPower = 11.5;
 let currentBaseSpeed = 5.0;
@@ -1143,7 +1147,6 @@ let runnerAutoBot = false;
 let runnerJetpack = false; 
 let keySpaceHeld = false;  
 let isJumping = false;
-let isCrouching = false;
 let velocity = 0;
 let playerY = 150;
 let score = 0;
@@ -1154,6 +1157,7 @@ let currentRunnerCrash = "";
 let runnerObstacles = [];
 let runnerParticles = []; 
 
+// Target Simulator Variables
 let targetState = 'START';
 let targetScore = 0;
 let targetSpeedMult = 5; 
@@ -1176,6 +1180,7 @@ let mouseX = 200, mouseY = 100;
 const rainbowColors = ['#FF0018', '#FFA52C', '#FFFF41', '#008018', '#0000F9', '#86007D'];
 let currentDuckColor = rainbowColors[0];
 
+// Tetris Variables
 let tetrisGrid = []; 
 let tetrisScore = 0; 
 let tetrisGameOver = false; 
@@ -1257,7 +1262,7 @@ function playExplosionSound() {
 
 const mCanvas = document.getElementById('matrixCanvas');
 const mCtx = mCanvas.getContext('2d');
-const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*".split("");
+const matrixChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const fontSize = 16;
 let drops = [];
 let matrixDrawActive = false;
@@ -1529,7 +1534,6 @@ window.switchGame = function(mode) {
     gameStarted = false; 
     gameOver = false; 
     isJumping = false; 
-    isCrouching = false;
     playerY = 150; 
     velocity = 0; 
     runnerObstacles = []; 
@@ -1903,24 +1907,21 @@ window.addEventListener("keydown", function(e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
     return;
   }
+
   if (e.code === 'Escape') {
-    const menu = document.getElementById('modMenu');
-    menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
+    document.getElementById('modMenu').style.display = 'none';
+    document.getElementById('a11yMenu').style.display = 'none';
   }
   if (e.code === 'Space' || e.key === " ") {
     e.preventDefault(); 
     keySpaceHeld = true; 
   }
-  if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-    e.preventDefault();
-    isCrouching = true;
-  }
 
   if (e.key && e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
     keyBuffer = (keyBuffer + e.key.toLowerCase()).slice(-6);
     if (keyBuffer.endsWith("hack")) { document.getElementById('modMenu').style.display = 'flex'; }
-    if (keyBuffer.endsWith("duck")) { window.switchGame('target'); }
-    if (keyBuffer.endsWith("runn")) { window.switchGame('runner'); }
+    if (keyBuffer.endsWith("duck")) { switchGame('target'); }
+    if (keyBuffer.endsWith("runn")) { switchGame('runner'); }
     if (keyBuffer.endsWith("sudo")) {
       const termOverlay = document.getElementById('terminalOverlay'); 
       const termText = document.getElementById('terminalText');
@@ -1996,9 +1997,6 @@ window.addEventListener("keyup", e => {
   if (e.code === 'Space' || e.key === " ") {
     keySpaceHeld = false;
   }
-  if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-    isCrouching = false;
-  }
 });
 
 if (canvas) {
@@ -2031,12 +2029,9 @@ if (targetCanvas) {
     } else if (targetState === 'START') {
       startTargetGame();
     } else if (targetState === 'PLAYING') {
-      let hitGolden = false; 
-      let hitDecoy = false;
       let hitPad = 15;
       
       if (goldenActive && mouseX >= goldenX - hitPad && mouseX <= goldenX + targetSize + hitPad && mouseY >= goldenY - hitPad && mouseY <= goldenY + targetSize + hitPad) {
-        hitGolden = true; 
         targetScore += 2; 
         targetFloatingScores.push({x: mouseX + 15, y: mouseY, alpha: 1.0, text: "+2", r: 255, g: 215, b: 0}); 
         spawnTargetParticles(mouseX, mouseY, "#FFD700");
@@ -2047,7 +2042,6 @@ if (targetCanvas) {
         goldenActive = false; 
       }
       else if (decoyActive && mouseX >= decoyX - hitPad && mouseX <= decoyX + targetSize + hitPad && mouseY >= decoyY - hitPad && mouseY <= decoyY + targetSize + hitPad) {
-        hitDecoy = true; 
         targetScore -= 5; 
         targetFloatingScores.push({x: mouseX + 15, y: mouseY, alpha: 1.0, text: "-5", r: 255, g: 0, b: 0}); 
         spawnTargetParticles(mouseX, mouseY, "#ff0000");
@@ -2145,31 +2139,20 @@ function drawDino(ctx, x, y, frame) {
   }
   
   ctx.fillStyle = gameNeonColor;
+  ctx.fillRect(x, y, 20, 20);
   
-  if (isCrouching && !isJumping) {
-    ctx.fillRect(x, y + 10, 30, 10);
-    ctx.fillStyle = secondaryColor;
-    ctx.fillRect(x + 22, y + 12, 4, 4);
-    ctx.fillStyle = gameNeonColor;
+  ctx.fillStyle = secondaryColor;
+  ctx.fillRect(x + 12, y + 4, 4, 4);
+  
+  ctx.fillStyle = gameNeonColor;
+  if (isJumping) {
+    ctx.fillRect(x + 2, y + 20, 6, 6);
+    ctx.fillRect(x + 12, y + 20, 6, 6);
+  } else {
     if (Math.floor(frame / 5) % 2 === 0) {
       ctx.fillRect(x + 2, y + 20, 6, 6);
     } else {
-      ctx.fillRect(x + 20, y + 20, 6, 6);
-    }
-  } else {
-    ctx.fillRect(x, y, 20, 20);
-    ctx.fillStyle = secondaryColor;
-    ctx.fillRect(x + 12, y + 4, 4, 4);
-    ctx.fillStyle = gameNeonColor;
-    if (isJumping) {
-      ctx.fillRect(x + 2, y + 20, 6, 6);
       ctx.fillRect(x + 12, y + 20, 6, 6);
-    } else {
-      if (Math.floor(frame / 5) % 2 === 0) {
-        ctx.fillRect(x + 2, y + 20, 6, 6);
-      } else {
-        ctx.fillRect(x + 12, y + 20, 6, 6);
-      }
     }
   }
   ctx.globalAlpha = 1.0;
@@ -2191,8 +2174,9 @@ function spawnRunnerParticles(x, y, color) {
 function updateRunner(currentTime) {
   if (!ctx) return;
   if (targetGameActive || tetrisActive) return; 
-  runnerAnimId = requestAnimationFrame(updateRunner);
   
+  runnerAnimId = requestAnimationFrame(updateRunner);
+
   if (!currentTime) {
     currentTime = performance.now();
   }
@@ -2237,7 +2221,7 @@ function updateRunner(currentTime) {
   ctx.setLineDash([]);
   
   if (gameStarted && !gameOver) {
-    if (runnerJetpack && keySpaceHeld && !isCrouching) {
+    if (runnerJetpack && keySpaceHeld) {
       velocity -= 1.5; 
       if(velocity < -currentJumpPower) {
         velocity = -currentJumpPower;
@@ -2247,12 +2231,9 @@ function updateRunner(currentTime) {
       if (velocity < -4) velocity = -4;
     }
     
-    if (isCrouching && isJumping) {
-      velocity += 1.5; 
-    }
-    
     velocity += currentGravity; 
     playerY += velocity;
+    
     if (playerY >= 150) { 
       playerY = 150; 
       isJumping = false; 
@@ -2283,15 +2264,10 @@ function updateRunner(currentTime) {
         nextObs = runnerObstacles[1]; 
       }
       if (nextObs.x < jumpTriggerDist && nextObs.x > 30) {
-        if (nextObs.type === 'flying') {
-           isCrouching = true;
-        } else if (!isJumping) { 
+        if (nextObs.type !== 'flying' && !isJumping) { 
           isJumping = true; 
-          isCrouching = false;
           velocity = -currentJumpPower; 
         }
-      } else {
-        isCrouching = false;
       }
     }
     
@@ -2304,9 +2280,7 @@ function updateRunner(currentTime) {
       }
       
       let px = 20, py = playerY; 
-      let pw = isCrouching && !isJumping ? 30 : 20;
-      let ph = isCrouching && !isJumping ? 10 : 20;
-      if (isCrouching && !isJumping) { py += 10; }
+      let pw = 20, ph = 20;
       
       let ox = obs.x, oy, ow, oh;
       if (obs.type === 'tall') { 
@@ -2479,6 +2453,7 @@ function updateTargetGame(currentTime) {
   if (!ctxTarget) return; 
   if (!targetGameActive) return;
   targetAnimId = requestAnimationFrame(updateTargetGame); 
+  
   if (!currentTime) {
     currentTime = performance.now();
   }
@@ -2542,6 +2517,7 @@ function updateTargetGame(currentTime) {
     ctxTarget.fillStyle = canvasTextColor; 
     ctxTarget.font = "bold 16px 'Courier New', monospace"; 
     ctxTarget.fillText("Final Score: " + targetScore, 200, 110); 
+    
     if (Date.now() - targetDeathTime > 1000) { 
       let pulse = Math.floor(Date.now() / 300) % 2 === 0; 
       ctxTarget.shadowBlur = pulse && !isContrast ? 10 : 0; 
@@ -2561,6 +2537,7 @@ function updateTargetGame(currentTime) {
   ctxTarget.fillRect(0, 0, 400, 200);
   ctxTarget.strokeStyle = lineCol; 
   ctxTarget.lineWidth = 2;
+  
   let timeOffset = (Date.now() / 20) % 40;
   for(let i = -40; i < 200; i += 40) { 
     ctxTarget.beginPath(); 
@@ -2580,9 +2557,11 @@ function updateTargetGame(currentTime) {
     duckY += duckVelY;
     if (duckX <= 0 || duckX + targetSize >= 400) duckVelX *= -1; 
     if (duckY <= 0 || duckY + targetSize >= 200) duckVelY *= -1;
+    
     let radius = targetSize / 2; 
     let centerX = duckX + radius; 
     let centerY = duckY + radius;
+    
     ctxTarget.fillStyle = isContrast ? "#000000" : currentDuckColor; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(centerX, centerY, radius, 0, Math.PI*2); 
@@ -2595,6 +2574,7 @@ function updateTargetGame(currentTime) {
     ctxTarget.beginPath(); 
     ctxTarget.arc(centerX, centerY, radius * 0.2, 0, Math.PI*2); 
     ctxTarget.fill();
+    
     if (!targetFreeze) duckTimer--; 
     if (duckTimer <= 0) { 
       duckActive = false; 
@@ -2608,17 +2588,6 @@ function updateTargetGame(currentTime) {
         } 
       } 
     }
-    if (aimbotEnabled && duckX > 0 && duckX < 400 && duckY > 0 && duckY < 200) {
-      targetScore++; 
-      targetFloatingScores.push({x: duckX + 15, y: duckY, alpha: 1.0, text: "+1", r: 0, g: 0, b: 0}); 
-      spawnTargetParticles(centerX, centerY, isContrast ? "#000000" : currentDuckColor);
-      if (targetScore > 0 && targetScore % 5 === 0) { targetSpeedMult += 1; }
-      if (targetScore > targetHighScore) { 
-        targetHighScore = targetScore; 
-        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(err){} 
-      }
-      duckActive = false; 
-    }
   } else { 
     if (Math.random() < 0.05) { spawnDuck(); } 
   }
@@ -2628,9 +2597,11 @@ function updateTargetGame(currentTime) {
     goldenY += goldenVy;
     if (goldenX <= 0 || goldenX + targetSize >= 400) goldenVx *= -1; 
     if (goldenY <= 0 || goldenY + targetSize >= 200) goldenVy *= -1;
+    
     let gRadius = targetSize / 2; 
     let gCx = goldenX + gRadius; 
     let gCy = goldenY + gRadius;
+
     ctxTarget.shadowBlur = isContrast ? 0 : 15; 
     ctxTarget.shadowColor = "#FFD700"; 
     ctxTarget.fillStyle = isContrast ? "#000000" : "#FFD700"; 
@@ -2646,18 +2617,9 @@ function updateTargetGame(currentTime) {
     ctxTarget.arc(gCx, gCy, gRadius * 0.2, 0, Math.PI*2); 
     ctxTarget.fill(); 
     ctxTarget.shadowBlur = 0;
+    
     if (!targetFreeze) goldenTimer--; 
     if (goldenTimer <= 0) goldenActive = false; 
-    if (aimbotEnabled && goldenX > 0 && goldenX < 400 && goldenY > 0 && goldenY < 200) {
-      targetScore += 2; 
-      targetFloatingScores.push({x: goldenX + 15, y: goldenY, alpha: 1.0, text: "+2", r: 0, g: 0, b: 0}); 
-      spawnTargetParticles(gCx, gCy, isContrast ? "#000000" : "#FFD700");
-      if (targetScore > targetHighScore) { 
-        targetHighScore = targetScore; 
-        try { localStorage.setItem('matrixTargetHighScore', targetHighScore); } catch(e){} 
-      }
-      goldenActive = false; 
-    }
   }
 
   if (decoyActive) {
@@ -2665,9 +2627,11 @@ function updateTargetGame(currentTime) {
     decoyY += decoyVy;
     if (decoyX <= 0 || decoyX + targetSize >= 400) decoyVx *= -1; 
     if (decoyY <= 0 || decoyY + targetSize >= 200) decoyVy *= -1;
+    
     let dRadius = targetSize / 2; 
     let dCx = decoyX + dRadius; 
     let dCy = decoyY + dRadius;
+    
     ctxTarget.fillStyle = isContrast ? "#000000" : "#ff0000"; 
     ctxTarget.beginPath(); 
     ctxTarget.arc(dCx, dCy, dRadius, 0, Math.PI*2); 
@@ -2680,6 +2644,7 @@ function updateTargetGame(currentTime) {
     ctxTarget.beginPath(); 
     ctxTarget.arc(dCx, dCy, dRadius * 0.2, 0, Math.PI*2); 
     ctxTarget.fill();
+    
     if (!targetFreeze) decoyTimer--; 
     if (decoyTimer <= 0) decoyActive = false; 
   }
@@ -2885,10 +2850,7 @@ function updateTetris(currentTime) {
     ctxTetris.fillStyle = kawaiiActive ? 'rgba(255, 182, 193, 0.8)' : 'rgba(255, 255, 255, 0.4)';
     tetrisStars.forEach(star => { 
       star.y += star.v; 
-      if (star.y > 400) { 
-        star.y = 0; 
-        star.x = Math.random() * 400; 
-      } 
+      if (star.y > 400) { star.y = 0; star.x = Math.random() * 400; } 
       ctxTetris.fillRect(star.x, star.y, star.s, star.s); 
     });
   }
@@ -3013,17 +2975,21 @@ function updateTetris(currentTime) {
     let hudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)');
     let hudBorder = isContrast ? '#000000' : (kawaiiActive ? '#ff69b4' : c); 
     let hudTextCol = isContrast ? '#000000' : ((c === 'cyan' && kawaiiActive) ? '#d11a7a' : c);
+    
     ctxTetris.fillStyle = hudBg; 
     ctxTetris.fillRect(lx,ly,lw,lh); 
     ctxTetris.strokeStyle = hudBorder; 
     ctxTetris.lineWidth = 1.5; 
     ctxTetris.strokeRect(lx,ly,lw,lh); 
+    
     ctxTetris.fillStyle = hudTextCol; 
     ctxTetris.font = 'bold 9px monospace'; 
     ctxTetris.textAlign = 'center'; 
     ctxTetris.fillText(label,lx+lw/2,ly+12); 
+    
     ctxTetris.font = 'bold 13px monospace'; 
     ctxTetris.fillText(String(val),lx+lw/2,ly+28); 
+    
     ctxTetris.textAlign = 'left'; 
     ctxTetris.lineWidth = 1; 
   }
@@ -3036,6 +3002,7 @@ function updateTetris(currentTime) {
   let nHudBg = isContrast ? '#ffffff' : (kawaiiActive ? 'rgba(255, 228, 225, 0.9)' : 'rgba(0,0,0,0.8)'); 
   let nHudBorder = isContrast ? '#000000' : (kawaiiActive ? '#ff69b4' : 'cyan'); 
   let nHudText = isContrast ? '#000000' : (kawaiiActive ? '#d11a7a' : 'cyan');
+  
   ctxTetris.fillStyle = nHudBg; 
   ctxTetris.fillRect(307,10,88,88); 
   ctxTetris.strokeStyle = nHudBorder; 
@@ -3053,6 +3020,7 @@ function updateTetris(currentTime) {
     const bs = 14; 
     const ox = 351-(nm[0].length*bs)/2; 
     const oy = 58-(nm.length*bs)/2;
+    
     nm.forEach((row,y)=>{ 
       row.forEach((val,x)=>{ 
         if(val!==0){ 
