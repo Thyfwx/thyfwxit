@@ -4,8 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Xavier Scott - Systems Specialist</title>
+<meta name="description" content="Xavier Scott — Systems Specialist & Network Infrastructure. Hardware repair, server setup, and network security services.">
+<meta name="theme-color" content="#1a1a1a">
+<meta property="og:title" content="Xavier Scott - Systems Specialist">
+<meta property="og:description" content="Hardware repair, server setup, network security, and homelab services.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://thyfwxit.com">
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%231a1a1a' rx='20'/><text x='15' y='75' font-size='70' fill='%23ff00ff' font-family='monospace' font-weight='bold'>&gt;_</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
 :root {
@@ -50,11 +60,12 @@ html {
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   line-height: 1.8;
   max-width: 800px;
   margin: 0 auto;
   padding: 40px 20px;
+  padding-top: 80px;
   background-color: var(--bg-color);
   color: var(--text-color);
   transition: background-color 0.8s ease, color 0.8s ease;
@@ -233,6 +244,7 @@ h2 {
   color: var(--neon-color);
   margin-bottom: 20px;
   transition: color 0.3s ease;
+  font-family: 'Share Tech Mono', 'Courier New', monospace;
 }
 
 section {
@@ -979,6 +991,7 @@ body.a11y-colorblind .contact-form button {
     <div class="status-item"><span class="status-dot" id="status-adguard"></span> AdGuard Home</div>
     <div class="status-item"><span class="status-dot" id="status-ha"></span> Home Assistant</div>
   </div>
+  <p id="statusTimestamp" style="font-size: 0.75em; color: #666; margin-top: 10px; font-family: 'Share Tech Mono', monospace;"></p>
 </section>
 
 <section id="githubActivity">
@@ -1052,7 +1065,7 @@ body.a11y-colorblind .contact-form button {
 </section>
 
 <footer>
-  <p><b>Xavier Scott :3</b></p>
+  <p class="copyright">© <span id="footerYear">2026</span> Xavier Scott. All systems operational.</p>
 </footer>
 
 <div id="gameAnnouncer" aria-live="polite" aria-atomic="true" class="sr-only"></div>
@@ -1619,9 +1632,14 @@ async function fetchUptimeStatus() {
         setDot(dotId, false); // monitor not found on the status page
       }
     });
+
+    const ts = document.getElementById('statusTimestamp');
+    if (ts) ts.textContent = 'Last checked: ' + new Date().toLocaleTimeString();
   } catch (e) {
     // Uptime Kuma unreachable — mark all offline
     Object.keys(dotMap).forEach(dotId => setDot(dotId, false));
+    const ts = document.getElementById('statusTimestamp');
+    if (ts) ts.textContent = 'Unable to reach status server';
   }
 }
 
@@ -1735,6 +1753,9 @@ window.onload = () => {
   }
 
   syncReducedMotionState();
+
+  const yearEl = document.getElementById('footerYear');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -2287,6 +2308,20 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     }
 
     if (!isReducedMotion()) startKawaiiParticles();
+
+    window._kawaiiMouseHandler = function(e) {
+      const sparkle = document.createElement('div');
+      sparkle.innerText = ['★', '☆', '♡', '♥', '✿', '❀', '✽', '✾', '✦', '✧', '❁', '❋', '❃', '♩', '♪', '♫', '♬'][Math.floor(Math.random() * 17)];
+      sparkle.style.cssText = `position:fixed;left:${e.clientX}px;top:${e.clientY}px;pointer-events:none;z-index:99999;font-size:16px;color:#ff69b4;text-shadow:0 0 4px #ffb6c1;opacity:0.9;font-weight:bold;transform:translate(-50%, -50%);`;
+      sparkle.animate([
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 0.8 },
+        { transform: `translate(calc(-50% + ${(Math.random() - 0.5) * 40}px), calc(-50% - ${20 + Math.random() * 20}px)) scale(0)`, opacity: 0 }
+      ], { duration: 600 + Math.random() * 300, easing: 'ease-out' });
+      document.body.appendChild(sparkle);
+      setTimeout(() => sparkle.remove(), 1000);
+    };
+    document.addEventListener('mousemove', window._kawaiiMouseHandler);
+
     document.getElementById('modMenu').style.borderColor = '#ff69b4';
     document.getElementById('modMenu').style.boxShadow = '0 0 30px #ff69b4';
     btn.innerText = '[KAWAII] ON!';
@@ -2307,6 +2342,10 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     if (document.getElementById('kawaiiStyle')) document.getElementById('kawaiiStyle').remove();
     if (kawaiiIntervalCleanup) clearInterval(kawaiiIntervalCleanup);
     document.getElementById('kawaiiOv').innerHTML = '';
+    if (window._kawaiiMouseHandler) {
+      document.removeEventListener('mousemove', window._kawaiiMouseHandler);
+      window._kawaiiMouseHandler = null;
+    }
     document.getElementById('modMenu').style.borderColor = '#ff0000';
     document.getElementById('modMenu').style.boxShadow = '0 0 20px #ff0000';
     btn.innerText = 'OFF';
@@ -2315,32 +2354,100 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
 });
 
 document.getElementById('nukeToggle')?.addEventListener('click', (e) => {
-  nukeModeActive = true;
-  document.body.classList.add("nuke-terrifying");
-  document.body.style.backgroundColor = "#050000";
-  document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #110000 25%, transparent 25%, transparent 75%, #110000 75%, #110000), repeating-linear-gradient(45deg, #110000 25%, #050000 25%, #050000 75%, #110000 75%, #110000)";
-  document.body.style.backgroundPosition = "0 0, 10px 10px";
-  document.body.style.backgroundSize = "20px 20px";
-  document.body.style.cursor = "crosshair";
-  e.target.style.background = "#ff0000";
-  e.target.style.color = "#000";
-  e.target.innerText = "SYSTEM COMPROMISED. DO NOT TURN OFF DEVICE.";
-  e.target.style.pointerEvents = "none";
+  const btn = e.target;
+  btn.style.pointerEvents = 'none';
 
-  const doomOverlay = document.createElement("div");
-  doomOverlay.style.position = "fixed";
-  doomOverlay.style.top = "0";
-  doomOverlay.style.left = "0";
-  doomOverlay.style.width = "100vw";
-  doomOverlay.style.height = "100vh";
-  doomOverlay.style.backgroundColor = "rgba(255,0,0,0.2)";
-  doomOverlay.style.mixBlendMode = "multiply";
-  doomOverlay.style.pointerEvents = "none";
-  doomOverlay.style.zIndex = "9998";
-  document.body.appendChild(doomOverlay);
+  // Countdown overlay
+  const countdownOv = document.createElement('div');
+  countdownOv.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.95);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;';
+  document.body.appendChild(countdownOv);
 
+  const warnings = [
+    '> INITIATING SECURITY BREACH...',
+    '> BYPASSING FIREWALL PROTOCOLS...',
+    '> DECRYPTING LAYER 7 ENCRYPTION...',
+    '> INJECTING PAYLOAD INTO MAINFRAME...',
+    '> WARNING: SYSTEM INTEGRITY COMPROMISED',
+    '> ALL PROCESSES TERMINATED'
+  ];
+
+  const termDiv = document.createElement('div');
+  termDiv.style.cssText = 'color:#ff0000;font-size:14px;text-align:left;max-width:500px;width:90%;margin-bottom:30px;';
+  countdownOv.appendChild(termDiv);
+
+  const countText = document.createElement('div');
+  countText.style.cssText = 'color:#ff0000;font-size:120px;font-weight:bold;text-shadow:0 0 40px #ff0000,0 0 80px #ff0000;';
+  countdownOv.appendChild(countText);
+
+  let warningIdx = 0;
+  const warningTimer = setInterval(() => {
+    if (warningIdx < warnings.length) {
+      const line = document.createElement('div');
+      line.textContent = warnings[warningIdx];
+      line.style.cssText = 'margin:4px 0;opacity:0;animation:fadeIn 0.3s forwards;';
+      termDiv.appendChild(line);
+      warningIdx++;
+    }
+  }, 400);
+
+  if (!document.getElementById('breachAnimStyle')) {
+    const animStyle = document.createElement('style');
+    animStyle.id = 'breachAnimStyle';
+    animStyle.textContent = '@keyframes fadeIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}@keyframes breachPulse{0%,100%{box-shadow:inset 0 0 60px rgba(255,0,0,0.4)}50%{box-shadow:inset 0 0 120px rgba(255,0,0,0.8)}}';
+    document.head.appendChild(animStyle);
+  }
+
+  let count = 3;
+  countText.textContent = count;
   playExplosionSound();
-  triggerShake();
+
+  const countTimer = setInterval(() => {
+    count--;
+    if (count > 0) {
+      countText.textContent = count;
+      countText.style.animation = 'none';
+      void countText.offsetWidth;
+      countText.style.animation = 'terrifyingTear 0.3s';
+      playExplosionSound();
+    } else {
+      clearInterval(countTimer);
+      clearInterval(warningTimer);
+      countText.textContent = 'BREACH';
+      countText.style.fontSize = '60px';
+      playExplosionSound();
+
+      setTimeout(() => {
+        countdownOv.remove();
+        nukeModeActive = true;
+        document.body.classList.add("nuke-terrifying");
+        document.body.style.backgroundColor = "#050000";
+        document.body.style.backgroundImage = "repeating-linear-gradient(45deg, #110000 25%, transparent 25%, transparent 75%, #110000 75%, #110000), repeating-linear-gradient(45deg, #110000 25%, #050000 25%, #050000 75%, #110000 75%, #110000)";
+        document.body.style.backgroundPosition = "0 0, 10px 10px";
+        document.body.style.backgroundSize = "20px 20px";
+        document.body.style.cursor = "crosshair";
+        btn.style.background = "#ff0000";
+        btn.style.color = "#000";
+        btn.innerText = "SYSTEM COMPROMISED. DO NOT TURN OFF DEVICE.";
+
+        const doomOverlay = document.createElement("div");
+        doomOverlay.id = 'breachOverlay';
+        doomOverlay.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(255,0,0,0.15);mix-blend-mode:multiply;pointer-events:none;z-index:9998;animation:breachPulse 2s ease-in-out infinite;';
+        document.body.appendChild(doomOverlay);
+
+        window._breachGlitchTimer = setInterval(() => {
+          if (!nukeModeActive) return;
+          const msgs = ['SYSTEM_FAILURE', 'MEMORY_CORRUPT', 'KERNEL_PANIC', '0xDEADBEEF', 'STACK_OVERFLOW', 'SEG_FAULT', 'ACCESS_DENIED', 'BREACH_ACTIVE'];
+          const g = document.createElement('div');
+          g.textContent = msgs[Math.floor(Math.random() * msgs.length)];
+          g.style.cssText = `position:fixed;left:${Math.random() * 80}vw;top:${Math.random() * 80}vh;color:#ff0000;font-family:monospace;font-size:${12 + Math.random() * 16}px;font-weight:bold;pointer-events:none;z-index:9999;mix-blend-mode:difference;opacity:0.7;text-shadow:0 0 5px #ff0000;`;
+          document.body.appendChild(g);
+          setTimeout(() => g.remove(), 800 + Math.random() * 1200);
+        }, 500);
+
+        triggerShake();
+      }, 800);
+    }
+  }, 1000);
 });
 
 document.addEventListener('click', (e) => {
