@@ -57,7 +57,7 @@ body {
   padding: 40px 20px;
   background-color: var(--bg-color);
   color: var(--text-color);
-  transition: all 0.8s ease;
+  transition: background-color 0.8s ease, color 0.8s ease;
   overflow-x: hidden;
 }
 
@@ -189,6 +189,11 @@ body.a11y-contrast .mod-row label {
 
 #a11yBtn:hover {
   transform: scale(1.1);
+}
+
+#a11yBtn:focus-visible {
+  outline: 3px solid #ffcc00;
+  outline-offset: 3px;
 }
 
 #a11yMenu {
@@ -739,6 +744,11 @@ input[type=range]:focus {
   outline: none;
 }
 
+input[type=range]:focus-visible {
+  outline: 2px solid var(--neon-color);
+  outline-offset: 3px;
+}
+
 input[type=range]::-webkit-slider-runnable-track {
   width: 100%;
   height: 6px;
@@ -787,17 +797,86 @@ input[type=range]::-webkit-slider-thumb:hover {
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
+
+/* Skip to main content */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 20px;
+  background: #0055ff;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 1rem;
+  z-index: 99999;
+  text-decoration: none;
+  border: 2px solid #fff;
+  transition: top 0.2s ease;
+}
+.skip-link:focus {
+  top: 10px;
+  outline: 3px solid #ffcc00;
+  outline-offset: 2px;
+}
+
+/* Screen-reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Enhanced focus-visible mode */
+body.a11y-focus *:focus-visible {
+  outline: 3px solid #ffcc00 !important;
+  outline-offset: 4px !important;
+  box-shadow: 0 0 0 6px rgba(255, 204, 0, 0.25) !important;
+}
+
+/* Color blind friendly mode — swaps magenta/red/green for a blue/amber palette */
+body.a11y-colorblind {
+  --neon-color: #0099cc;
+  --grid-color: #003355;
+}
+body.a11y-colorblind .status-online {
+  background: #0099cc !important;
+  box-shadow: 0 0 8px #0099cc !important;
+}
+body.a11y-colorblind .pulse-indicator {
+  color: #0099cc;
+}
+body.a11y-colorblind .project-card {
+  border-color: #0099cc !important;
+}
+body.a11y-colorblind .contact-form button {
+  background: #0099cc;
+}
 </style>
 </head>
 <body>
 
-<div id="a11yBtn" title="Open Help & Accessibility Menu">?</div>
+<a class="skip-link" href="#mainHeader">Skip to main content</a>
 
-<div id="a11yMenu">
-  <h3 style="margin-top: 0; color: #0055ff; font-family: Arial, sans-serif; font-size: 1.2em; text-align: center;">Help & Accessibility</h3>
+<div id="a11yBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open Help &amp; Accessibility Menu" title="Open Help &amp; Accessibility Menu">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="white" aria-hidden="true" focusable="false">
+    <circle cx="12" cy="4" r="2"/>
+    <path d="M3 8h18v2H3zM12 8a2 2 0 0 0-2 2v6h2v-5h2v5h2v-6a2 2 0 0 0-2-2h-2z"/>
+  </svg>
+</div>
+
+<div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
+  <h3 id="a11yMenuTitle" style="margin-top: 0; color: #0055ff; font-family: Arial, sans-serif; font-size: 1.2em; text-align: center;">Help &amp; Accessibility</h3>
 
   <div class="mod-row">
-    <label style="font-family: Arial, sans-serif;">Readable Font</label>
+    <label for="a11yFontToggle" style="font-family: Arial, sans-serif;">Readable Font</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yFontToggle">
       <span class="toggle-slider"></span>
@@ -805,7 +884,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   </div>
 
   <div class="mod-row">
-    <label style="font-family: Arial, sans-serif;">Large Text</label>
+    <label for="a11yTextToggle" style="font-family: Arial, sans-serif;">Large Text</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yTextToggle">
       <span class="toggle-slider"></span>
@@ -813,7 +892,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   </div>
 
   <div class="mod-row">
-    <label style="font-family: Arial, sans-serif;">Spaced Text</label>
+    <label for="a11ySpaceToggle" style="font-family: Arial, sans-serif;">Spaced Text</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11ySpaceToggle">
       <span class="toggle-slider"></span>
@@ -821,7 +900,7 @@ input[type=range]::-webkit-slider-thumb:hover {
   </div>
 
   <div class="mod-row">
-    <label style="font-family: Arial, sans-serif;">Disable Animations</label>
+    <label for="a11yAnimToggle" style="font-family: Arial, sans-serif;">Disable Animations</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yAnimToggle">
       <span class="toggle-slider"></span>
@@ -829,14 +908,30 @@ input[type=range]::-webkit-slider-thumb:hover {
   </div>
 
   <div class="mod-row">
-    <label style="font-family: Arial, sans-serif;">High Contrast</label>
+    <label for="a11yContrastToggle" style="font-family: Arial, sans-serif;">High Contrast</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yContrastToggle">
       <span class="toggle-slider"></span>
     </label>
   </div>
 
-  <button onclick="document.getElementById('a11yMenu').style.display='none'" class="nuke-btn" style="background:#444; border:none; margin-top:10px; font-family:Arial, sans-serif;">Close Menu</button>
+  <div class="mod-row">
+    <label for="a11yColorblindToggle" style="font-family: Arial, sans-serif;">Color Blind Friendly</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="a11yColorblindToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <div class="mod-row">
+    <label for="a11yFocusToggle" style="font-family: Arial, sans-serif;">Enhanced Focus Indicators</label>
+    <label class="toggle-switch">
+      <input type="checkbox" id="a11yFocusToggle">
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <button id="a11yCloseBtn" class="nuke-btn" style="background:#444; border:none; margin-top:10px; font-family:Arial, sans-serif;">Close Menu</button>
 </div>
 
 <canvas id="matrixCanvas"></canvas>
@@ -877,12 +972,23 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 <section id="systemStatus">
   <h2>Live Infrastructure Status</h2>
-  <p>Monitoring critical node uptime across local and remote environments.</p>
+  <p>Monitoring critical node uptime across local and remote environments. <a href="https://uptime.thyfwxit.com/status/status" target="_blank" rel="noopener" style="color:var(--neon-color); font-size:0.85em;">Full status page ↗</a></p>
   <div class="status-grid">
-    <div class="status-item"><span class="status-dot" id="status-proxmox"></span> Proxmox Node 01</div>
-    <div class="status-item"><span class="status-dot" id="status-vpn"></span> WireGuard VPN</div>
+    <div class="status-item"><span class="status-dot" id="status-proxmox"></span> Proxmox VE</div>
+    <div class="status-item"><span class="status-dot" id="status-omv"></span> OpenMediaVault</div>
     <div class="status-item"><span class="status-dot" id="status-adguard"></span> AdGuard Home</div>
     <div class="status-item"><span class="status-dot" id="status-ha"></span> Home Assistant</div>
+  </div>
+</section>
+
+<section id="githubActivity">
+  <h2>Latest Site Update</h2>
+  <div id="commitWidget" style="display:flex; align-items:flex-start; gap:14px; background:#111; border:1px solid var(--neon-color); border-radius:5px; padding:18px; min-height:60px;">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="var(--neon-color)" aria-hidden="true" style="flex-shrink:0; margin-top:2px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+    <div>
+      <p id="commitMessage" style="margin:0; font-family:'Courier New',monospace; color:var(--text-color); font-size:0.95em;">Loading latest commit…</p>
+      <p id="commitMeta" style="margin:4px 0 0; font-size:0.78em; color:#888;"></p>
+    </div>
   </div>
 </section>
 
@@ -897,9 +1003,9 @@ input[type=range]::-webkit-slider-thumb:hover {
 
   <div class="game-screen-wrapper" id="gameScreenWrapper">
     <div class="crt-overlay" id="crtOverlayElement"></div>
-    <canvas id="jumpGame" width="400" height="200"></canvas>
-    <canvas id="targetGame" width="400" height="200" style="display:none; cursor:crosshair;"></canvas>
-    <canvas id="tetrisGame" width="400" height="400" style="display:none;"></canvas>
+    <canvas id="jumpGame" width="400" height="200" role="img" aria-label="Cyber Runner game — press Space or tap to jump"></canvas>
+    <canvas id="targetGame" width="400" height="200" style="display:none; cursor:crosshair;" role="img" aria-label="Matrix Target Simulator — click or tap to shoot targets"></canvas>
+    <canvas id="tetrisGame" width="400" height="400" style="display:none;" role="img" aria-label="Tetris Terminal — use arrow keys or swipe to move pieces"></canvas>
   </div>
 
   <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump.</p>
@@ -920,11 +1026,15 @@ input[type=range]::-webkit-slider-thumb:hover {
 
 <section>
   <h2>Request Service</h2>
-  <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST">
-    <input type="text" name="name" id="formName" placeholder="Your Name" required>
-    <input type="email" name="email" id="formEmail" placeholder="Your Email Address" required>
-    <input type="tel" name="phone" placeholder="Phone Number (Optional)">
-    <select name="service" required>
+  <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST" aria-label="Service request form">
+    <label for="formName" class="sr-only">Your Name</label>
+    <input type="text" name="name" id="formName" placeholder="Your Name" required autocomplete="name">
+    <label for="formEmail" class="sr-only">Your Email Address</label>
+    <input type="email" name="email" id="formEmail" placeholder="Your Email Address" required autocomplete="email">
+    <label for="formPhone" class="sr-only">Phone Number (Optional)</label>
+    <input type="tel" name="phone" id="formPhone" placeholder="Phone Number (Optional)" autocomplete="tel">
+    <label for="formService" class="sr-only">Select a Service</label>
+    <select name="service" id="formService" required>
       <option value="">Select a Service...</option>
       <option value="pc">PC Repair (Windows)</option>
       <option value="mac">MacBook / Apple Repair</option>
@@ -932,9 +1042,11 @@ input[type=range]::-webkit-slider-thumb:hover {
       <option value="homelab">Home Lab / Server Setup</option>
       <option value="network">Network Security / VPN</option>
     </select>
+    <label for="formModel" class="sr-only">Device Model</label>
     <input type="text" name="device_model" id="formModel" placeholder="Device Model (e.g., iPhone 13, Custom PC)" required>
+    <label for="formMessage" class="sr-only">Describe the issue</label>
     <textarea name="message" id="formMessage" rows="5" placeholder="Describe the issue in detail..." required></textarea>
-    <input type="text" name="_gotcha" style="display:none">
+    <input type="text" name="_gotcha" style="display:none" aria-hidden="true" tabindex="-1">
     <button type="submit">Send Message</button>
   </form>
 </section>
@@ -942,6 +1054,8 @@ input[type=range]::-webkit-slider-thumb:hover {
 <footer>
   <p><b>Xavier Scott :3</b></p>
 </footer>
+
+<div id="gameAnnouncer" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
 <div id="terminalOverlay">
   <div id="terminalText"></div>
@@ -1295,6 +1409,13 @@ let drops = [];
 let matrixDrawActive = false;
 let kawaiiActive = false;
 
+function announce(msg) {
+  const el = document.getElementById('gameAnnouncer');
+  if (!el) return;
+  el.textContent = '';
+  requestAnimationFrame(() => { el.textContent = msg; });
+}
+
 function clamp(v, min, max) {
   return Math.max(min, Math.min(max, v));
 }
@@ -1447,18 +1568,89 @@ function triggerShake() {
 }
 
 async function fetchUptimeStatus() {
-  const setOnline = () => {
-    document.querySelectorAll('.status-dot').forEach(dot => {
-      dot.classList.remove('status-offline');
-      dot.classList.add('status-online');
-    });
+  // Keywords that map to each dot element — case-insensitive, partial match
+  const dotMap = {
+    'status-proxmox': ['proxmox'],
+    'status-omv':     ['openmediavault', 'omv'],
+    'status-adguard': ['adguard'],
+    'status-ha':      ['home assistant', 'homeassistant']
   };
-  try {
-    await fetch('https://uptime.thyfwxit.com/api/status-page/status');
-    setOnline();
-  } catch (e) {
-    setOnline();
+
+  function setDot(dotId, online) {
+    const dot = document.getElementById(dotId);
+    if (!dot) return;
+    dot.classList.toggle('status-online', online);
+    dot.classList.toggle('status-offline', !online);
+    dot.setAttribute('aria-label', online ? 'Online' : 'Offline');
   }
+
+  try {
+    const base = 'https://uptime.thyfwxit.com';
+    const slug = 'status';
+    const [pageRes, hbRes] = await Promise.all([
+      fetch(`${base}/api/status-page/${slug}`),
+      fetch(`${base}/api/status-page/heartbeat/${slug}`)
+    ]);
+
+    if (!pageRes.ok || !hbRes.ok) throw new Error('API error');
+
+    const page = await pageRes.json();
+    const hb   = await hbRes.json();
+
+    // Build id → lowercase name map from the status page monitor list
+    const monitors = {};
+    (page.publicGroupList || []).forEach(group => {
+      (group.monitorList || []).forEach(m => {
+        monitors[m.id] = m.name.toLowerCase();
+      });
+    });
+
+    // Match each dot to a monitor by keyword, then read its last heartbeat
+    Object.entries(dotMap).forEach(([dotId, keywords]) => {
+      const match = Object.entries(monitors).find(([, name]) =>
+        keywords.some(kw => name.includes(kw))
+      );
+      if (match) {
+        const [monitorId] = match;
+        const beats = hb.heartbeatList?.[monitorId];
+        const last  = beats?.[beats.length - 1];
+        setDot(dotId, last?.status === 1);
+      } else {
+        setDot(dotId, false); // monitor not found on the status page
+      }
+    });
+  } catch (e) {
+    // Uptime Kuma unreachable — mark all offline
+    Object.keys(dotMap).forEach(dotId => setDot(dotId, false));
+  }
+}
+
+async function fetchLatestCommit() {
+  const msgEl  = document.getElementById('commitMessage');
+  const metaEl = document.getElementById('commitMeta');
+  if (!msgEl) return;
+  try {
+    const res  = await fetch('https://api.github.com/repos/Thyfwx/thyfwxit/commits/main');
+    if (!res.ok) throw new Error('fetch failed');
+    const data = await res.json();
+    const msg  = data.commit?.message?.split('\n')[0] || 'No message';
+    const author = data.commit?.author?.name || 'Unknown';
+    const date = new Date(data.commit?.author?.date);
+    const ago  = formatTimeAgo(date);
+    msgEl.textContent  = msg;
+    metaEl.innerHTML   = `<b>${author}</b> · ${ago} · <a href="${data.html_url}" target="_blank" rel="noopener" style="color:var(--neon-color);">view commit ↗</a>`;
+  } catch {
+    msgEl.textContent  = 'Could not load latest commit.';
+    metaEl.textContent = '';
+  }
+}
+
+function formatTimeAgo(date) {
+  const diff = Math.floor((Date.now() - date) / 1000);
+  if (diff < 60)   return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
 function resetRunnerState() {
@@ -1522,6 +1714,8 @@ function startTargetGame() {
 
 window.onload = () => {
   fetchUptimeStatus();
+  setInterval(fetchUptimeStatus, 60000);
+  fetchLatestCommit();
 
   if (document.getElementById('modGravity')) document.getElementById('modGravity').value = 0.85;
   if (document.getElementById('modSpeed')) document.getElementById('modSpeed').value = 5.0;
@@ -1546,17 +1740,25 @@ window.onload = () => {
 document.addEventListener("DOMContentLoaded", () => {
   const techTips = [
     "Isolate your smart home devices on a separate <b>VLAN</b> to prevent them from accessing your private computers.",
-    "Always back up your <b>TrueNAS</b> configuration file after making network changes.",
+    "Always back up your <b>TrueNAS</b> or <b>OpenMediaVault</b> config after making network changes.",
     "Use a password manager to generate and store unique, complex passwords for every <b>login</b>.",
-    "Applying fresh <b>thermal paste</b> every few years prevents processor throttling.",
-    "Set up <b>WireGuard VPN</b> on your router to safely access your home lab from public Wi-Fi."
+    "Applying fresh <b>thermal paste</b> every few years prevents processor throttling and extends hardware life.",
+    "Set up <b>WireGuard VPN</b> on your router to safely access your home lab from public Wi-Fi.",
+    "Run <b>AdGuard Home</b> or Pi-hole at the DNS level to block ads and trackers for every device on your network.",
+    "<b>Proxmox VE</b> snapshots before any major update let you roll back in seconds if something breaks.",
+    "The <b>3-2-1 backup rule</b>: 3 copies, 2 different media types, 1 offsite.",
+    "Use <b>SSH keys</b> instead of passwords — they're longer, can't be brute-forced, and never leave your machine.",
+    "Check your router's <b>DNS-over-HTTPS</b> settings — most ISPs log every domain you visit by default.",
+    "<b>SMART data</b> from your drives often warns of failure weeks before it happens. Run a short test monthly.",
+    "A <b>UPS</b> (uninterruptible power supply) protects your home lab from dirty power and sudden outages.",
+    "<b>Home Assistant</b> automations can alert you when a device goes offline before you'd ever notice manually.",
+    "Unused open ports are an attack surface. Audit your firewall rules and close anything you don't actively use.",
+    "Label your cables and document your network layout — future-you will be grateful."
   ];
 
   const tipElement = document.getElementById("techTipText");
   if (tipElement) {
-    const now = new Date();
-    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 1000 / 60 / 60 / 24);
-    tipElement.innerHTML = techTips[dayOfYear % techTips.length];
+    tipElement.innerHTML = techTips[Math.floor(Math.random() * techTips.length)];
   }
 
   const jokes = [
@@ -1574,10 +1776,28 @@ document.addEventListener("DOMContentLoaded", () => {
     footer.appendChild(jokeElement);
   }
 
-  document.getElementById('a11yBtn')?.addEventListener('click', () => {
-    const menu = document.getElementById('a11yMenu');
-    menu.style.display = (menu.style.display === 'none' || menu.style.display === '') ? 'flex' : 'none';
+  const a11yBtn = document.getElementById('a11yBtn');
+  const a11yMenu = document.getElementById('a11yMenu');
+
+  function openA11yMenu() {
+    a11yMenu.style.display = 'flex';
+    a11yBtn.setAttribute('aria-expanded', 'true');
+    document.getElementById('a11yCloseBtn')?.focus();
+  }
+  function closeA11yMenu() {
+    a11yMenu.style.display = 'none';
+    a11yBtn.setAttribute('aria-expanded', 'false');
+    a11yBtn.focus();
+  }
+
+  a11yBtn?.addEventListener('click', () => {
+    const isOpen = a11yMenu.style.display === 'flex';
+    isOpen ? closeA11yMenu() : openA11yMenu();
   });
+  a11yBtn?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openA11yMenu(); }
+  });
+  document.getElementById('a11yCloseBtn')?.addEventListener('click', closeA11yMenu);
 
   document.getElementById('a11yFontToggle')?.addEventListener('change', (e) => {
     document.body.classList.toggle('a11y-font', e.target.checked);
@@ -1599,6 +1819,32 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('a11yContrastToggle')?.addEventListener('change', (e) => {
     document.body.classList.toggle('a11y-contrast', e.target.checked);
   });
+
+  document.getElementById('a11yColorblindToggle')?.addEventListener('change', (e) => {
+    document.body.classList.toggle('a11y-colorblind', e.target.checked);
+  });
+
+  document.getElementById('a11yFocusToggle')?.addEventListener('change', (e) => {
+    document.body.classList.toggle('a11y-focus', e.target.checked);
+  });
+
+  // Auto-apply OS accessibility preferences on load, and watch for live changes
+  function applyOSPref(mediaQuery, toggleId, applyFn) {
+    const mq = window.matchMedia(mediaQuery);
+    function apply(matches) {
+      const el = document.getElementById(toggleId);
+      if (el && el.checked !== matches) {
+        el.checked = matches;
+        el.dispatchEvent(new Event('change'));
+      }
+      if (!el && matches) applyFn(matches);
+    }
+    apply(mq.matches);
+    mq.addEventListener('change', (e) => apply(e.matches));
+  }
+
+  applyOSPref('(prefers-reduced-motion: reduce)', 'a11yAnimToggle', null);
+  applyOSPref('(prefers-contrast: more)', 'a11yContrastToggle', null);
 });
 
 document.getElementById("secureContactForm")?.addEventListener("submit", async function(event) {
@@ -2015,7 +2261,7 @@ document.getElementById('kawaiiToggle')?.addEventListener('click', function() {
     document.body.style.background = "linear-gradient(135deg, #fff0f5, #ffe4e1, #ffd1dc, #fff0f5)";
     document.body.style.backgroundSize = "400% 400%";
     document.body.style.animation = "kawaiiGradient 20s ease infinite";
-    document.body.style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\"><text y=\"20\" font-size=\"20\">✨</text></svg>'), auto";
+    document.body.style.cursor = "url(\"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><path fill='%23ff69b4' d='M12 1l2.8 8.6H23l-7.1 5.2 2.7 8.3L12 18.2l-6.6 4.9 2.7-8.3L1 9.6h8.2z'/></svg>\") 12 12, auto";
 
     if (!document.getElementById('kawaiiStyle')) {
       const s = document.createElement('style');
@@ -2169,6 +2415,8 @@ window.addEventListener("keydown", function(e) {
   if (e.code === 'Escape') {
     document.getElementById('modMenu').style.display = 'none';
     document.getElementById('a11yMenu').style.display = 'none';
+    const a11yBtnEl = document.getElementById('a11yBtn');
+    if (a11yBtnEl) a11yBtnEl.setAttribute('aria-expanded', 'false');
   }
 
   if (e.code === 'Space' || e.key === " ") {
@@ -2575,6 +2823,7 @@ function updateRunner(currentTime) {
           currentRunnerCrash = runnerCrashMessages[Math.floor(Math.random() * runnerCrashMessages.length)];
           triggerShake();
           spawnRunnerParticles(px, py, gameNeonColor);
+          announce(`Game over. Final score: ${score}.`);
 
           if (score > runnerHighScore) {
             runnerHighScore = score;
@@ -2876,6 +3125,7 @@ function updateTargetGame(currentTime) {
         targetDeathTime = Date.now();
         currentTargetCrash = targetCrashMessages[Math.floor(Math.random() * targetCrashMessages.length)];
         triggerShake();
+        announce(`Game over. Final score: ${targetScore}.`);
       }
     }
   } else {
@@ -3082,6 +3332,7 @@ function tReset() {
       tetrisDeathTime = Date.now();
       tetrisCrashMsg = tetrisCrashMessages[Math.floor(Math.random() * tetrisCrashMessages.length)];
       triggerShake();
+      announce(`Game over. Final score: ${tetrisScore}.`);
     }
   }
 }
@@ -3152,6 +3403,7 @@ function tSweep() {
     tetrisLines += linesCleared;
     tetrisLevel = Math.floor(tetrisLines / 10) + 1;
     tetrisFloaters.push({ x: 200, y: 200, alpha: 1.5, text: linesCleared + " LINES!" });
+    announce(`${linesCleared} line${linesCleared > 1 ? 's' : ''} cleared. Score: ${tetrisScore}.`);
     if (tetrisScore > tetrisHighScore) {
       tetrisHighScore = tetrisScore;
       try { localStorage.setItem('tetrisHighScore', tetrisHighScore); } catch(e) {}
@@ -3371,24 +3623,7 @@ function updateTetris(currentTime) {
   ctxTetris.lineWidth = 1;
 }
 
-document.getElementById('startRunnerBtn')?.addEventListener('click', () => {
-  startRunner();
-});
 
-document.getElementById('startTargetBtn')?.addEventListener('click', () => {
-  switchGame('target');
-  startTargetGame();
-});
-
-document.getElementById('startTetrisBtn')?.addEventListener('click', () => {
-  switchGame('tetris');
-});
-
-if (ctx) {
-  runnerLastTime = performance.now();
-  if (runnerAnimId) cancelAnimationFrame(runnerAnimId);
-  runnerAnimId = requestAnimationFrame(updateRunner);
-}
 </script>
 </body>
 </html>
