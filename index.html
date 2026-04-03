@@ -1584,13 +1584,16 @@ function triggerShake() {
 }
 
 async function fetchUptimeStatus() {
-  // Keywords that map to each dot element — case-insensitive, partial match
-  const dotMap = {
-    'status-proxmox': ['proxmox'],
-    'status-omv':     ['openmediavault', 'omv'],
-    'status-adguard': ['adguard'],
-    'status-ha':      ['home assistant', 'homeassistant']
+  // Badge API has Access-Control-Allow-Origin: * — no CORS issues.
+  // SVG response contains ">Up<" or ">Down<" which we read directly.
+  const monitorMap = {
+    'status-proxmox': 1,
+    'status-adguard': 3,
+    'status-ha':      4,
+    'status-omv':     10
   };
+
+  const base = 'https://uptime.thyfwxit.com';
 
   function setDot(dotId, online) {
     const dot = document.getElementById(dotId);
@@ -1601,8 +1604,8 @@ async function fetchUptimeStatus() {
     dot.setAttribute('aria-label', online ? 'Online' : 'Offline');
   }
 
-  // Reset dots to loading state before each poll
-  Object.keys(dotMap).forEach(dotId => {
+  // Reset to loading state before each poll
+  Object.keys(monitorMap).forEach(dotId => {
     const dot = document.getElementById(dotId);
     if (!dot) return;
     dot.classList.remove('status-online', 'status-offline');
@@ -1610,50 +1613,26 @@ async function fetchUptimeStatus() {
   });
 
   try {
-    const base = 'https://uptime.thyfwxit.com';
-    const slug = 'status';
     const ctrl = new AbortController();
     const tid = setTimeout(() => ctrl.abort(), 8000);
-    const [pageRes, hbRes] = await Promise.all([
-      fetch(`${base}/api/status-page/${slug}`, { signal: ctrl.signal }),
-      fetch(`${base}/api/status-page/heartbeat/${slug}`, { signal: ctrl.signal })
-    ]);
+
+    const results = await Promise.all(
+      Object.entries(monitorMap).map(async ([dotId, id]) => {
+        const res = await fetch(`${base}/api/badge/${id}/status`, { signal: ctrl.signal });
+        const svg = await res.text();
+        return { dotId, up: svg.includes('>Up<') };
+      })
+    );
+
     clearTimeout(tid);
-
-    if (!pageRes.ok || !hbRes.ok) throw new Error('API error');
-
-    const page = await pageRes.json();
-    const hb   = await hbRes.json();
-
-    // Build id → lowercase name map from the status page monitor list
-    const monitors = {};
-    (page.publicGroupList || []).forEach(group => {
-      (group.monitorList || []).forEach(m => {
-        monitors[m.id] = m.name.toLowerCase();
-      });
-    });
-
-    // Match each dot to a monitor by keyword, then read its last heartbeat
-    Object.entries(dotMap).forEach(([dotId, keywords]) => {
-      const match = Object.entries(monitors).find(([, name]) =>
-        keywords.some(kw => name.includes(kw))
-      );
-      if (match) {
-        const [monitorId] = match;
-        const beats = hb.heartbeatList?.[monitorId];
-        const last  = beats?.[beats.length - 1];
-        setDot(dotId, last?.status === 1);
-      } else {
-        setDot(dotId, false); // monitor not found on the status page
-      }
-    });
+    results.forEach(({ dotId, up }) => setDot(dotId, up));
 
     const ts = document.getElementById('statusTimestamp');
     if (ts) ts.textContent = 'Last checked: ' + new Date().toLocaleTimeString();
   } catch (e) {
-    Object.keys(dotMap).forEach(dotId => setDot(dotId, false));
+    Object.keys(monitorMap).forEach(dotId => setDot(dotId, false));
     const ts = document.getElementById('statusTimestamp');
-    if (ts) ts.textContent = 'Status check failed — confirm uptime.thyfwxit.com is reachable and has CORS headers set';
+    if (ts) ts.textContent = 'Unable to reach status server';
   }
 }
 
