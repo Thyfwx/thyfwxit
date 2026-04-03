@@ -1601,6 +1601,14 @@ async function fetchUptimeStatus() {
     dot.setAttribute('aria-label', online ? 'Online' : 'Offline');
   }
 
+  // Reset dots to loading state before each poll
+  Object.keys(dotMap).forEach(dotId => {
+    const dot = document.getElementById(dotId);
+    if (!dot) return;
+    dot.classList.remove('status-online', 'status-offline');
+    dot.classList.add('status-loading');
+  });
+
   try {
     const base = 'https://uptime.thyfwxit.com';
     const slug = 'status';
@@ -2947,7 +2955,10 @@ function updateRunner(currentTime) {
       const grounded = playerY >= RUNNER_FLOOR_Y - 1;
       const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > 15);
       if (threat && grounded) {
-        const jumpTriggerDist = 20 + (currentSpeed * 11);
+        // Physics-based trigger: obstacle should arrive just before jump peak.
+        // Peak frame = jumpPower / gravity. Trigger so obstacle is ~85% of that away.
+        const peakFrames = currentJumpPower / currentGravity;
+        const jumpTriggerDist = 20 + Math.ceil(currentSpeed * peakFrames * 0.85);
         if (threat.x < jumpTriggerDist) {
           velocity = -currentJumpPower;
           isJumping = true;
