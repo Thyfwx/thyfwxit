@@ -887,14 +887,8 @@ body.a11y-colorblind .contact-form button {
 <a class="skip-link" href="#mainHeader">Skip to main content</a>
 
 <div id="a11yBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open Help &amp; Accessibility Menu" title="Open Help &amp; Accessibility Menu">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-    <circle cx="11" cy="4.5" r="2" fill="white" stroke="none"/>
-    <path d="M11 6.5 L9 13 L13 13 L16 13" stroke="white"/>
-    <line x1="8.5" y1="10" x2="11" y2="10" stroke="white"/>
-    <circle cx="7" cy="19.5" r="2.5"/>
-    <circle cx="16" cy="19.5" r="2.5"/>
-    <path d="M9 13 L8 17 M13 13 L14 17 L16 17"/>
-    <path d="M8 17 L7 17"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="white" aria-hidden="true" focusable="false">
+    <path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/>
   </svg>
 </div>
 
@@ -1610,11 +1604,13 @@ async function fetchUptimeStatus() {
   try {
     const base = 'https://uptime.thyfwxit.com';
     const slug = 'status';
-    const opts = { mode: 'cors', credentials: 'omit', signal: AbortSignal.timeout(8000) };
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 8000);
     const [pageRes, hbRes] = await Promise.all([
-      fetch(`${base}/api/status-page/${slug}`, opts),
-      fetch(`${base}/api/status-page/heartbeat/${slug}`, opts)
+      fetch(`${base}/api/status-page/${slug}`, { signal: ctrl.signal }),
+      fetch(`${base}/api/status-page/heartbeat/${slug}`, { signal: ctrl.signal })
     ]);
+    clearTimeout(tid);
 
     if (!pageRes.ok || !hbRes.ok) throw new Error('API error');
 
@@ -1649,10 +1645,7 @@ async function fetchUptimeStatus() {
   } catch (e) {
     Object.keys(dotMap).forEach(dotId => setDot(dotId, false));
     const ts = document.getElementById('statusTimestamp');
-    const isCors = e instanceof TypeError;
-    if (ts) ts.textContent = isCors
-      ? 'Status unavailable — CORS not configured on uptime.thyfwxit.com (add Access-Control-Allow-Origin header)'
-      : 'Unable to reach status server';
+    if (ts) ts.textContent = 'Status check failed — confirm uptime.thyfwxit.com is reachable and has CORS headers set';
   }
 }
 
@@ -2919,7 +2912,7 @@ function updateRunner(currentTime) {
       velocity -= 1.5;
       if (velocity < -currentJumpPower) velocity = -currentJumpPower;
       isJumping = true;
-    } else if (isJumping && !runnerJetpack && !keySpaceHeld) {
+    } else if (isJumping && !runnerJetpack && !keySpaceHeld && !runnerAutoBot) {
       if (velocity < -4) velocity = -4;
     }
 
