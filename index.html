@@ -887,9 +887,14 @@ body.a11y-colorblind .contact-form button {
 <a class="skip-link" href="#mainHeader">Skip to main content</a>
 
 <div id="a11yBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open Help &amp; Accessibility Menu" title="Open Help &amp; Accessibility Menu">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="white" aria-hidden="true" focusable="false">
-    <circle cx="12" cy="4" r="2"/>
-    <path d="M3 8h18v2H3zM12 8a2 2 0 0 0-2 2v6h2v-5h2v5h2v-6a2 2 0 0 0-2-2h-2z"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+    <circle cx="11" cy="4.5" r="2" fill="white" stroke="none"/>
+    <path d="M11 6.5 L9 13 L13 13 L16 13" stroke="white"/>
+    <line x1="8.5" y1="10" x2="11" y2="10" stroke="white"/>
+    <circle cx="7" cy="19.5" r="2.5"/>
+    <circle cx="16" cy="19.5" r="2.5"/>
+    <path d="M9 13 L8 17 M13 13 L14 17 L16 17"/>
+    <path d="M8 17 L7 17"/>
   </svg>
 </div>
 
@@ -1605,9 +1610,10 @@ async function fetchUptimeStatus() {
   try {
     const base = 'https://uptime.thyfwxit.com';
     const slug = 'status';
+    const opts = { mode: 'cors', credentials: 'omit', signal: AbortSignal.timeout(8000) };
     const [pageRes, hbRes] = await Promise.all([
-      fetch(`${base}/api/status-page/${slug}`),
-      fetch(`${base}/api/status-page/heartbeat/${slug}`)
+      fetch(`${base}/api/status-page/${slug}`, opts),
+      fetch(`${base}/api/status-page/heartbeat/${slug}`, opts)
     ]);
 
     if (!pageRes.ok || !hbRes.ok) throw new Error('API error');
@@ -1641,10 +1647,12 @@ async function fetchUptimeStatus() {
     const ts = document.getElementById('statusTimestamp');
     if (ts) ts.textContent = 'Last checked: ' + new Date().toLocaleTimeString();
   } catch (e) {
-    // Uptime Kuma unreachable — mark all offline
     Object.keys(dotMap).forEach(dotId => setDot(dotId, false));
     const ts = document.getElementById('statusTimestamp');
-    if (ts) ts.textContent = 'Unable to reach status server';
+    const isCors = e instanceof TypeError;
+    if (ts) ts.textContent = isCors
+      ? 'Status unavailable — CORS not configured on uptime.thyfwxit.com (add Access-Control-Allow-Origin header)'
+      : 'Unable to reach status server';
   }
 }
 
@@ -1730,7 +1738,7 @@ function startTargetGame() {
   goldenActive = false;
   decoyActive = false;
   targetLives = maxLives;
-  targetSpeedMult = (maxLives === 3) ? 8 : 5;
+  targetSpeedMult = (maxLives === 3) ? 7 : 4;
   aimbotShotDelay = aimbotEnabled ? 12 : 0;
   spawnDuck();
 }
@@ -2167,6 +2175,7 @@ document.getElementById('modTetrisMult')?.addEventListener('input', (e) => {
 
 document.getElementById('modTetrisSlow')?.addEventListener('change', (e) => {
   tetrisSlow = e.target.checked;
+  tetrisDropCounter = 0;
 });
 
 document.getElementById('modTetrisLock')?.addEventListener('change', (e) => {
@@ -2710,7 +2719,7 @@ if (targetCanvas) {
         targetScore++;
         targetFloatingScores.push({ x: p.x + 15, y: p.y, alpha: 1.0, text: "+1", r: 0, g: 255, b: 0 });
         spawnTargetParticles(p.x, p.y, currentDuckColor);
-        if (targetScore > 0 && targetScore % 5 === 0) targetSpeedMult += 1;
+        if (targetScore > 0 && targetScore % 8 === 0) targetSpeedMult = Math.min(targetSpeedMult + 1, 14);
         duckActive = false;
       }
 
@@ -2844,12 +2853,33 @@ function updateRunner(currentTime) {
 
   ctx.clearRect(0, 0, 400, 200);
 
-  if (kawaiiActive || isContrast || reducedMotion) {
+  if (runnerDiscoActive && !reducedMotion && !isContrast) {
+    const beat = Math.floor(gameFrame / 10) % 6;
+    const discoBg = [`hsla(${beat*60},80%,8%,1)`, `hsla(${beat*60+30},80%,10%,1)`];
+    ctx.fillStyle = discoBg[0];
+    ctx.fillRect(0, 0, 400, 200);
+    ctx.strokeStyle = `hsla(${(gameFrame * 3) % 360},100%,55%,0.25)`;
+    for (let i = 0; i <= 400; i += 20) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 200); ctx.stroke();
+    }
+    for (let i = 0; i <= 200; i += 20) {
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(400, i); ctx.stroke();
+    }
+    // Disco floor strip
+    const floorHue = (gameFrame * 4) % 360;
+    ctx.fillStyle = `hsla(${floorHue},100%,50%,0.35)`;
+    ctx.fillRect(0, 168, 400, 6);
+    // Strobe flash on beat
+    if (gameFrame % 30 < 2) {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.fillRect(0, 0, 400, 200);
+    }
+  } else if (kawaiiActive || isContrast || reducedMotion) {
     ctx.fillStyle = reducedMotion ? (isContrast ? "#ffffff" : "#0a0a0a") : gameBgColor;
     ctx.fillRect(0, 0, 400, 200);
   }
 
-  if (!reducedMotion) {
+  if (!reducedMotion && !runnerDiscoActive) {
     ctx.strokeStyle = canvasLineCol;
     for (let i = 0; i <= 400; i += 20) {
       ctx.beginPath();
@@ -2871,9 +2901,17 @@ function updateRunner(currentTime) {
     ctx.lineTo(400, 170);
     ctx.stroke();
     ctx.setLineDash([]);
-  } else {
+  } else if (reducedMotion || (!runnerDiscoActive && !kawaiiActive && !isContrast)) {
     ctx.fillStyle = floorCol;
     ctx.fillRect(0, 170, 400, 30);
+  } else if (!runnerDiscoActive) {
+    ctx.strokeStyle = gameNeonColor;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0 - (gameFrame * currentSpeed) % 10, 170);
+    ctx.lineTo(400, 170);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   if (gameStarted && !gameOver) {
@@ -2912,14 +2950,14 @@ function updateRunner(currentTime) {
       runnerObstacles.push({ x: 400, passed: false, type: oType });
     }
 
-    let jumpTriggerDist = 80 + (currentSpeed * 5);
-    if (runnerAutoBot && runnerObstacles.length > 0) {
-      let nextObs = runnerObstacles[0];
-      if (nextObs.passed && runnerObstacles.length > 1) nextObs = runnerObstacles[1];
-      if (nextObs.x < jumpTriggerDist && nextObs.x > 30) {
-        if (nextObs.type !== 'flying' && !isJumping) {
-          isJumping = true;
+    if (runnerAutoBot) {
+      const grounded = playerY >= RUNNER_FLOOR_Y - 1;
+      const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > 15);
+      if (threat && grounded) {
+        const jumpTriggerDist = 115 + (currentSpeed * 5);
+        if (threat.x < jumpTriggerDist) {
           velocity = -currentJumpPower;
+          isJumping = true;
         }
       }
     }
@@ -3088,7 +3126,8 @@ function spawnDuck() {
   duckVelX = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckVelY = (Math.random() > 0.5 ? 1 : -1) * speed;
   duckActive = true;
-  duckTimer = aimbotEnabled ? (55 + Math.random() * 35) : (100 + Math.random() * 80);
+  const baseTimer = 110 + (targetSpeedMult * 4);
+  duckTimer = aimbotEnabled ? (baseTimer * 0.55) : (baseTimer + Math.random() * 50);
   currentDuckColor = rainbowColors[Math.floor(Math.random() * rainbowColors.length)];
 
   if (targetDecoyEnabled && Math.random() < (aimbotEnabled ? 0.45 : 0.3)) {
@@ -3328,12 +3367,12 @@ function updateTargetGame(currentTime) {
   if (aimbotEnabled) {
     aimbotPulse = Math.max(aimbotPulse - 1, 0);
     ctxTarget.save();
-    ctxTarget.shadowBlur = 18;
+    ctxTarget.shadowBlur = 14;
     ctxTarget.shadowColor = aimbotPulse > 0 ? "#00ffff" : "#ff00ff";
     ctxTarget.fillStyle = aimbotPulse > 0 ? "#00ffff" : "#ff00ff";
-    ctxTarget.font = "bold 14px 'Courier New', monospace";
+    ctxTarget.font = "bold 11px 'Courier New', monospace";
     ctxTarget.textAlign = "right";
-    ctxTarget.fillText("AIMBOT: ON", 390, 20);
+    ctxTarget.fillText("AIMBOT: ON", 390, 40);
     ctxTarget.restore();
   }
 
