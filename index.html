@@ -999,7 +999,7 @@ body.a11y-colorblind .contact-form button {
     <div class="status-item"><span class="status-dot status-loading" id="status-adguard"></span> AdGuard Home</div>
     <div class="status-item"><span class="status-dot status-loading" id="status-ha"></span> Home Assistant</div>
   </div>
-  <p id="statusTimestamp" style="font-size: 0.75em; color: #666; margin-top: 10px; font-family: 'Share Tech Mono', monospace;"></p>
+  <p id="statusTimestamp" style="font-size: 0.75em; color: #666; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
 </section>
 
 <section id="githubActivity">
@@ -1276,6 +1276,7 @@ const RUNNER_FLOOR_Y = 150;
 const RUNNER_MIN_Y = 0;
 
 let runnerLastTime = 0;
+let runnerFirstFrame = true;
 let targetLastTime = 0;
 let tetrisLastTime = 0;
 let matrixLastTime = 0;
@@ -1618,9 +1619,13 @@ async function fetchUptimeStatus() {
 
     const results = await Promise.all(
       Object.entries(monitorMap).map(async ([dotId, id]) => {
-        const res = await fetch(`${base}/api/badge/${id}/status`, { signal: ctrl.signal });
-        const svg = await res.text();
-        return { dotId, up: svg.includes('>Up<') };
+        try {
+          const res = await fetch(`${base}/api/badge/${id}/status`, { signal: ctrl.signal });
+          const svg = await res.text();
+          return { dotId, up: svg.includes('>Up<') };
+        } catch {
+          return { dotId, up: false };
+        }
       })
     );
 
@@ -1705,6 +1710,7 @@ function startRunner() {
   switchGame('runner');
   gameStarted = true;
   gameOver = false;
+  runnerFirstFrame = true;
   runnerLastTime = performance.now();
 }
 
@@ -1737,6 +1743,7 @@ window.onload = () => {
   }
 
   if (ctx) {
+    runnerFirstFrame = true;
     runnerLastTime = performance.now();
     runnerAnimId = requestAnimationFrame(updateRunner);
   }
@@ -2011,6 +2018,7 @@ window.switchGame = function(mode) {
     document.getElementById('gameTitle').innerText = "Cyber Runner Game";
     document.getElementById('gameTitle').style.color = "var(--neon-color)";
     resetRunnerState();
+    runnerFirstFrame = true;
     runnerLastTime = now;
     runnerAnimId = requestAnimationFrame(updateRunner);
   } else if (mode === 'target') {
@@ -2818,6 +2826,11 @@ function updateRunner(currentTime) {
   runnerAnimId = requestAnimationFrame(updateRunner);
 
   if (!currentTime) currentTime = performance.now();
+  if (runnerFirstFrame) {
+    runnerLastTime = currentTime;
+    runnerFirstFrame = false;
+    return;
+  }
   let dt = currentTime - runnerLastTime;
   if (dt < FRAME_INTERVAL) return;
   runnerLastTime = currentTime - (dt % FRAME_INTERVAL);
