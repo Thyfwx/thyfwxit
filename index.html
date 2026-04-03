@@ -212,18 +212,20 @@ body.a11y-contrast .mod-row label {
 #a11yMenu {
   display: none;
   position: fixed;
-  bottom: 90px;
+  bottom: 85px;
   right: 20px;
   background: #111;
-  border: 3px solid #0055ff;
-  padding: 25px;
-  border-radius: 12px;
+  border: 2px solid #0055ff;
+  padding: 16px;
+  border-radius: 14px;
   z-index: 10002;
   flex-direction: column;
-  gap: 15px;
+  gap: 6px;
   color: #fff;
-  width: 280px;
+  width: 260px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.9);
+  overflow-y: auto;
+  max-height: 80vh;
 }
 
 header {
@@ -338,9 +340,12 @@ footer {
   }
 
   #a11yMenu {
-    width: calc(100vw - 40px);
+    width: calc(100vw - 30px);
     right: 10px;
     left: 10px;
+    padding: 12px;
+    gap: 4px;
+    bottom: 80px;
   }
 
   .jump-btn {
@@ -735,6 +740,11 @@ canvas {
   gap: 10px;
 }
 
+#a11yMenu .mod-row {
+  margin-bottom: 0;
+  font-size: 0.85em;
+}
+
 .nuke-btn {
   background: #ff0000;
   color: #fff;
@@ -948,7 +958,7 @@ body.a11y-colorblind .contact-form button {
 </div>
 
 <div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
-  <h3 id="a11yMenuTitle" style="margin-top: 0; color: #0055ff; font-family: Arial, sans-serif; font-size: 1.2em; text-align: center;">Help &amp; Accessibility</h3>
+  <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility</h3>
 
   <div class="mod-row">
     <label for="a11yFontToggle" style="font-family: Arial, sans-serif;">Readable Font</label>
@@ -975,7 +985,7 @@ body.a11y-colorblind .contact-form button {
   </div>
 
   <div class="mod-row">
-    <label for="a11yAnimToggle" style="font-family: Arial, sans-serif;">Disable Animations</label>
+    <label for="a11yAnimToggle" style="font-family: Arial, sans-serif;">Reduce Motion</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yAnimToggle">
       <span class="toggle-slider"></span>
@@ -991,7 +1001,7 @@ body.a11y-colorblind .contact-form button {
   </div>
 
   <div class="mod-row">
-    <label for="a11yColorblindToggle" style="font-family: Arial, sans-serif;">Color Blind Friendly</label>
+    <label for="a11yColorblindToggle" style="font-family: Arial, sans-serif;">Colorblind Mode</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yColorblindToggle">
       <span class="toggle-slider"></span>
@@ -999,14 +1009,14 @@ body.a11y-colorblind .contact-form button {
   </div>
 
   <div class="mod-row">
-    <label for="a11yFocusToggle" style="font-family: Arial, sans-serif;">Enhanced Focus Indicators</label>
+    <label for="a11yFocusToggle" style="font-family: Arial, sans-serif;">Focus Indicators</label>
     <label class="toggle-switch">
       <input type="checkbox" id="a11yFocusToggle">
       <span class="toggle-slider"></span>
     </label>
   </div>
 
-  <button id="a11yCloseBtn" class="nuke-btn" style="background:#444; border:none; margin-top:10px; font-family:Arial, sans-serif;">Close Menu</button>
+  <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; margin-top:8px; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
 </div>
 
 <canvas id="matrixCanvas"></canvas>
