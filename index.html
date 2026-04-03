@@ -745,6 +745,42 @@ canvas {
   font-size: 0.85em;
 }
 
+.a11y-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.a11y-opt {
+  background: #1c1c1c;
+  border: 1px solid #2a2a2a;
+  color: #777;
+  padding: 9px 6px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.78em;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  user-select: none;
+  line-height: 1.2;
+}
+
+.a11y-opt:hover {
+  border-color: #0055ff;
+  color: #ccc;
+}
+
+.a11y-opt.active {
+  background: #0055ff;
+  border-color: #0055ff;
+  color: #fff;
+}
+
+.a11y-opt-full {
+  grid-column: 1 / -1;
+}
+
 .nuke-btn {
   background: #ff0000;
   color: #fff;
@@ -952,68 +988,25 @@ body.a11y-colorblind .contact-form button {
 <a class="skip-link" href="#mainHeader">Skip to main content</a>
 
 <div id="a11yBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open Help &amp; Accessibility Menu" title="Open Help &amp; Accessibility Menu">
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="white" aria-hidden="true" focusable="false">
-    <path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z"/>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" focusable="false">
+    <circle cx="13" cy="3.5" r="1.75" fill="white"/>
+    <path fill="white" d="M10 6c-.6 0-1.05.42-1.1.98L7.5 13H5.5v2h3.6l.4-1.5H14V16h2v-3.5c0-.55-.45-1-1-1h-3l1.1-4H16V6h-3.5V6H10z"/>
+    <circle cx="9" cy="19.5" r="3.8" fill="none" stroke="white" stroke-width="2"/>
+    <circle cx="17" cy="21" r="1.5" fill="white"/>
   </svg>
 </div>
 
 <div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
   <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility</h3>
 
-  <div class="mod-row">
-    <label for="a11yFontToggle" style="font-family: Arial, sans-serif;">Readable Font</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11yFontToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <div class="mod-row">
-    <label for="a11yTextToggle" style="font-family: Arial, sans-serif;">Large Text</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11yTextToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <div class="mod-row">
-    <label for="a11ySpaceToggle" style="font-family: Arial, sans-serif;">Spaced Text</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11ySpaceToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <div class="mod-row">
-    <label for="a11yAnimToggle" style="font-family: Arial, sans-serif;">Reduce Motion</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11yAnimToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <div class="mod-row">
-    <label for="a11yContrastToggle" style="font-family: Arial, sans-serif;">High Contrast</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11yContrastToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <div class="mod-row">
-    <label for="a11yColorblindToggle" style="font-family: Arial, sans-serif;">Colorblind Mode</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11yColorblindToggle">
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <div class="mod-row">
-    <label for="a11yFocusToggle" style="font-family: Arial, sans-serif;">Focus Indicators</label>
-    <label class="toggle-switch">
-      <input type="checkbox" id="a11yFocusToggle">
-      <span class="toggle-slider"></span>
-    </label>
+  <div class="a11y-grid">
+    <button class="a11y-opt" id="a11yFontToggle"      data-class="a11y-font">Readable Font</button>
+    <button class="a11y-opt" id="a11yTextToggle"      data-class="a11y-large-text">Large Text</button>
+    <button class="a11y-opt" id="a11ySpaceToggle"     data-class="a11y-spaced">Spaced Text</button>
+    <button class="a11y-opt" id="a11yAnimToggle"      data-class="a11y-no-anim">Reduce Motion</button>
+    <button class="a11y-opt" id="a11yContrastToggle"  data-class="a11y-contrast">High Contrast</button>
+    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind">Colorblind Mode</button>
+    <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus">Focus Indicators</button>
   </div>
 
   <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; margin-top:8px; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
@@ -1894,52 +1887,31 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById('a11yCloseBtn')?.addEventListener('click', closeA11yMenu);
 
-  document.getElementById('a11yFontToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-font', e.target.checked);
-  });
-
-  document.getElementById('a11yAnimToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-no-anim', e.target.checked);
-    syncReducedMotionState();
-  });
-
-  document.getElementById('a11yTextToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-large-text', e.target.checked);
-  });
-
-  document.getElementById('a11ySpaceToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-spaced', e.target.checked);
-  });
-
-  document.getElementById('a11yContrastToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-contrast', e.target.checked);
-  });
-
-  document.getElementById('a11yColorblindToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-colorblind', e.target.checked);
-  });
-
-  document.getElementById('a11yFocusToggle')?.addEventListener('change', (e) => {
-    document.body.classList.toggle('a11y-focus', e.target.checked);
+  document.querySelectorAll('.a11y-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cls = btn.dataset.class;
+      const isActive = btn.classList.toggle('active');
+      document.body.classList.toggle(cls, isActive);
+      if (cls === 'a11y-no-anim') syncReducedMotionState();
+    });
   });
 
   // Auto-apply OS accessibility preferences on load, and watch for live changes
-  function applyOSPref(mediaQuery, toggleId, applyFn) {
+  function applyOSPref(mediaQuery, toggleId) {
     const mq = window.matchMedia(mediaQuery);
     function apply(matches) {
-      const el = document.getElementById(toggleId);
-      if (el && el.checked !== matches) {
-        el.checked = matches;
-        el.dispatchEvent(new Event('change'));
-      }
-      if (!el && matches) applyFn(matches);
+      const btn = document.getElementById(toggleId);
+      if (!btn) return;
+      btn.classList.toggle('active', matches);
+      document.body.classList.toggle(btn.dataset.class, matches);
+      if (btn.dataset.class === 'a11y-no-anim') syncReducedMotionState();
     }
     apply(mq.matches);
     mq.addEventListener('change', (e) => apply(e.matches));
   }
 
-  applyOSPref('(prefers-reduced-motion: reduce)', 'a11yAnimToggle', null);
-  applyOSPref('(prefers-contrast: more)', 'a11yContrastToggle', null);
+  applyOSPref('(prefers-reduced-motion: reduce)', 'a11yAnimToggle');
+  applyOSPref('(prefers-contrast: more)', 'a11yContrastToggle');
 });
 
 document.getElementById("secureContactForm")?.addEventListener("submit", async function(event) {
