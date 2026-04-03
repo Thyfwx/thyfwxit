@@ -1620,7 +1620,7 @@ async function fetchUptimeStatus() {
     const results = await Promise.all(
       Object.entries(monitorMap).map(async ([dotId, id]) => {
         try {
-          const res = await fetch(`${base}/api/badge/${id}/status`, { signal: ctrl.signal });
+          const res = await fetch(`${base}/api/badge/${id}/status?_=${Date.now()}`, { signal: ctrl.signal });
           const svg = await res.text();
           return { dotId, up: svg.includes('>Up<') };
         } catch {
