@@ -2947,7 +2947,7 @@ function updateRunner(currentTime) {
       const grounded = playerY >= RUNNER_FLOOR_Y - 1;
       const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > 15);
       if (threat && grounded) {
-        const jumpTriggerDist = 115 + (currentSpeed * 5);
+        const jumpTriggerDist = 20 + (currentSpeed * 11);
         if (threat.x < jumpTriggerDist) {
           velocity = -currentJumpPower;
           isJumping = true;
