@@ -322,12 +322,13 @@ footer {
   color: var(--neon-color);
   animation: pulse 1.5s infinite;
   margin-right: 10px;
+  will-change: opacity;
 }
 
 @keyframes pulse {
-  0% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
-  50% { opacity: 0.3; text-shadow: none; }
-  100% { opacity: 1; text-shadow: 0 0 10px var(--neon-color); }
+  0%   { opacity: 1; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 1; }
 }
 
 .status-grid {
@@ -1274,6 +1275,7 @@ body.a11y-colorblind .contact-form button {
 
 <script>
 const FRAME_INTERVAL = 1000 / 60;
+const MATRIX_INTERVAL = 1000 / 24;
 const RUNNER_FLOOR_Y = 150;
 const RUNNER_MIN_Y = 0;
 
@@ -1540,7 +1542,7 @@ window.addEventListener('resize', resizeMatrix);
 if (mCanvas && mCtx) resizeMatrix();
 
 function drawMatrix(currentTime) {
-  if (!mCtx || !matrixRainEnabled || isReducedMotion()) {
+  if (!mCtx || !matrixRainEnabled || isReducedMotion() || document.hidden) {
     matrixDrawActive = false;
     return;
   }
@@ -1549,8 +1551,8 @@ function drawMatrix(currentTime) {
 
   if (!currentTime) currentTime = performance.now();
   const dt = currentTime - matrixLastTime;
-  if (dt < FRAME_INTERVAL) return;
-  matrixLastTime = currentTime - (dt % FRAME_INTERVAL);
+  if (dt < MATRIX_INTERVAL) return;
+  matrixLastTime = currentTime - (dt % MATRIX_INTERVAL);
 
   const cssW = window.innerWidth || document.documentElement.clientWidth;
   const cssH = window.innerHeight || document.documentElement.clientHeight;
@@ -1758,6 +1760,14 @@ window.onload = () => {
 
   const yearEl = document.getElementById('footerYear');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && matrixRainEnabled && !matrixDrawActive) {
+      matrixDrawActive = true;
+      matrixLastTime = performance.now();
+      requestAnimationFrame(drawMatrix);
+    }
+  });
 };
 
 document.addEventListener("DOMContentLoaded", () => {
