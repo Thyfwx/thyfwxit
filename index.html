@@ -179,6 +179,8 @@ body.a11y-contrast .mod-row label {
   position: fixed;
   bottom: 20px;
   right: 20px;
+  will-change: transform;
+  transform: translateZ(0);
   font-size: 28px;
   font-family: Arial, sans-serif;
   font-weight: bold;
@@ -253,7 +255,7 @@ section {
   padding: 25px;
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-  transition: all 0.4s ease;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
   position: relative;
   z-index: 2;
 }
@@ -959,7 +961,7 @@ body.a11y-colorblind .contact-form button {
 
 <canvas id="matrixCanvas"></canvas>
 
-<div id="kawaiiOv" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9998; overflow:hidden;"></div>
+<div id="kawaiiOv" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9998; overflow:hidden; transform:translateZ(0); will-change:transform;"></div>
 
 <header id="mainHeader" tabindex="0">
   <h1 id="mainTitle">Systems Specialist & Network Infrastructure</h1>
