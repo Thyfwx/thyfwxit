@@ -811,6 +811,8 @@ input[type=range]::-webkit-slider-thumb:hover {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 @keyframes kawaiiGradient {
@@ -1516,7 +1518,7 @@ function playExplosionSound() {
 
 function resizeMatrix() {
   if (!mCanvas || !mCtx) return;
-  const dpr = window.devicePixelRatio || 1;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const cssW = window.innerWidth || document.documentElement.clientWidth;
   const cssH = window.innerHeight || document.documentElement.clientHeight;
 
@@ -1559,12 +1561,12 @@ function drawMatrix(currentTime) {
   const hue = kawaiiActive ? 330 : 120;
   mCtx.font = "bold " + fontSize + "px monospace";
 
+  mCtx.shadowBlur = kawaiiActive ? 6 : 4;
+  mCtx.shadowColor = kawaiiActive ? "#ff69b4" : "#00ff66";
   for (let i = 0; i < drops.length; i++) {
     const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
     const alpha = 0.5 + Math.random() * 0.5;
     mCtx.fillStyle = kawaiiActive ? `hsla(${hue}, 100%, 75%, ${alpha})` : `hsla(${hue}, 100%, 50%, ${alpha})`;
-    mCtx.shadowBlur = kawaiiActive ? 12 : 8;
-    mCtx.shadowColor = kawaiiActive ? "#ff69b4" : "#00ff66";
     if (drops[i] > 0) {
       mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
     }
