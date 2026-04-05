@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Web Terminal</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
@@ -18,20 +18,22 @@
                 <div class="status-item geo-stat">LOC: Locating...</div>
             </header>
             
-            <main class="terminal-container">
+            <main class="terminal-container" id="terminal-container">
                 <div class="terminal-output" id="terminal-output">
                     <p class="sys-msg">Initializing NEXUS kernel...</p>
-                    <p class="sys-msg">Establishing uplink to central node...</p>
-                    <p class="sys-msg">WebSockets Connected.</p>
+                    <p class="sys-msg">Uplink: wss://nexus-terminalnexus.onrender.com</p>
+                    <p class="sys-msg">Ready.</p>
                 </div>
                 <div class="terminal-input-wrapper">
                     <span class="prompt">root@nexus:~#</span>
-                    <input type="text" id="terminal-input" autocomplete="off" autofocus>
+                    <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false">
                 </div>
             </main>
 
             <aside class="quick-actions">
+                <div class="aside-header">QUICK ACTIONS</div>
                 <button class="action-btn" data-cmd="speedtest">Speedtest</button>
+                <button class="action-btn" data-cmd="play pong">Play Pong</button>
                 <button class="action-btn" data-cmd="help">Help</button>
                 <button class="action-btn" data-cmd="clear">Clear</button>
             </aside>
@@ -41,8 +43,10 @@
                     <span id="gui-title">8-BIT SYSTEM</span>
                     <button id="gui-close">X</button>
                 </div>
-                <div id="gui-content"></div>
-                <canvas id="nexus-canvas" width="400" height="400" style="display:none;"></canvas>
+                <div id="gui-content-wrapper">
+                    <div id="gui-content"></div>
+                    <canvas id="nexus-canvas" width="400" height="400" style="display:none;"></canvas>
+                </div>
             </div>
         </div>
     </div>
