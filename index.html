@@ -1028,10 +1028,6 @@ body.a11y-colorblind .contact-form button {
       <h3><b>MacBook Rescue</b></h3>
       <p>Performed component-level repair and liquid damage recovery on Apple hardware.</p>
     </div>
-    <div class="project-card" style="cursor: pointer; border-color: var(--neon-color);" onclick="window.location.href='/nexus/'">
-      <h3 style="color: var(--neon-color); text-shadow: 0 0 5px var(--neon-color);"><b>[!] Nexus AI Terminal</b></h3>
-      <p>Interactive web terminal embedded with a system AI assistant and 8-bit hacker mini-games. Click to launch.</p>
-    </div>
   </div>
 </section>
 
@@ -1061,6 +1057,23 @@ body.a11y-colorblind .contact-form button {
   <p id="statusTimestamp" style="font-size: 0.75em; color: #666; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
 </section>
 
+<section id="nexusLive">
+  <h2><span class="pulse-indicator">●</span> Nexus AI Live Console</h2>
+  <div class="project-card" style="background: #000; border-color: var(--neon-color); padding: 0; overflow: hidden; position: relative; height: 300px; display: flex; flex-direction: column;">
+    <div style="background: var(--neon-color); color: #000; padding: 5px 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+      <span>NEXUS-RECV [ONLINE]</span>
+      <span id="nexus-uptime">UPTIME: --:--:--</span>
+    </div>
+    <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--neon-color); overflow-y: auto; line-height: 1.4; scroll-behavior: smooth; background: radial-gradient(circle, #0a0a0a 0%, #000 100%);">
+      <p style="opacity: 0.5;">[INIT] Establishing connection to central node...</p>
+    </div>
+    <div style="padding: 10px 15px; border-top: 1px solid #333; display: flex; gap: 10px; background: #050505;">
+       <button class="jump-btn" style="padding: 8px 15px; font-size: 0.75rem; flex: 1; max-width: none;" onclick="window.location.href='/nexus/'">FULL TERMINAL ACCESS</button>
+       <button class="jump-btn" style="padding: 8px 15px; font-size: 0.75rem; flex: 1; max-width: none; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">SEND PING</button>
+    </div>
+  </div>
+</section>
+
 <section id="githubActivity">
   <h2>Latest Site Update</h2>
   <div id="commitWidget" style="display:flex; align-items:flex-start; gap:14px; background:#111; border:1px solid var(--neon-color); border-radius:5px; padding:18px; min-height:60px;">
@@ -1071,6 +1084,7 @@ body.a11y-colorblind .contact-form button {
     </div>
   </div>
 </section>
+
 
 <section class="game-container" id="gameArea">
   <h2 id="gameTitle">Cyber Runner Game</h2>
@@ -1714,7 +1728,7 @@ async function fetchLatestCommit() {
     const date = new Date(data.commit?.author?.date);
     const ago  = formatTimeAgo(date);
     msgEl.textContent  = msg;
-    metaEl.innerHTML   = `<b>${author}</b> · ${ago} · <a href="${data.html_url}" target="_blank" rel="noopener" style="color:var(--neon-color);">view commit ↗</a>`;
+    metaEl.innerHTML   = `<b>${author}</b> · ${ago} · <a href="https://github.com/Thyfwx/thyfwxit" target="_blank" rel="noopener" style="color:var(--neon-color);">view commit ↗</a>`;
   } catch {
     msgEl.textContent  = 'Could not load latest commit.';
     metaEl.textContent = '';
@@ -1816,6 +1830,8 @@ window.onload = () => {
 
   const yearEl = document.getElementById('footerYear');
   if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+  initNexusPreview();
 
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && matrixRainEnabled && !matrixDrawActive) {
@@ -3834,6 +3850,67 @@ function updateTetris(currentTime) {
   }
 
   ctxTetris.lineWidth = 1;
+}
+
+let previewWs = null;
+function initNexusPreview() {
+  const logEl = document.getElementById('nexus-preview-log');
+  const uptimeEl = document.getElementById('nexus-uptime');
+  let startTime = Date.now();
+
+  function updateUptime() {
+    let diff = Math.floor((Date.now() - startTime) / 1000);
+    let h = Math.floor(diff / 3600).toString().padStart(2, '0');
+    let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+    let s = (diff % 60).toString().padStart(2, '0');
+    uptimeEl.textContent = `UPTIME: ${h}:${m}:${s}`;
+  }
+  setInterval(updateUptime, 1000);
+
+  function connect() {
+    previewWs = new WebSocket('wss://nexus-terminalnexus.onrender.com/ws/terminal');
+    
+    previewWs.onopen = () => {
+      const p = document.createElement('p');
+      p.style.color = '#00ff00';
+      p.textContent = '[CONN] Secure link established with central node.';
+      logEl.appendChild(p);
+    };
+
+    previewWs.onmessage = (event) => {
+      const text = event.data;
+      if (text.includes("[GUI_TRIGGER:")) return; // Skip GUI tags in preview
+      
+      const p = document.createElement('p');
+      p.innerHTML = `> ${text.replace(/\n/g, '<br>')}`;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+      
+      // Keep log clean
+      if (logEl.childNodes.length > 50) logEl.removeChild(logEl.firstChild);
+    };
+
+    previewWs.onclose = () => {
+      const p = document.createElement('p');
+      p.style.color = '#ff0000';
+      p.textContent = '[ERR] Connection lost. Attempting reconnect...';
+      logEl.appendChild(p);
+      setTimeout(connect, 5000);
+    };
+  }
+  connect();
+}
+
+function sendNexusPing() {
+  if (previewWs && previewWs.readyState === WebSocket.OPEN) {
+    previewWs.send('status');
+    const logEl = document.getElementById('nexus-preview-log');
+    const p = document.createElement('p');
+    p.style.opacity = '0.7';
+    p.textContent = 'root@preview:~# status';
+    logEl.appendChild(p);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
 }
 
 
