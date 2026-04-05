@@ -38,9 +38,51 @@ termWs.onmessage = (event) => {
             const param = match[2];
             showGameGUI(game, param);
         }
-        // Still print the rest of the text, but remove the tag
         printToTerminal(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ""));
         return;
+    }
+
+    // Wordle Visual Feedback (e.g. "[G] (Y) _B_")
+    const grid = document.getElementById('wordle-grid');
+    if (grid && !grid.parentElement.parentElement.classList.contains('gui-hidden')) {
+        const cells = grid.querySelectorAll('.wordle-cell');
+        const rows = text.split('\n');
+        rows.forEach(line => {
+            if (line.includes('[WORDLE] Result:')) {
+                const result = line.replace('[WORDLE] Result:', '').trim();
+                const parts = result.split(' ');
+                // Parts are like ["[G]", "(Y)", "_B_"]
+                // We find the last filled row (the one just submitted)
+                let rowToColor = 0;
+                for (let r = 0; r < 6; r++) {
+                    if (cells[r * 5].textContent !== '' && (r === 5 || cells[(r + 1) * 5].textContent === '')) {
+                        rowToColor = r;
+                        break;
+                    }
+                }
+                
+                parts.forEach((p, i) => {
+                    const cell = cells[rowToColor * 5 + i];
+                    if (!cell) return;
+                    if (p.startsWith('[')) cell.style.background = '#0f0'; // Correct
+                    else if (p.startsWith('(')) cell.style.background = '#ff0'; // Present
+                    else cell.style.background = '#333'; // Absent
+                    cell.style.color = '#000';
+                });
+            }
+
+            if (line.includes('[WORDLE] Code cracked!') || line.includes('[WORDLE] FAILED.')) {
+                const stats = JSON.parse(localStorage.getItem('nexus_wordle_stats') || '{"wins":0, "games":0, "streak":0}');
+                stats.games++;
+                if (line.includes('cracked')) {
+                    stats.wins++;
+                    stats.streak++;
+                } else {
+                    stats.streak = 0;
+                }
+                localStorage.setItem('nexus_wordle_stats', JSON.stringify(stats));
+            }
+        });
     }
     
     printToTerminal(text);
@@ -64,10 +106,15 @@ function showGameGUI(game, param) {
     if (game === 'breach') {
         guiTitle.textContent = "BREACH PROTOCOL";
         guiContent.innerHTML = `
-            <p>Target Key: <span style="color:#0ff">${param}</span></p>
-            <input type="text" id="gui-breach-input" class="gui-input" placeholder="Type key exactly..." autocomplete="off">
-            <br>
-            <button class="gui-btn" id="gui-breach-submit">Bypass</button>
+            <div style="text-align:center;">
+                <p style="color:#88f; font-size:0.8rem; margin-bottom:15px;">BYPASS FIREWALL: TYPE KEY SEQUENCE</p>
+                <div style="background:#111; padding:15px; border:1px solid #0ff; margin-bottom:15px; font-size:1.2rem; letter-spacing:2px;">
+                    <span style="color:#0ff; font-weight:bold;">${param}</span>
+                </div>
+                <input type="text" id="gui-breach-input" class="gui-input" placeholder="Handshake Key..." autocomplete="off" style="width:90%;">
+                <br>
+                <button class="gui-btn" id="gui-breach-submit" style="width:100%; margin-top:10px;">EXECUTE BYPASS</button>
+            </div>
         `;
         
         const bInput = document.getElementById('gui-breach-input');
@@ -79,9 +126,6 @@ function showGameGUI(game, param) {
                 termWs.send(val);
                 printToTerminal(`root@nexus:~# ${val}`, 'user-cmd');
                 bInput.value = '';
-                // Wait for backend response to decide if we keep modal open
-                // In a perfect world, backend would send a success/fail GUI trigger too
-                // For now, let user keep typing or exit
             }
         };
         
@@ -89,22 +133,47 @@ function showGameGUI(game, param) {
         bInput.addEventListener('keydown', (e) => { if(e.key==='Enter') submitBreach(); });
 
     } else if (game === 'wordle') {
+        const stats = JSON.parse(localStorage.getItem('nexus_wordle_stats') || '{"wins":0, "games":0, "streak":0}');
         guiTitle.textContent = "TERMINAL WORDLE";
         guiContent.innerHTML = `
-            <p>Cracking Access Code... Attempts: ${param}</p>
-            <input type="text" id="gui-wordle-input" class="gui-input" placeholder="5-letter code" maxlength="5" autocomplete="off">
-            <br>
-            <button class="gui-btn" id="gui-wordle-submit">Crack</button>
+            <div id="wordle-grid" style="display:grid; grid-template-rows: repeat(6, 1fr); gap: 5px; margin-bottom: 15px;"></div>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+                <input type="text" id="gui-wordle-input" class="gui-input" placeholder="5-letter word" maxlength="5" autocomplete="off" style="flex-grow:1;">
+                <button class="gui-btn" id="gui-wordle-submit" style="margin:0;">CRACK</button>
+            </div>
+            <div style="font-size:0.7rem; color:#888; display:flex; justify-content:space-around; border-top:1px solid #333; padding-top:10px;">
+                <span>GAMES: ${stats.games}</span>
+                <span>WINS: ${stats.wins}</span>
+                <span>STREAK: ${stats.streak}</span>
+            </div>
         `;
-        
+
+        const grid = document.getElementById('wordle-grid');
+        for (let i = 0; i < 30; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'wordle-cell';
+            cell.style.cssText = "width:40px; height:40px; border:2px solid #333; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:1.2rem; background:#000;";
+            grid.appendChild(cell);
+        }
+
         const wInput = document.getElementById('gui-wordle-input');
         wInput.focus();
         
+        let currentRow = 0;
         const submitWordle = () => {
-            const val = wInput.value.trim();
+            const val = wInput.value.trim().toLowerCase();
             if (val.length === 5) {
                 termWs.send(val);
                 printToTerminal(`root@nexus:~# ${val}`, 'user-cmd');
+                
+                // Visual update for the grid
+                const cells = grid.querySelectorAll('.wordle-cell');
+                for (let i = 0; i < 5; i++) {
+                    const cell = cells[currentRow * 5 + i];
+                    cell.textContent = val[i].toUpperCase();
+                    cell.style.borderColor = "#0ff";
+                }
+                currentRow++;
                 wInput.value = '';
             }
         };
