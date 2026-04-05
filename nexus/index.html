@@ -12,9 +12,9 @@
         <div class="screen-glare"></div>
         <div class="glass-panel">
             <header class="status-bar">
-                <div class="status-item">CPU: <span id="cpu-stat">--</span>%</div>
-                <div class="status-item">MEM: <span id="mem-stat">--</span>%</div>
-                <div class="status-item">BAT: <span id="bat-stat">--</span>%</div>
+                <div class="status-item">CPU: <span id="cpu-stat">--</span></div>
+                <div class="status-item">MEM: <span id="mem-stat">--</span></div>
+                <div class="status-item">BAT: <span id="bat-stat">--</span></div>
                 <div class="status-item geo-stat">LOC: Locating...</div>
             </header>
             
@@ -35,6 +35,14 @@
                 <button class="action-btn" data-cmd="help">Help</button>
                 <button class="action-btn" data-cmd="clear">Clear</button>
             </aside>
+            
+            <div id="game-gui-container" class="gui-hidden">
+                <div id="gui-header">
+                    <span id="gui-title">8-BIT SYSTEM</span>
+                    <button id="gui-close">X</button>
+                </div>
+                <div id="gui-content"></div>
+            </div>
         </div>
     </div>
     <script src="terminal.js"></script>
