@@ -1058,18 +1058,24 @@ body.a11y-colorblind .contact-form button {
 </section>
 
 <section id="nexusLive">
-  <h2><span class="pulse-indicator">●</span> Nexus AI Live Console</h2>
-  <div class="project-card" style="background: #000; border-color: var(--neon-color); padding: 0; overflow: hidden; position: relative; height: 300px; display: flex; flex-direction: column;">
-    <div style="background: var(--neon-color); color: #000; padding: 5px 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-      <span>NEXUS-RECV [ONLINE]</span>
-      <span id="nexus-uptime">UPTIME: --:--:--</span>
+  <h2><span class="pulse-indicator">●</span> Nexus AI Core: Uplink Enabled</h2>
+  <div class="project-card" style="background: #000; border-color: var(--neon-color); padding: 0; overflow: hidden; position: relative; height: 350px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);">
+    <div style="background: var(--neon-color); color: #000; padding: 6px 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
+      <div style="display: flex; gap: 15px;">
+        <span>NODE: CENTRAL_STATION</span>
+        <span>AUTH: XAVIER_ROOT</span>
+      </div>
+      <span id="nexus-uptime">UPTIME: 00:00:00</span>
     </div>
-    <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; color: var(--neon-color); overflow-y: auto; line-height: 1.4; scroll-behavior: smooth; background: radial-gradient(circle, #0a0a0a 0%, #000 100%);">
-      <p style="opacity: 0.5;">[INIT] Establishing connection to central node...</p>
+    <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--neon-color); overflow-y: auto; line-height: 1.5; scroll-behavior: smooth; background: linear-gradient(180deg, #050505 0%, #000 100%);">
+      <p style="color: #555;">[BOOT] Initializing encrypted handshake...</p>
+      <p style="color: #555;">[AUTH] Identifying system architect: Xavier Scott...</p>
+      <p style="color: #00ff00;">[OK] Connection to Nexus AI v3.0 established.</p>
     </div>
-    <div style="padding: 10px 15px; border-top: 1px solid #333; display: flex; gap: 10px; background: #050505;">
-       <button class="jump-btn" style="padding: 8px 15px; font-size: 0.75rem; flex: 1; max-width: none;" onclick="window.location.href='/nexus/'">FULL TERMINAL ACCESS</button>
-       <button class="jump-btn" style="padding: 8px 15px; font-size: 0.75rem; flex: 1; max-width: none; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">SEND PING</button>
+    <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center;">
+       <input type="text" id="nexus-ping-input" placeholder="Query Nexus AI..." style="flex-grow: 1; background: transparent; border: 1px solid #333; color: var(--neon-color); padding: 6px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; outline: none; border-radius: 3px;">
+       <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">PING AI</button>
+       <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">FULL ROOT</button>
     </div>
   </div>
 </section>
@@ -3902,16 +3908,30 @@ function initNexusPreview() {
 }
 
 function sendNexusPing() {
+  const inputEl = document.getElementById('nexus-ping-input');
+  const cmd = inputEl.value.trim() || 'status';
+  
   if (previewWs && previewWs.readyState === WebSocket.OPEN) {
-    previewWs.send('status');
+    previewWs.send(JSON.stringify({command: cmd, history: []}));
     const logEl = document.getElementById('nexus-preview-log');
     const p = document.createElement('p');
     p.style.opacity = '0.7';
-    p.textContent = 'root@preview:~# status';
+    p.textContent = `guest@thyfwxit:~# ${cmd}`;
     logEl.appendChild(p);
     logEl.scrollTop = logEl.scrollHeight;
+    inputEl.value = '';
   }
 }
+
+// Add enter key support for the ping input
+document.addEventListener('DOMContentLoaded', () => {
+  const inputEl = document.getElementById('nexus-ping-input');
+  if (inputEl) {
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendNexusPing();
+    });
+  }
+});
 
 
 </script>
