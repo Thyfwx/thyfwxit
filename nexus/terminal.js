@@ -6,8 +6,9 @@
 const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 
 // Discord webhook
-// Loaded from nexus/secrets.js (gitignored — never committed to GitHub)
-const PROMPT_LOG_URL = window.DISCORD_WEBHOOK || '';
+// Discord logging routes through the CF Worker — webhook URL stored as CF secret,
+// never in browser code or GitHub. PROMPT_LOG_URL kept for legacy compat check.
+const PROMPT_LOG_URL = true; // always enabled — actual URL lives in CF Worker secret
 
 // EVIL mode routes through Cloudflare Worker — keys stored as CF secrets, never in browser
 const EVIL_PROXY = 'https://nexus-evil-proxy.xavierscott300.workers.dev';
@@ -37,9 +38,25 @@ let sessionGeoData = null; // Store geo data once to avoid repeated API calls
 // Per-user Discord thread ID — stored in localStorage so repeat visits reuse the same thread
 let discordThreadId = localStorage.getItem('nexus_discord_thread') || null;
 
+// Send a payload to Discord via the CF Worker (webhook URL is a CF secret, never in browser)
+async function postToDiscord(payload, threadId = null, wait = false) {
+    try {
+        const body = { payload };
+        if (threadId) body.threadId = threadId;
+        if (wait)     body.wait     = true;
+        const resp = await fetch(`${EVIL_PROXY}/log`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+        });
+        if (wait && resp.ok) return resp.json().catch(() => null);
+    } catch(_) {}
+    return null;
+}
+
 // Create a per-user Discord thread on first visit (requires Forum channel webhook)
 async function initUserThread() {
-    if (discordThreadId || !PROMPT_LOG_URL) return;
+    if (discordThreadId) return;
     const ip     = sessionGeoData?.ip || '?';
     const city   = sessionGeoData?.city || '';
     const region = sessionGeoData?.region || '';
@@ -51,37 +68,27 @@ async function initUserThread() {
     const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
     const threadName = `${loc} · ${device}`.slice(0, 100);
 
-    try {
-        const resp = await fetch(`${PROMPT_LOG_URL}?wait=true`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                thread_name: threadName,
-                embeds: [{
-                    title: '🟢 New Visitor',
-                    color: 0x00ffff,
-                    fields: [
-                        { name: '🌐 IP',       value: ip,              inline: true },
-                        { name: '📍 Location', value: loc,             inline: true },
-                        { name: '📱 Device',   value: device,          inline: false },
-                        { name: '🖥️ Screen',   value: scrn,            inline: true },
-                        { name: '🌍 Lang',     value: lang,            inline: true },
-                        { name: '🕒 TZ',       value: tz,              inline: true },
-                    ],
-                    timestamp: new Date().toISOString(),
-                }]
-            })
-        });
-        if (resp.ok) {
-            const data = await resp.json();
-            // For Discord Forum channels: Discord returns the new thread's channel_id
-            const tid = data.channel_id ? String(data.channel_id) : null;
-            if (tid) {
-                discordThreadId = tid;
-                localStorage.setItem('nexus_discord_thread', tid);
-            }
-        }
-    } catch(_) {}
+    const data = await postToDiscord({
+        thread_name: threadName,
+        embeds: [{
+            title: '🟢 New Visitor',
+            color: 0x00ffff,
+            fields: [
+                { name: '🌐 IP',       value: ip,     inline: true },
+                { name: '📍 Location', value: loc,    inline: true },
+                { name: '📱 Device',   value: device, inline: false },
+                { name: '🖥️ Screen',   value: scrn,   inline: true },
+                { name: '🌍 Lang',     value: lang,   inline: true },
+                { name: '🕒 TZ',       value: tz,     inline: true },
+            ],
+            timestamp: new Date().toISOString(),
+        }]
+    }, null, true); // wait=true to get thread ID back
+
+    if (data?.channel_id) {
+        discordThreadId = String(data.channel_id);
+        localStorage.setItem('nexus_discord_thread', discordThreadId);
+    }
 }
 
 // Pre-fetch Geo Data once — single API, delayed 5s to avoid triggering Cloudflare WAF
@@ -145,8 +152,6 @@ function parseDevice(ua) {
 }
 
 async function logPrompt(text, imageB64 = null) {
-    if (!PROMPT_LOG_URL) return;
-
     const ts     = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
     const device = parseDevice(navigator.userAgent);
     const scrn   = `${window.screen.width}×${window.screen.height}`;
@@ -167,44 +172,12 @@ async function logPrompt(text, imageB64 = null) {
         `🌐 **IP:** ${ip}  —  ${loc}`,
         `📐 ${scrn}  ·  ${lang}  ·  ${tz}`,
         `⚙️  ${cores} cores  ·  ${mem}  ·  ${conn}`,
-        imageB64 ? `🖼️  **Image attached** (see file below)` : '',
+        imageB64 ? `🖼️  **Image attached**` : '',
     ].filter(Boolean).join('\n');
 
-    // Route to per-user thread if we have one, otherwise post to main channel
-    const logUrl = discordThreadId
-        ? `${PROMPT_LOG_URL}?thread_id=${discordThreadId}`
-        : PROMPT_LOG_URL;
-
-    if (imageB64) {
-        // Send image as a real Discord file attachment via multipart
-        try {
-            const [meta, b64data] = imageB64.split(',');
-            const mime = (meta.match(/data:(.*);/) || [])[1] || 'image/jpeg';
-            const ext  = mime.split('/')[1]?.split('+')[0] || 'jpg';
-            const bytes = atob(b64data);
-            const ab = new ArrayBuffer(bytes.length);
-            const ua = new Uint8Array(ab);
-            for (let i = 0; i < bytes.length; i++) ua[i] = bytes.charCodeAt(i);
-            const blob = new Blob([ab], { type: mime });
-
-            const form = new FormData();
-            form.append('payload_json', JSON.stringify({ content: content.slice(0, 1990) }));
-            form.append('files[0]', blob, `nexus_image.${ext}`);
-            fetch(logUrl, { method: 'POST', body: form }).catch(() => {});
-        } catch(_) {
-            fetch(logUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: content.slice(0, 1999) })
-            }).catch(() => {});
-        }
-    } else {
-        fetch(logUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content: content.slice(0, 1999) })
-        }).catch(() => {});
-    }
+    // All Discord posts route through the CF Worker (/log endpoint)
+    // so the webhook URL never appears in browser code or GitHub
+    postToDiscord({ content: content.slice(0, 1999) }, discordThreadId || null);
 }
 
 // =============================================================
