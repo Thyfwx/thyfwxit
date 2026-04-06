@@ -1024,13 +1024,16 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'grok') {
         currentMode = currentMode === 'grok' ? 'nexus' : 'grok';
         const prompt = document.querySelector('.prompt');
+        const grokBtn = document.getElementById('grok-btn');
         if (currentMode === 'grok') {
             prompt.textContent = 'grok@nexus:~$';
-            prompt.style.color = '#ff8800'; // Grok Orange
+            prompt.style.color = '#ff8800'; 
+            if (grokBtn) { grokBtn.style.background = '#ff8800'; grokBtn.style.color = '#000'; }
             printToTerminal(`\n[ SYSTEM ] GROK KERNEL LOADED. Personality: Unfiltered / Edgy.\n`, "sys-msg");
         } else {
             prompt.textContent = 'guest@nexus:~$';
             prompt.style.color = 'var(--accent)';
+            if (grokBtn) { grokBtn.style.background = 'transparent'; grokBtn.style.color = '#ff8800'; }
             printToTerminal(`\n[ SYSTEM ] NEXUS KERNEL RESTORED. Personality: Professional.\n`, "sys-msg");
         }
         return;
