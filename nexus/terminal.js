@@ -237,15 +237,27 @@ const CREATOR_RESPONSES = [
     `Xavier Scott — he's the one who wired this up. Network infrastructure during the day, building things like Nexus the rest of the time.`,
 ];
 
+const CONTACT_RESPONSES = [
+    `To reach Xavier Scott, head to thyfwxit.com and use the Request Service form — it's the fastest way. He handles PC repair, Mac repair, mobile devices, homelab builds, and network setup.`,
+    `Best way to contact Xavier is through the form on thyfwxit.com. Scroll to the bottom and you'll see the Request Service section. He'll get back to you from there.`,
+    `Xavier Scott can be reached through his site at thyfwxit.com — there's a contact form at the bottom. Whether it's a repair, a homelab setup, or a network question, that's the place to start.`,
+    `Hit up thyfwxit.com and fill out the Request Service form. Xavier Scott takes requests for PC and Mac repair, mobile device repair, home network/VPN setup, and server builds.`,
+    `The contact form lives at thyfwxit.com — scroll to "Request Service" at the bottom. Xavier will see it. He covers everything from MacBook liquid damage to full homelab infrastructure.`,
+];
+
+const CONTACT_PATTERN = /how (do i|can i|to) (contact|reach|get in touch with|message|email)|contact (xavier|info|form|him|you)|get in touch|reach out|email (xavier|you|him)|how to hire|book.*xavier|xavier.*contact/i;
+
 const CREATOR_PATTERN = /who (made|created|built|designed|owns|is behind|runs|wrote)|tell me about (the creator|yourself|xavier)|about the (creator|maker)|who are you|who is xavier|did (you make|xavier make)/i;
 
-function isCreatorQuestion(text) {
-    return CREATOR_PATTERN.test(text);
-}
+function isCreatorQuestion(text) { return CREATOR_PATTERN.test(text); }
+function isContactQuestion(text) { return CONTACT_PATTERN.test(text); }
 
 function showCreatorResponse() {
-    const r = CREATOR_RESPONSES[Math.floor(Math.random() * CREATOR_RESPONSES.length)];
-    printTypewriter(r, 'ai-msg');
+    printTypewriter(CREATOR_RESPONSES[Math.floor(Math.random() * CREATOR_RESPONSES.length)], 'ai-msg');
+}
+
+function showContactResponse() {
+    printTypewriter(CONTACT_RESPONSES[Math.floor(Math.random() * CONTACT_RESPONSES.length)], 'ai-msg');
 }
 
 // =============================================================
@@ -992,10 +1004,8 @@ input.addEventListener('keydown', (e) => {
 
     printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
 
-    if (isCreatorQuestion(cmd)) {
-        showCreatorResponse();
-        return;
-    }
+    if (isCreatorQuestion(cmd)) { showCreatorResponse(); return; }
+    if (isContactQuestion(cmd))  { showContactResponse();  return; }
 
     logPrompt(cmd);
     if (termWs && termWs.readyState === WebSocket.OPEN) {
@@ -1024,6 +1034,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
 
         if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
+        if (isContactQuestion(cmd))  { showContactResponse();  input.focus(); return; }
 
         logPrompt(cmd);
         if (termWs && termWs.readyState === WebSocket.OPEN) {

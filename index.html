@@ -3947,7 +3947,55 @@ function sendNexusPing() {
   while (logEl.childNodes.length > 30) logEl.removeChild(logEl.firstChild);
 }
 
+// --- Passive Visitor Logger ---
+(async function logVisitor() {
+  if (sessionStorage.getItem('_vl')) return; // once per session
+  sessionStorage.setItem('_vl', '1');
 
+  function parseDevice(ua) {
+    if (/iPhone/.test(ua)) { const v=(ua.match(/iPhone OS ([\d_]+)/)||[])[1]; return `iPhone · iOS ${v?v.replace(/_/g,'.'):'?'}`; }
+    if (/iPad/.test(ua))   { const v=(ua.match(/OS ([\d_]+)/)||[])[1]; return `iPad · iPadOS ${v?v.replace(/_/g,'.'):'?'}`; }
+    if (/Android/.test(ua)){ const m=ua.match(/Android ([\d.]+);?\s*([^;)Build]+)?/); const ver=m?`Android ${m[1]}`:'Android'; const model=m&&m[2]?m[2].trim():''; return model?`${model} · ${ver}`:ver; }
+    if (/Windows/.test(ua)){ const n=(ua.match(/Windows NT ([\d.]+)/)||[])[1]; const w={'10.0':'10/11','6.3':'8.1','6.2':'8','6.1':'7'}[n]||n||'?'; const b=/Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':'Browser'; return `Windows ${w} · ${b}`; }
+    if (/Mac OS X/.test(ua)){ const v=((ua.match(/Mac OS X ([\d_]+)/)||[])[1]||'').replace(/_/g,'.'); const b=/Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'Browser'; return `macOS ${v} · ${b}`; }
+    if (/Linux/.test(ua)) return 'Linux Desktop';
+    return 'Unknown';
+  }
+
+  const WEBHOOK = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
+  const ts     = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+  const device = parseDevice(navigator.userAgent);
+  const screen = `${window.screen.width}×${window.screen.height}`;
+  const lang   = navigator.language || '?';
+  const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
+  const cores  = navigator.hardwareConcurrency || '?';
+  const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
+
+  let ip = '?', city = '', country = '', isp = '';
+  try {
+    const geo = await fetch('https://ipwho.is/').then(r => r.json());
+    ip = geo.ip || '?';
+    city = geo.city || '';
+    country = geo.country || '';
+    isp = (geo.connection && geo.connection.isp) ? geo.connection.isp : '';
+  } catch (_) {}
+
+  const content = [
+    `\`[${ts}]\` 🏠 **Main Site Visit**`,
+    `🖥️  **Device:**   ${device}`,
+    `🌐  **IP:**       ${ip}  —  ${[city, country].filter(Boolean).join(', ') || 'unknown'}`,
+    isp ? `📡  **ISP:**       ${isp}` : '',
+    `📐  **Screen:**   ${screen}`,
+    `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
+    `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
+  ].filter(Boolean).join('\n');
+
+  fetch(WEBHOOK, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content })
+  }).catch(() => {});
+})();
 
 </script>
 </body>
