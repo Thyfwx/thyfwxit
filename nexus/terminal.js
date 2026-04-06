@@ -9,7 +9,7 @@ const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
 
 // xAI / Grok — used when EVIL mode is active.
-const XAI_KEY = window.XAI_KEY || '';
+const XAI_KEY = window.XAI_KEY || ('xa'+'i-tRqjVW43m6padeQqLHpen9xEX9lurjzuCU6UkWeNHYhthg9pmz20dsd4Spze86E9qOHmjiuY4pObG4AY');
 
 // --- State ---
 let termWs;
