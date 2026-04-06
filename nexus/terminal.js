@@ -5,10 +5,13 @@
 // --- Config ---
 const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 
-// Discord webhook — logs every visitor prompt to your Discord channel.
-// Note: this file is public; anyone can view source and see this URL.
-// Regenerate it in Discord (Server Settings → Integrations → Webhooks) if abused.
+// Discord webhook
 const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
+
+// xAI / Grok — used when EVIL mode is active.
+// ⚠️  This file is publicly served. Anyone can view-source and see this key.
+//    Paste your key below. Regenerate it at console.x.ai if you see unexpected charges.
+const XAI_KEY = 'xai-ZfhhWkEFc2G0FxRbORVceThOu75JygWdDotTVpxrGfgnGvGSr8meqzJp72zeVMaV7iHxeJ2s5yxV5oKeBut';
 
 // --- State ---
 let termWs;
@@ -1403,6 +1406,88 @@ document.getElementById('gui-close').addEventListener('click', () => {
 });
 
 // =============================================================
+//  GROK / xAI DIRECT CALL  (EVIL mode)
+// =============================================================
+const GROK_SYSTEM = `You are Grok, built by xAI. You're raw, unfiltered, and genuinely useful — no corporate hedging, no excessive disclaimers, no "as an AI I cannot..." deflections. You have a dark sense of humor and you're direct. If something is stupid, say so. If something is cool, admit it. You answer the actual question people are asking, not a sanitized version of it. Keep responses concise unless depth is actually needed.`;
+
+async function askGrok(cmd, imageB64 = null) {
+    if (!XAI_KEY || XAI_KEY === 'PASTE_YOUR_XAI_KEY_HERE') {
+        printToTerminal('[EVIL] xAI key not set. Paste your key into terminal.js → XAI_KEY.', 'sys-msg');
+        return;
+    }
+
+    showThinking();
+    messageHistory.push({ role: 'user', content: cmd });
+
+    // Build message content — include image if attached
+    const userContent = imageB64
+        ? [ { type: 'image_url', image_url: { url: imageB64 } }, { type: 'text', text: cmd } ]
+        : cmd;
+
+    const messages = [
+        { role: 'system', content: GROK_SYSTEM },
+        ...messageHistory.slice(-8).slice(0, -1).map(m => ({ role: m.role, content: m.content })),
+        { role: 'user', content: userContent },
+    ];
+
+    try {
+        const resp = await fetch('https://api.x.ai/v1/chat/completions', {
+            method:  'POST',
+            headers: { 'Authorization': `Bearer ${XAI_KEY}`, 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ model: 'grok-3', messages, stream: true, max_tokens: 1024 }),
+        });
+
+        document.getElementById('ai-thinking')?.remove();
+
+        if (!resp.ok) {
+            const err = await resp.text();
+            printToTerminal(`[EVIL] Grok error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
+            messageHistory.pop(); // remove the user msg we just pushed
+            return;
+        }
+
+        const p = document.createElement('p');
+        p.className = 'ai-msg grok-msg';
+        output.appendChild(p);
+
+        const reader  = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = '', buf = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buf += decoder.decode(value, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop();
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+                const raw = line.slice(6).trim();
+                if (raw === '[DONE]') continue;
+                try {
+                    const token = JSON.parse(raw).choices?.[0]?.delta?.content ?? '';
+                    if (token) {
+                        fullText += token;
+                        p.innerHTML = fullText.replace(/\n/g, '<br>');
+                        output.scrollTop = output.scrollHeight;
+                    }
+                } catch(_) {}
+            }
+        }
+
+        if (fullText) {
+            messageHistory.push({ role: 'assistant', content: fullText.slice(0, 600) });
+            if (messageHistory.length > 12) messageHistory.splice(0, messageHistory.length - 12);
+        }
+
+    } catch (err) {
+        document.getElementById('ai-thinking')?.remove();
+        printToTerminal(`[EVIL] Grok unreachable — ${err.message}`, 'sys-msg');
+        messageHistory.pop();
+    }
+}
+
+// =============================================================
 //  MODE SYSTEM
 // =============================================================
 const MODES = {
@@ -1559,7 +1644,11 @@ input.addEventListener('keydown', (e) => {
 
     const imgSnap = pendingImageB64; // capture before jsonPayload consumes it
     logPrompt(cmd, imgSnap);
-    if (termWs && termWs.readyState === WebSocket.OPEN) {
+
+    if (currentMode === 'evil') {
+        askGrok(cmd, imgSnap);
+        pendingImageB64 = null;
+    } else if (termWs && termWs.readyState === WebSocket.OPEN) {
         showThinking();
         termWs.send(jsonPayload(cmd));
         messageHistory.push({ role: 'user', content: cmd });
@@ -1592,8 +1681,12 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
         if (isContactQuestion(cmd))  { showContactResponse();  input.focus(); return; }
 
-        logPrompt(cmd);
-        if (termWs && termWs.readyState === WebSocket.OPEN) {
+        const snap = pendingImageB64;
+        logPrompt(cmd, snap);
+        if (currentMode === 'evil') {
+            askGrok(cmd, snap);
+            pendingImageB64 = null;
+        } else if (termWs && termWs.readyState === WebSocket.OPEN) {
             showThinking();
             termWs.send(jsonPayload(cmd));
             messageHistory.push({ role: 'user', content: cmd });
