@@ -1,2 +1,3 @@
 nexus/secrets.js
 nexus/evil-worker.js
+deploy-worker.sh
