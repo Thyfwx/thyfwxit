@@ -6,7 +6,8 @@
 const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 
 // Discord webhook
-const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490672363585667172/jC2FuHfPCjpxvw8ximwBlVqQlxS7P_WQ-Tu3Du6ZOQI5WRhyafm5n2tV7FOP1Dax83yW';
+// Loaded from nexus/secrets.js (gitignored — never committed to GitHub)
+const PROMPT_LOG_URL = window.DISCORD_WEBHOOK || '';
 
 // EVIL mode routes through Cloudflare Worker — keys stored as CF secrets, never in browser
 const EVIL_PROXY = 'https://nexus-evil-proxy.xavierscott300.workers.dev';
