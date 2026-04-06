@@ -397,6 +397,8 @@ body {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
+    cursor: grab;
+    user-select: none;
 }
 
 #gui-close {
