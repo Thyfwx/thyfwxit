@@ -358,7 +358,7 @@ function startMonitor() {
 // =============================================================
 //  PONG
 // =============================================================
-let pongInterval;
+let pongRaf;
 
 function startPong() {
     stopAllGames();
@@ -373,68 +373,93 @@ function startPong() {
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
-    let paddleY = 120, ballX = 200, ballY = 150, ballVX = 4, ballVY = 3;
+    // Run at fixed 60fps using accumulator pattern so rAF doesn't drift
+    const FPS = 60, STEP = 1000 / FPS;
+    let last = 0;
+
+    let paddleY = 120, ballX = 200, ballY = 150, ballVX = 5, ballVY = 3.5;
     let aiY = 120, pScore = 0, aScore = 0;
+    let aiTargetY = 150, aiTick = 0;
 
     const move = (y) => {
         const r = nexusCanvas.getBoundingClientRect();
-        paddleY = (y - r.top) * (300 / r.height) - 35;
+        paddleY = Math.max(0, Math.min(230, (y - r.top) * (300 / r.height) - 35));
     };
     nexusCanvas.onmousemove = (e) => move(e.clientY);
     nexusCanvas.ontouchmove = (e) => { e.preventDefault(); move(e.touches[0].clientY); };
 
-    pongInterval = setInterval(() => {
-        if (aiY + 35 < ballY) aiY += 3.2; else aiY -= 3.2;
-        ballX += ballVX; ballY += ballVY;
-        if (ballY <= 0 || ballY >= 290) ballVY *= -1;
-        if (ballX <= 18 && ballY > paddleY && ballY < paddleY + 70) { ballVX = Math.abs(ballVX) * 1.05; ballX = 18; }
-        if (ballX >= 378 && ballY > aiY && ballY < aiY + 70) { ballVX = -Math.abs(ballVX) * 1.05; ballX = 378; }
-        if (ballX < 0) { aScore++; resetBall(); }
-        if (ballX > 400) { pScore++; resetBall(); }
+    function resetBall() {
+        ballX = 200; ballY = 80 + Math.random() * 140;
+        const dir = Math.random() > 0.5 ? 1 : -1;
+        ballVX = dir * 5;
+        ballVY = (Math.random() > 0.5 ? 3.5 : -3.5);
+        aiTick = 0;
+    }
 
-        function resetBall() {
-            ballX = 200; ballY = 150;
-            ballVX = (Math.random() > 0.5 ? 4 : -4);
-            ballVY = (Math.random() > 0.5 ? 3 : -3);
+    function tick(ts) {
+        if (!pongRaf) return;
+        const delta = ts - last;
+        if (delta < STEP - 2) { pongRaf = requestAnimationFrame(tick); return; }
+        last = ts;
+
+        // AI: updates target every 12 frames with ±30px imprecision — beatable
+        aiTick++;
+        if (aiTick % 12 === 0) aiTargetY = ballY - 35 + (Math.random() - 0.5) * 50;
+        const aiSpeed = 2.5;
+        if (aiY < aiTargetY) aiY = Math.min(aiY + aiSpeed, aiTargetY);
+        else                  aiY = Math.max(aiY - aiSpeed, aiTargetY);
+        aiY = Math.max(0, Math.min(230, aiY));
+
+        ballX += ballVX; ballY += ballVY;
+        if (ballY <= 4 || ballY >= 296) ballVY *= -1;
+
+        // Player paddle hit
+        if (ballX - 5 <= 18 && ballY > paddleY && ballY < paddleY + 70 && ballVX < 0) {
+            ballVX = Math.abs(ballVX) * 1.04;
+            ballVY += ((ballY - (paddleY + 35)) / 35) * 2;
+            ballVY = Math.max(-8, Math.min(8, ballVY));
+            ballX = 19;
+        }
+        // AI paddle hit
+        if (ballX + 5 >= 382 && ballY > aiY && ballY < aiY + 70 && ballVX > 0) {
+            ballVX = -Math.abs(ballVX) * 1.04;
+            ballX = 381;
         }
 
-        ctx.fillStyle = '#050510';
-        ctx.fillRect(0, 0, 400, 300);
+        if (ballX < 0)   { aScore++; resetBall(); }
+        if (ballX > 400) { pScore++; resetBall(); }
 
-        // Center line
+        // Draw
+        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 300);
         ctx.setLineDash([8, 8]);
-        ctx.strokeStyle = 'rgba(0,255,255,0.15)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(0,255,255,0.12)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(200, 0); ctx.lineTo(200, 300); ctx.stroke();
         ctx.setLineDash([]);
 
-        // Scores
-        ctx.fillStyle = '#0ff';
-        ctx.font = 'bold 28px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText(pScore, 80, 36);
-        ctx.fillText(aScore, 320, 36);
+        ctx.fillStyle = '#0ff'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(pScore, 80, 36); ctx.fillText(aScore, 320, 36);
         ctx.textAlign = 'left';
 
-        // Paddles + ball glow
-        ctx.shadowBlur = 12; ctx.shadowColor = '#0ff';
-        ctx.fillStyle = '#0ff';
+        ctx.shadowBlur = 14; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff';
         ctx.fillRect(8, paddleY, 10, 70);
         ctx.fillRect(382, aiY, 10, 70);
-        ctx.fillStyle = '#f0f';
-        ctx.shadowColor = '#f0f';
-        ctx.fillRect(ballX - 5, ballY - 5, 10, 10);
+        ctx.fillStyle = '#f0f'; ctx.shadowColor = '#f0f';
+        ctx.beginPath(); ctx.arc(ballX, ballY, 6, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
-    }, 1000 / 60);
+
+        pongRaf = requestAnimationFrame(tick);
+    }
+    pongRaf = requestAnimationFrame(tick);
 }
 
-function stopPong() { clearInterval(pongInterval); }
+function stopPong() { const r = pongRaf; pongRaf = null; cancelAnimationFrame(r); }
 
 // =============================================================
 //  SNAKE
 // =============================================================
-let snakeInterval;
+let snakeRaf;
 let snakeActive = false;
+let _snakeTS = null, _snakeTE = null, _snakeKey = null;
 
 function startSnake() {
     stopAllGames();
@@ -442,7 +467,7 @@ function startSnake() {
     guiTitle.textContent = 'NEXUS SNAKE';
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px;font-size:0.75rem;color:#0ff;margin-bottom:4px;">
-            <span>WASD or Arrow Keys to move</span>
+            <span>Arrows · WASD · Swipe</span>
             <span>Score: <b id="snake-score">0</b></span>
         </div>`;
     nexusCanvas.style.display = 'block';
@@ -454,8 +479,8 @@ function startSnake() {
     let snake = [{ x: 10, y: 9 }, { x: 9, y: 9 }, { x: 8, y: 9 }];
     let dir = { x: 1, y: 0 }, nextDir = { x: 1, y: 0 };
     let apple = spawnApple();
-    let score = 0;
-    let dead = false;
+    let score = 0, dead = false;
+    let stepMs = 100, lastStep = 0; // rAF-based timing
 
     function spawnApple() {
         let a;
@@ -464,20 +489,19 @@ function startSnake() {
         return a;
     }
 
-    function snakeKey(e) {
+    _snakeKey = (e) => {
         if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
         if ((e.key === 'ArrowUp'    || e.key === 'w') && dir.y !== 1)  nextDir = { x: 0, y: -1 };
         if ((e.key === 'ArrowDown'  || e.key === 's') && dir.y !== -1) nextDir = { x: 0, y: 1 };
         if ((e.key === 'ArrowLeft'  || e.key === 'a') && dir.x !== 1)  nextDir = { x: -1, y: 0 };
         if ((e.key === 'ArrowRight' || e.key === 'd') && dir.x !== -1) nextDir = { x: 1, y: 0 };
-        if (dead && (e.key === ' ' || e.key === 'Enter')) startSnake();
-    }
-    document.addEventListener('keydown', snakeKey);
+    };
+    document.addEventListener('keydown', _snakeKey);
 
-    // Touch swipe controls for mobile
+    // Touch swipe controls
     let swipeX = 0, swipeY = 0;
-    const onTouchStart = (e) => { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; };
-    const onTouchEnd   = (e) => {
+    _snakeTS = (e) => { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; };
+    _snakeTE = (e) => {
         const dx = e.changedTouches[0].clientX - swipeX;
         const dy = e.changedTouches[0].clientY - swipeY;
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 25) {
@@ -488,81 +512,77 @@ function startSnake() {
             else if (dy < 0 && dir.y !== 1) nextDir = { x: 0, y: -1 };
         }
     };
-    nexusCanvas.addEventListener('touchstart', onTouchStart, { passive: true });
-    nexusCanvas.addEventListener('touchend', onTouchEnd, { passive: true });
+    nexusCanvas.addEventListener('touchstart', _snakeTS, { passive: true });
+    nexusCanvas.addEventListener('touchend',   _snakeTE, { passive: true });
 
-    snakeInterval = setInterval(() => {
-        if (!snakeActive) { clearInterval(snakeInterval); document.removeEventListener('keydown', snakeKey); return; }
+    function frame(ts) {
+        if (!snakeActive) return;
+        snakeRaf = requestAnimationFrame(frame);
 
+        // Draw every frame for smoothness; step logic only on interval
+        if (ts - lastStep < stepMs) {
+            drawSnake(); return;
+        }
+        lastStep = ts;
+
+        if (dead) return;
         dir = nextDir;
         const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
 
         if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS || snake.some(s => s.x === head.x && s.y === head.y)) {
             dead = true;
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0, 0, 400, 360);
-            ctx.fillStyle = '#f0f';
-            ctx.font = 'bold 28px monospace';
-            ctx.textAlign = 'center';
+            drawSnake();
+            ctx.fillStyle = 'rgba(0,0,0,0.72)'; ctx.fillRect(0, 0, 400, 360);
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
             ctx.fillText('GAME OVER', 200, 160);
-            ctx.font = '16px monospace';
-            ctx.fillStyle = '#0ff';
+            ctx.fillStyle = '#0ff'; ctx.font = '16px monospace';
             ctx.fillText(`Score: ${score}`, 200, 195);
-            ctx.fillText('Space or Enter to restart', 200, 225);
+            ctx.fillStyle = '#555'; ctx.font = '13px monospace';
+            ctx.fillText('Swipe or WASD · Close to restart', 200, 225);
             ctx.textAlign = 'left';
-            clearInterval(snakeInterval);
-            document.removeEventListener('keydown', snakeKey);
-            document.addEventListener('keydown', function restart(e) {
-                if (e.key === ' ' || e.key === 'Enter') {
-                    document.removeEventListener('keydown', restart);
-                    startSnake();
-                }
-            });
             return;
         }
 
         const ate = head.x === apple.x && head.y === apple.y;
         snake.unshift(head);
-        if (ate) { score++; apple = spawnApple(); document.getElementById('snake-score').textContent = score; }
-        else snake.pop();
+        if (ate) {
+            score++; apple = spawnApple();
+            const el = document.getElementById('snake-score');
+            if (el) el.textContent = score;
+            stepMs = Math.max(50, 100 - Math.floor(score / 5) * 8); // speed up every 5 apples
+        } else snake.pop();
+    }
 
-        // Draw
-        ctx.fillStyle = '#050510';
-        ctx.fillRect(0, 0, 400, 360);
-
-        // Grid
-        ctx.strokeStyle = 'rgba(0,255,255,0.05)';
-        ctx.lineWidth = 0.5;
-        for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x * CELL, 0); ctx.lineTo(x * CELL, ROWS * CELL); ctx.stroke(); }
-        for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * CELL); ctx.lineTo(COLS * CELL, y * CELL); ctx.stroke(); }
-
-        // Apple
-        ctx.shadowBlur = 14; ctx.shadowColor = '#f0f';
-        ctx.fillStyle = '#f0f';
-        ctx.fillRect(apple.x * CELL + 3, apple.y * CELL + 3, CELL - 6, CELL - 6);
-
-        // Snake
+    function drawSnake() {
+        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 360);
+        ctx.strokeStyle = 'rgba(0,255,255,0.04)'; ctx.lineWidth = 0.5;
+        for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,ROWS*CELL); ctx.stroke(); }
+        for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(COLS*CELL,y*CELL); ctx.stroke(); }
+        ctx.shadowBlur = 14; ctx.shadowColor = '#f0f'; ctx.fillStyle = '#f0f';
+        ctx.fillRect(apple.x*CELL+3, apple.y*CELL+3, CELL-6, CELL-6);
         snake.forEach((seg, i) => {
-            ctx.shadowBlur = i === 0 ? 18 : 6;
-            ctx.shadowColor = '#0ff';
-            ctx.fillStyle = i === 0 ? '#fff' : '#0ff';
-            ctx.fillRect(seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2);
+            ctx.shadowBlur = i === 0 ? 18 : 5; ctx.shadowColor = '#0ff';
+            ctx.fillStyle = i === 0 ? '#fff' : `hsl(${180 + i * 2},100%,60%)`;
+            ctx.fillRect(seg.x*CELL+1, seg.y*CELL+1, CELL-2, CELL-2);
         });
         ctx.shadowBlur = 0;
-    }, 120);
+    }
+
+    snakeRaf = requestAnimationFrame(frame);
 }
 
 function stopSnake() {
     snakeActive = false;
-    clearInterval(snakeInterval);
-    nexusCanvas.removeEventListener('touchstart', nexusCanvas._snakeTS);
-    nexusCanvas.removeEventListener('touchend',   nexusCanvas._snakeTE);
+    cancelAnimationFrame(snakeRaf);
+    if (_snakeKey) { document.removeEventListener('keydown', _snakeKey); _snakeKey = null; }
+    if (_snakeTS)  { nexusCanvas.removeEventListener('touchstart', _snakeTS); _snakeTS = null; }
+    if (_snakeTE)  { nexusCanvas.removeEventListener('touchend',   _snakeTE); _snakeTE = null; }
 }
 
 // =============================================================
 //  FLAPPY BIRD
 // =============================================================
-let flappyFrame, flappyActive = false;
+let flappyFrame, flappyActive = false, _flappyKey = null;
 
 function startFlappy() {
     stopAllGames();
@@ -585,8 +605,8 @@ function startFlappy() {
         bird.vy = FLAP_VEL;
     }
 
-    const keyH = (e) => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
-    document.addEventListener('keydown', keyH);
+    _flappyKey = (e) => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
+    document.addEventListener('keydown', _flappyKey);
     nexusCanvas.addEventListener('click', flap);
     nexusCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); flap(); }, { passive: false });
 
@@ -597,7 +617,7 @@ function startFlappy() {
     addPipe();
 
     function frame() {
-        if (!flappyActive) { document.removeEventListener('keydown', keyH); return; }
+        if (!flappyActive) return;
         frameCount++;
 
         if (started && !dead) {
@@ -702,6 +722,7 @@ function startFlappy() {
 function stopFlappy() {
     flappyActive = false;
     cancelAnimationFrame(flappyFrame);
+    if (_flappyKey) { document.removeEventListener('keydown', _flappyKey); _flappyKey = null; }
     nexusCanvas.onclick = null;
 }
 
@@ -1248,6 +1269,8 @@ function stopAllGames() {
     nexusCanvas.ontouchmove = null;
     nexusCanvas.onclick = null;
     cpuData = []; cpuHistory = []; memHistory = []; netHistory = [];
+    // Also clear any lingering pong interval reference
+    clearInterval(pongRaf);
 }
 
 // =============================================================
@@ -1260,6 +1283,29 @@ document.getElementById('gui-close').addEventListener('click', () => {
     if (termWs && termWs.readyState === WebSocket.OPEN) termWs.send('exit');
     input.focus();
 });
+
+// =============================================================
+//  GROK TOGGLE
+// =============================================================
+function toggleGrok() {
+    currentMode = currentMode === 'grok' ? 'nexus' : 'grok';
+    const promptEl = document.querySelector('.prompt');
+    const grokBtn  = document.getElementById('grok-btn');
+    const titleEl  = document.querySelector('.status-bar .status-title');
+    if (currentMode === 'grok') {
+        promptEl.textContent = 'grok@nexus:~$';
+        promptEl.style.color = '#ff8800';
+        if (titleEl) titleEl.textContent = 'GROK MODE v1.0';
+        if (grokBtn) { grokBtn.style.background = '#ff8800'; grokBtn.style.color = '#000'; grokBtn.style.boxShadow = '0 0 12px #ff8800'; }
+        printToTerminal('[GROK] Raw kernel loaded. Unfiltered. Direct. No fluff.\nType anything — I\'ll be straight with you.', 'conn-ok');
+    } else {
+        promptEl.textContent = 'guest@nexus:~$';
+        promptEl.style.color = '';
+        if (titleEl) titleEl.textContent = 'NEXUS AI v3.0';
+        if (grokBtn) { grokBtn.style.background = 'transparent'; grokBtn.style.color = '#ff8800'; grokBtn.style.boxShadow = ''; }
+        printToTerminal('[NEXUS] Standard kernel restored.', 'sys-msg');
+    }
+}
 
 // =============================================================
 //  INPUT HANDLING
@@ -1308,30 +1354,17 @@ input.addEventListener('keydown', (e) => {
     }
 
     const lc = cmd.toLowerCase();
-    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; return; }
+    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; return; }
     if (lc === 'help')                { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); runNeofetch(); return; }
-    
-    if (lc === 'grok') {
-        currentMode = currentMode === 'grok' ? 'nexus' : 'grok';
-        const promptEl = document.querySelector('.prompt');
-        const grokBtn  = document.getElementById('grok-btn');
-        if (currentMode === 'grok') {
-            promptEl.textContent = 'grok@nexus:~$';
-            promptEl.style.color = '#ff8800';
-            document.querySelector('.status-bar .status-title').textContent = 'GROK MODE v1.0';
-            if (grokBtn) { grokBtn.style.background = '#ff8800'; grokBtn.style.color = '#000'; grokBtn.style.boxShadow = '0 0 10px #ff8800'; }
-            printToTerminal(`[GROK] Kernel switched. Raw mode active — unfiltered, direct, no fluff.\nType anything. I'll be honest with you.`, 'conn-ok');
-        } else {
-            promptEl.textContent = 'guest@nexus:~$';
-            promptEl.style.color = '';
-            document.querySelector('.status-bar .status-title').textContent = 'NEXUS AI v3.0';
-            if (grokBtn) { grokBtn.style.background = 'transparent'; grokBtn.style.color = '#ff8800'; grokBtn.style.boxShadow = ''; }
-            printToTerminal('[NEXUS] Standard kernel restored.', 'sys-msg');
-        }
-        return;
+    if (lc === 'scan image' || lc === 'scan') {
+        if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
+        printToTerminal(`guest@nexus:~$ scan image`, 'user-cmd');
+        cmd = 'Describe and analyze this image in detail. What do you see?';
     }
+    
+    if (lc === 'grok') { toggleGrok(); return; }
 
     if (lc === 'play pong')           { startPong(); return; }
     if (lc === 'play snake')          { startSnake(); return; }
@@ -1375,11 +1408,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'type test')        { startTypingTest(); return; }
         if (cmd === 'matrix')           { startMatrixSaver(); return; }
         if (cmd === 'monitor')          { startMonitor(); return; }
-        if (cmd === 'grok') {
-            input.value = 'grok';
-            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-            return;
-        }
+        if (cmd === 'grok') { toggleGrok(); input.focus(); return; }
 
         printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
 
@@ -1429,11 +1458,12 @@ function showThinking() {
 }
 
 function jsonPayload(cmd) {
-    return JSON.stringify({ 
-        command: cmd, 
-        history: messageHistory.slice(-5),
-        mode: currentMode 
-    });
+    const payload = { command: cmd, history: messageHistory.slice(-5), mode: currentMode };
+    if (pendingImageB64) {
+        payload.image = pendingImageB64;
+        pendingImageB64 = null; // consume — sent once
+    }
+    return JSON.stringify(payload);
 }
 
 function updateClientStats() {
@@ -1442,8 +1472,10 @@ function updateClientStats() {
 }
 
 // =============================================================
-//  IMAGE VIEWER
+//  IMAGE VIEWER + AI SCAN
 // =============================================================
+let pendingImageB64 = null; // set when an image is loaded, cleared after sending
+
 function openImageViewer(file) {
     if (!file || !file.type.startsWith('image/')) return;
     const url = URL.createObjectURL(file);
@@ -1451,12 +1483,21 @@ function openImageViewer(file) {
     guiContainer.classList.remove('gui-hidden');
     guiTitle.textContent = file.name.slice(0, 30);
     nexusCanvas.style.display = 'none';
-    guiContent.innerHTML = `
-        <div style="text-align:center;">
-            <img src="${url}" style="max-width:100%;max-height:55dvh;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;" onload="URL.revokeObjectURL(this.src)">
-            <p style="font-size:0.72rem;color:#555;margin:8px 0 0;">${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
-        </div>`;
-    printToTerminal(`[IMG] Loaded: ${file.name}`, 'sys-msg');
+
+    // Read as base64 so we can send it to the AI
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingImageB64 = ev.target.result; // data:image/...;base64,...
+        guiContent.innerHTML = `
+            <div style="text-align:center;">
+                <img src="${pendingImageB64}" style="max-width:100%;max-height:50dvh;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;">
+                <p style="font-size:0.72rem;color:#555;margin:6px 0 2px;">${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
+                <p style="font-size:0.75rem;color:#0ff;margin:4px 0;">Image loaded — type a question or <b>scan image</b> to analyze</p>
+            </div>`;
+    };
+    reader.readAsDataURL(file);
+    printToTerminal(`[IMG] ${file.name} — type "scan image" or ask a question about it`, 'sys-msg');
+    URL.revokeObjectURL(url);
 }
 
 document.getElementById('img-input').addEventListener('change', (e) => {
