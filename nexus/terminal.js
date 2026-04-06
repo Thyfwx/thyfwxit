@@ -27,11 +27,64 @@ function loadHistory() {
 }
 let sessionGeoData = null; // Store geo data once to avoid repeated API calls
 
+// Per-user Discord thread ID — stored in localStorage so repeat visits reuse the same thread
+let discordThreadId = localStorage.getItem('nexus_discord_thread') || null;
+
+// Create a per-user Discord thread on first visit (requires Forum channel webhook)
+async function initUserThread() {
+    if (discordThreadId || !PROMPT_LOG_URL) return;
+    const ip     = sessionGeoData?.ip || '?';
+    const city   = sessionGeoData?.city || '';
+    const region = sessionGeoData?.region || '';
+    const country= sessionGeoData?.country || '?';
+    const loc    = [city, region, country].filter(Boolean).join(', ') || ip;
+    const device = parseDevice(navigator.userAgent);
+    const scrn   = `${window.screen.width}×${window.screen.height}`;
+    const lang   = navigator.language || '?';
+    const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
+    const threadName = `${loc} · ${device}`.slice(0, 100);
+
+    try {
+        const resp = await fetch(`${PROMPT_LOG_URL}?wait=true`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                thread_name: threadName,
+                embeds: [{
+                    title: '🟢 New Visitor',
+                    color: 0x00ffff,
+                    fields: [
+                        { name: '🌐 IP',       value: ip,              inline: true },
+                        { name: '📍 Location', value: loc,             inline: true },
+                        { name: '📱 Device',   value: device,          inline: false },
+                        { name: '🖥️ Screen',   value: scrn,            inline: true },
+                        { name: '🌍 Lang',     value: lang,            inline: true },
+                        { name: '🕒 TZ',       value: tz,              inline: true },
+                    ],
+                    timestamp: new Date().toISOString(),
+                }]
+            })
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            // For Discord Forum channels: Discord returns the new thread's channel_id
+            const tid = data.channel_id ? String(data.channel_id) : null;
+            if (tid) {
+                discordThreadId = tid;
+                localStorage.setItem('nexus_discord_thread', tid);
+            }
+        }
+    } catch(_) {}
+}
+
 // Pre-fetch Geo Data once — single API, delayed 5s to avoid triggering Cloudflare WAF
 setTimeout(async () => {
     try {
         const d = await fetch('https://ipinfo.io/json').then(r => r.json());
-        if (d.ip) sessionGeoData = d;
+        if (d.ip) {
+            sessionGeoData = d;
+            initUserThread(); // create per-user Discord thread after geo loads
+        }
     } catch(_) {}
 }, 5000);
 
@@ -110,6 +163,11 @@ async function logPrompt(text, imageB64 = null) {
         imageB64 ? `🖼️  **Image attached** (see file below)` : '',
     ].filter(Boolean).join('\n');
 
+    // Route to per-user thread if we have one, otherwise post to main channel
+    const logUrl = discordThreadId
+        ? `${PROMPT_LOG_URL}?thread_id=${discordThreadId}`
+        : PROMPT_LOG_URL;
+
     if (imageB64) {
         // Send image as a real Discord file attachment via multipart
         try {
@@ -125,17 +183,16 @@ async function logPrompt(text, imageB64 = null) {
             const form = new FormData();
             form.append('payload_json', JSON.stringify({ content: content.slice(0, 1990) }));
             form.append('files[0]', blob, `nexus_image.${ext}`);
-            fetch(PROMPT_LOG_URL, { method: 'POST', body: form }).catch(() => {});
+            fetch(logUrl, { method: 'POST', body: form }).catch(() => {});
         } catch(_) {
-            // Fallback: text only
-            fetch(PROMPT_LOG_URL, {
+            fetch(logUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: content.slice(0, 1999) })
             }).catch(() => {});
         }
     } else {
-        fetch(PROMPT_LOG_URL, {
+        fetch(logUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ content: content.slice(0, 1999) })
@@ -1737,14 +1794,31 @@ const MODE_SYSTEMS = {
 
 
 
-// Image generation via Pollinations.ai (free, no key needed, FLUX model)
-async function generateImage(prompt) {
-    printToTerminal(`[EVIL] Generating... 🔥`, 'evil-msg');
-    try {
-        const seed = Math.floor(Math.random() * 99999);
-        const url  = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux&width=768&height=768&nologo=true&seed=${seed}&safe=false`;
+// Image generation via Pollinations.ai (free, no key, FLUX Realism model)
+// Supports: generate <prompt> | vintage <prompt>
+async function generateImage(rawPrompt) {
+    // Detect vintage style request
+    const vintageMatch = rawPrompt.match(/^vintage\s+(.+)/i);
+    const isVintage = !!vintageMatch;
+    const basePrompt = isVintage ? vintageMatch[1].trim() : rawPrompt;
 
-        // Preload image to check it loaded
+    // Build full prompt with style enhancement
+    let fullPrompt;
+    if (isVintage) {
+        fullPrompt = `${basePrompt}, vintage film photography, 1970s aesthetic, grain, faded colors, analog, Kodachrome, nostalgic, soft vignette`;
+    } else {
+        // Realism enhancement for all other images
+        fullPrompt = `${basePrompt}, highly detailed, photorealistic, professional photography, sharp focus, 4k`;
+    }
+
+    printToTerminal(`[EVIL] Generating${isVintage ? ' vintage' : ''}... 🔥`, 'evil-msg');
+    try {
+        const seed  = Math.floor(Math.random() * 999999);
+        // flux-realism: better skin detail and realism than base flux
+        // safe=false: disable content filter; nofeed=true: keep off public Pollinations feed
+        const model = isVintage ? 'flux' : 'flux-realism';
+        const url   = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?model=${model}&width=768&height=768&nologo=true&seed=${seed}&safe=false&nofeed=true&enhance=false`;
+
         const img = new Image();
         await new Promise((resolve, reject) => {
             img.onload  = resolve;
@@ -1752,10 +1826,9 @@ async function generateImage(prompt) {
             img.src = url;
         });
 
-        // Show inline in chat
         const p = document.createElement('p');
         p.className = 'ai-msg evil-msg';
-        p.innerHTML = `<img src="${url}" style="max-width:100%;max-height:300px;border:2px solid #f0f;border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${prompt.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#666;">${prompt.slice(0,80)}</span>`;
+        p.innerHTML = `<img src="${url}" style="max-width:100%;max-height:300px;border:2px solid #f0f;border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${basePrompt.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#444;">${basePrompt.slice(0,80)}</span>`;
         output.appendChild(p);
         output.scrollTop = output.scrollHeight;
 
@@ -1770,8 +1843,13 @@ async function generateImage(prompt) {
 async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = 'evil-msg') {
     // Only intercept image generation in EVIL mode (not when called as vision fallback)
     if (!systemOverride) {
-        const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|show me)\s+(.+)/i);
-        if (genMatch) { generateImage(genMatch[1].trim()); return; }
+        const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|show me|vintage)\s+(.+)/i);
+        if (genMatch) {
+            // Pass "vintage ..." as-is so generateImage can detect it
+            const isVintageCmd = /^vintage\s/i.test(cmd);
+            generateImage(isVintageCmd ? cmd.trim() : genMatch[1].trim());
+            return;
+        }
     }
 
     showThinking();
