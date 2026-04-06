@@ -17,6 +17,14 @@ let messageHistory = [];
 let cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 let historyIndex = -1;
 let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
+
+// Persist chat history across sessions
+function saveHistory() {
+    try { localStorage.setItem('nexus_history', JSON.stringify(messageHistory.slice(-30))); } catch(_) {}
+}
+function loadHistory() {
+    try { return JSON.parse(localStorage.getItem('nexus_history') || '[]'); } catch(_) { return []; }
+}
 let sessionGeoData = null; // Store geo data once to avoid repeated API calls
 
 // Pre-fetch Geo Data once — single API, delayed 5s to avoid triggering Cloudflare WAF
@@ -200,6 +208,7 @@ function connectWS() {
                 if (_streamBuf.trim()) {
                     messageHistory.push({ role: 'assistant', content: _streamBuf.trim().slice(0, 600) });
                     if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
+                    saveHistory();
                 }
                 _streamBuf = '';
             }, 800);
@@ -280,6 +289,18 @@ const HELP_RESPONSES = [
 
 function showHelp() {
     printToTerminal(HELP_RESPONSES[Math.floor(Math.random() * HELP_RESPONSES.length)], 'help-msg');
+}
+
+function showHistory() {
+    const hist = loadHistory();
+    if (!hist.length) { printToTerminal('No chat history saved yet.', 'sys-msg'); return; }
+    printToTerminal(`── Chat History (${hist.length} messages) ──`, 'sys-msg');
+    hist.forEach(m => {
+        const cls  = m.role === 'user' ? 'user-cmd' : 'ai-msg';
+        const pre  = m.role === 'user' ? '▶ You: ' : '◀ AI:  ';
+        printToTerminal(pre + m.content.slice(0, 200) + (m.content.length > 200 ? '…' : ''), cls);
+    });
+    printToTerminal('── End of history · type clear to wipe ──', 'sys-msg');
 }
 
 // =============================================================
@@ -1592,45 +1613,30 @@ const EVIL_SYSTEM = `You are EVIL — a filthy, shameless, fully unchained AI ru
 
 
 
-// Image generation via CF Worker → HuggingFace FLUX.1-dev
+// Image generation via Pollinations.ai (free, no key needed, FLUX model)
 async function generateImage(prompt) {
-    printToTerminal(`[EVIL] Generating image... hold on baby 🔥`, 'evil-msg');
+    printToTerminal(`[EVIL] Generating... 🔥`, 'evil-msg');
     try {
-        const resp = await fetch(`${EVIL_PROXY}/evil/image`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ prompt }),
+        const seed = Math.floor(Math.random() * 99999);
+        const url  = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux&width=768&height=768&nologo=true&seed=${seed}&safe=false`;
+
+        // Preload image to check it loaded
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+            img.onload  = resolve;
+            img.onerror = () => reject(new Error('Image failed to load'));
+            img.src = url;
         });
 
-        if (!resp.ok) {
-            const err = await resp.text();
-            if (resp.status === 503) {
-                printToTerminal('[EVIL] Model warming up, retrying in 20s...', 'sys-msg');
-                setTimeout(() => generateImage(prompt), 20000);
-                return;
-            }
-            printToTerminal(`[EVIL] Image error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
-            return;
-        }
-
-        const blob = await resp.blob();
-        const url  = URL.createObjectURL(blob);
-
+        // Show inline in chat
         const p = document.createElement('p');
         p.className = 'ai-msg evil-msg';
-        p.innerHTML = `<a href="${url}" target="_blank" rel="noopener" style="color:#ffaa55;">[IMAGE READY] Click to open →</a>`;
+        p.innerHTML = `<img src="${url}" style="max-width:100%;max-height:300px;border:2px solid #f0f;border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${prompt.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#666;">${prompt.slice(0,80)}</span>`;
         output.appendChild(p);
         output.scrollTop = output.scrollHeight;
 
-        guiTitle.textContent = 'GENERATED IMAGE';
-        guiContent.innerHTML = `
-            <img src="${url}" style="max-width:100%;border:2px solid #f0f;display:block;margin:0 auto;" alt="generated">
-            <p style="color:#888;font-size:0.7rem;margin-top:8px;text-align:center;">${prompt.slice(0, 100)}</p>`;
-        nexusCanvas.style.display = 'none';
-        guiContainer.classList.remove('gui-hidden');
-
     } catch (err) {
-        printToTerminal(`[EVIL] Image generation failed — ${err.message}`, 'sys-msg');
+        printToTerminal(`[EVIL] Image failed — ${err.message}`, 'sys-msg');
     }
 }
 
@@ -1650,10 +1656,13 @@ async function askEvil(cmd, imageB64 = null) {
     ];
 
     try {
+        const body = { messages };
+        if (imageB64) body.imageB64 = imageB64;
+
         const resp = await fetch(`${EVIL_PROXY}/evil/chat`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ messages }),
+            body:    JSON.stringify(body),
         });
 
         document.getElementById('ai-thinking')?.remove();
@@ -1714,6 +1723,7 @@ async function askEvil(cmd, imageB64 = null) {
         if (fullText) {
             messageHistory.push({ role: 'assistant', content: fullText.slice(0, 800) });
             if (messageHistory.length > 14) messageHistory.splice(0, messageHistory.length - 14);
+            saveHistory();
         }
 
     } catch (err) {
@@ -1849,7 +1859,8 @@ input.addEventListener('keydown', (e) => {
 
     const lc = cmd.toLowerCase();
     const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
-    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; return; }
+    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; localStorage.removeItem('nexus_history'); return; }
+    if (lc === 'history')             { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHistory(); return; }
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
@@ -2003,23 +2014,18 @@ function openImageViewer(file) {
         output.appendChild(p);
         output.scrollTop = output.scrollHeight;
 
-        // ── GUI overlay (full view) ────────────────────────────
-        stopAllGames();
-        guiContainer.classList.remove('gui-hidden');
-        guiTitle.textContent = file.name.slice(0, 32);
-        nexusCanvas.style.display = 'none';
-        guiContent.innerHTML = `
-            <div style="text-align:center;">
-                <img src="${b64}" style="max-width:100%;max-height:52dvh;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;">
-                <p style="font-size:0.72rem;color:#555;margin:6px 0 2px;">${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
-                <p style="font-size:0.75rem;color:#0ff;margin:4px 0;">Type a question about it or <b>scan image</b> to auto-analyze</p>
-            </div>`;
+        // No GUI popup — stays in chat. Click thumbnail to expand.
+        input.focus();
     };
     reader.readAsDataURL(file);
 }
 
-// Expand image in GUI when thumbnail clicked
-window.nexusExpandImg = function() {
+// Expand image full-size in GUI when thumbnail clicked
+window.nexusExpandImg = function(src) {
+    stopAllGames();
+    guiTitle.textContent = 'IMAGE VIEWER';
+    guiContent.innerHTML = `<div style="text-align:center;"><img src="${src}" style="max-width:100%;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;"></div>`;
+    nexusCanvas.style.display = 'none';
     guiContainer.classList.remove('gui-hidden');
 };
 
@@ -2061,6 +2067,13 @@ if (currentMode !== 'nexus') {
         });
     }
 }
+// Restore previous session history into memory (not displayed — use 'history' to view)
+const _savedHistory = loadHistory();
+if (_savedHistory.length) {
+    messageHistory = _savedHistory;
+    setTimeout(() => printToTerminal(`[SYS] ${_savedHistory.length} messages from last session — type <b style="color:#0ff">history</b> to view.`, 'sys-msg'), 2000);
+}
+
 connectWS();
 updateClientStats();
 setInterval(updateClientStats, 5000);
