@@ -203,6 +203,64 @@ body {
     box-shadow: 0 0 12px var(--txt-color);
 }
 
+/* --- Mode Picker --- */
+.mode-picker {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+.mode-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #555;
+    font-family: inherit;
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding: 7px 4px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.mode-btn:hover {
+    border-color: var(--txt-color);
+    color: var(--txt-color);
+}
+
+.mode-btn.active {
+    background: var(--txt-color);
+    color: #000;
+    border-color: var(--txt-color);
+    box-shadow: 0 0 8px var(--txt-color);
+}
+
+/* Evil mode active state */
+.mode-btn[data-mode="evil"].active {
+    background: #ff2244;
+    border-color: #ff2244;
+    box-shadow: 0 0 8px #ff2244;
+    color: #fff;
+}
+
+/* Coder mode active */
+.mode-btn[data-mode="coder"].active {
+    background: #0f0;
+    border-color: #0f0;
+    box-shadow: 0 0 8px #0f0;
+    color: #000;
+}
+
+/* Sage mode active */
+.mode-btn[data-mode="sage"].active {
+    background: #a06fff;
+    border-color: #a06fff;
+    box-shadow: 0 0 8px #a06fff;
+    color: #000;
+}
+
 /* Sidebar hide when mobile keyboard is open */
 @media (max-width: 700px) {
     .quick-actions.kb-hidden { display: none !important; }
@@ -279,6 +337,17 @@ body {
         font-size: 0.7rem;
         flex: 1 1 auto;
         min-width: 60px;
+    }
+
+    .mode-picker {
+        display: flex;
+        gap: 5px;
+    }
+
+    .mode-btn {
+        flex: 1;
+        padding: 6px 2px;
+        font-size: 0.62rem;
     }
 
     /* prevent mobile tap highlight / ghost clicks on canvas games */

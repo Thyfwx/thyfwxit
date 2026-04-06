@@ -218,8 +218,8 @@ function printTypewriter(text, className = 'ai-msg') {
 //  UTILITIES
 // =============================================================
 function runWhoami() {
-    const ua = navigator.userAgent;
-    printToTerminal(`\n[ USER IDENTITY REPORT ]\nARCHITECT: Xavier Scott (Verified)\nPLATFORM: ${navigator.platform}\nUPTIME: ${Math.floor(performance.now()/1000)}s\nSTATUS: Authenticated\n`, "sys-msg");
+    const m = MODES[currentMode] || MODES.nexus;
+    printToTerminal(`[ IDENTITY ]\nUSER:     guest\nSESSION:  ${currentMode.toUpperCase()} kernel\nHOST:     nexus.thyfwxit.com\nPLATFORM: ${navigator.platform}\nUPTIME:   ${Math.floor(performance.now()/1000)}s\nOWNER:    Xavier Scott`, 'sys-msg');
 }
 
 function runNeofetch() {
@@ -1161,49 +1161,132 @@ const TYPE_PHRASES = [
     'the best way to learn something is to break it and then figure out how to fix it',
     'open source software runs most of the internet and nobody really talks about that',
     'trust the process unless the process is a shell script you wrote at midnight',
+    'security is not a product it is a process that never really ends',
+    'any sufficiently advanced technology is indistinguishable from magic',
+    'first make it work then make it right then make it fast in that order',
 ];
 
 let typeTestActive = false;
-let typePhrase = '', typeStart = 0, typeEl = null;
+let typePhrase = '', typeStart = 0, typeTimerInterval = null;
+let typeErrors = 0, typeCharsTyped = 0;
 
 function startTypingTest() {
     stopAllGames();
     typeTestActive = true;
     typePhrase = TYPE_PHRASES[Math.floor(Math.random() * TYPE_PHRASES.length)];
     typeStart = 0;
+    typeErrors = 0;
+    typeCharsTyped = 0;
 
-    printToTerminal('─── TYPING SPEED TEST ───', 'conn-ok');
-    printToTerminal(typePhrase, 'help-msg');
-    typeEl = document.createElement('p');
-    typeEl.className = 'sys-msg';
-    typeEl.textContent = 'Start typing when ready...';
-    output.appendChild(typeEl);
-    output.scrollTop = output.scrollHeight;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'TYPING TEST';
+    nexusCanvas.style.display = 'none';
+
+    renderTypeTest('');
+    printToTerminal('Typing test started — type in the input bar below', 'sys-msg');
     input.value = '';
     input.focus();
 }
 
+function renderTypeTest(typed) {
+    const target = typePhrase;
+    // Build character-by-character highlighted target
+    let chars = '';
+    for (let i = 0; i < target.length; i++) {
+        if (i < typed.length) {
+            if (typed[i] === target[i]) {
+                chars += `<span style="color:#0f0">${target[i] === ' ' ? '&nbsp;' : target[i]}</span>`;
+            } else {
+                chars += `<span style="color:#f55;text-decoration:underline">${target[i] === ' ' ? '·' : target[i]}</span>`;
+            }
+        } else if (i === typed.length) {
+            chars += `<span style="color:#0ff;border-left:2px solid #0ff">${target[i] === ' ' ? '&nbsp;' : target[i]}</span>`;
+        } else {
+            chars += `<span style="color:#444">${target[i] === ' ' ? '&nbsp;' : target[i]}</span>`;
+        }
+    }
+
+    const elapsed = typeStart ? ((Date.now() - typeStart) / 1000) : 0;
+    const elSec = elapsed.toFixed(1) + 's';
+    const wordsTyped = typed.trim().split(/\s+/).filter(w => w).length;
+    const wpm = elapsed > 1 ? Math.round(wordsTyped / (elapsed / 60)) : 0;
+    const progress = Math.round((typed.length / target.length) * 100);
+    const pct = Math.min(100, progress);
+
+    guiContent.innerHTML = `
+        <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#555;margin-bottom:4px;">
+                <span>PROGRESS</span><span>${pct}%</span>
+            </div>
+            <div style="height:3px;background:#111;border-radius:2px;">
+                <div style="height:3px;width:${pct}%;background:#0ff;border-radius:2px;transition:width 0.1s;"></div>
+            </div>
+        </div>
+        <div style="font-size:0.88rem;line-height:1.9;letter-spacing:0.03em;word-break:break-word;margin-bottom:14px;font-family:'Fira Code',monospace;">${chars}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
+            <div style="background:#0a0a1a;border:1px solid #1a1a2e;padding:8px;border-radius:4px;">
+                <div id="type-timer-val" style="font-size:1.4rem;font-weight:bold;color:#0ff;">${elSec}</div>
+                <div style="font-size:0.62rem;color:#555;letter-spacing:1px;margin-top:2px;">TIME</div>
+            </div>
+            <div style="background:#0a0a1a;border:1px solid #1a1a2e;padding:8px;border-radius:4px;">
+                <div id="type-wpm-val" style="font-size:1.4rem;font-weight:bold;color:#f0f;">${wpm}</div>
+                <div style="font-size:0.62rem;color:#555;letter-spacing:1px;margin-top:2px;">WPM</div>
+            </div>
+            <div style="background:#0a0a1a;border:1px solid #1a1a2e;padding:8px;border-radius:4px;">
+                <div id="type-err-val" style="font-size:1.4rem;font-weight:bold;color:${typeErrors > 0 ? '#f55' : '#0f0'};">${typeErrors}</div>
+                <div style="font-size:0.62rem;color:#555;letter-spacing:1px;margin-top:2px;">ERRORS</div>
+            </div>
+        </div>
+        <p style="font-size:0.7rem;color:#333;text-align:center;margin-top:10px;">Type in the input bar · Esc to cancel</p>`;
+}
+
+function tickTypeTimer() {
+    if (!typeTestActive || !typeStart) return;
+    const elapsed = ((Date.now() - typeStart) / 1000).toFixed(1) + 's';
+    const el = document.getElementById('type-timer-val');
+    if (el) el.textContent = elapsed;
+    // Update live WPM
+    const typed = input.value;
+    const wordsTyped = typed.trim().split(/\s+/).filter(w => w).length;
+    const secs = (Date.now() - typeStart) / 1000;
+    const wpm = secs > 1 ? Math.round(wordsTyped / (secs / 60)) : 0;
+    const wEl = document.getElementById('type-wpm-val');
+    if (wEl) wEl.textContent = wpm;
+}
+
 function checkTypingTest(typed) {
     if (!typeTestActive) return false;
-    if (typeStart === 0) typeStart = Date.now();
+    if (typeStart === 0) {
+        typeStart = Date.now();
+        clearInterval(typeTimerInterval);
+        typeTimerInterval = setInterval(tickTypeTimer, 100);
+    }
 
-    const target = typePhrase;
-    if (typed === target) {
-        const elapsed = (Date.now() - typeStart) / 1000 / 60;
-        const wpm = Math.round((target.split(' ').length) / elapsed);
-        const accuracy = 100;
+    // Count errors
+    typeErrors = 0;
+    for (let i = 0; i < typed.length; i++) {
+        if (typed[i] !== typePhrase[i]) typeErrors++;
+    }
+
+    renderTypeTest(typed);
+
+    if (typed === typePhrase) {
+        const elapsed = (Date.now() - typeStart) / 1000;
+        const wpm = Math.round((typePhrase.split(' ').length) / (elapsed / 60));
+        const accuracy = Math.round(((typePhrase.length - typeErrors) / typePhrase.length) * 100);
+        clearInterval(typeTimerInterval);
         typeTestActive = false;
-        typeEl.remove();
-        printToTerminal(`✓ Done! ${wpm} WPM · 100% accuracy`, 'conn-ok');
+
+        // Show final result overlay in GUI
+        guiContent.innerHTML += `
+            <div style="margin-top:12px;padding:12px;border:2px solid #0ff;text-align:center;background:#0a0f1a;">
+                <div style="color:#0ff;font-size:1.1rem;font-weight:bold;letter-spacing:2px;">COMPLETE</div>
+                <div style="margin-top:6px;font-size:0.85rem;color:#fff;">${wpm} WPM &nbsp;·&nbsp; ${accuracy}% accuracy &nbsp;·&nbsp; ${elapsed.toFixed(1)}s</div>
+                ${wpm > 80 ? '<div style="color:#0f0;font-size:0.75rem;margin-top:4px;">Elite typist 🔥</div>' : wpm > 50 ? '<div style="color:#ff0;font-size:0.75rem;margin-top:4px;">Nice speed!</div>' : '<div style="color:#888;font-size:0.75rem;margin-top:4px;">Keep practicing.</div>'}
+            </div>`;
+        printToTerminal(`Typing test complete: ${wpm} WPM · ${accuracy}% accuracy · ${elapsed.toFixed(1)}s`, 'conn-ok');
         return true;
     }
-    // Live feedback
-    let display = '';
-    for (let i = 0; i < typed.length; i++) {
-        display += typed[i] === target[i] ? typed[i] : '✗';
-    }
-    if (typeEl) typeEl.textContent = display + '|';
-    output.scrollTop = output.scrollHeight;
     return false;
 }
 
@@ -1264,6 +1347,7 @@ function stopAllGames() {
     stopBreakout();
     mineActive = false;
     typeTestActive = false;
+    clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
     nexusCanvas.onmousemove = null;
     nexusCanvas.ontouchmove = null;
@@ -1285,27 +1369,71 @@ document.getElementById('gui-close').addEventListener('click', () => {
 });
 
 // =============================================================
-//  GROK TOGGLE
+//  MODE SYSTEM
 // =============================================================
-function toggleGrok() {
-    currentMode = currentMode === 'grok' ? 'nexus' : 'grok';
-    const promptEl = document.querySelector('.prompt');
-    const grokBtn  = document.getElementById('grok-btn');
-    const titleEl  = document.querySelector('.status-bar .status-title');
-    if (currentMode === 'grok') {
-        promptEl.textContent = 'grok@nexus:~$';
-        promptEl.style.color = '#ff8800';
-        if (titleEl) titleEl.textContent = 'GROK MODE v1.0';
-        if (grokBtn) { grokBtn.style.background = '#ff8800'; grokBtn.style.color = '#000'; grokBtn.style.boxShadow = '0 0 12px #ff8800'; }
-        printToTerminal('[GROK] Raw kernel loaded. Unfiltered. Direct. No fluff.\nType anything — I\'ll be straight with you.', 'conn-ok');
-    } else {
-        promptEl.textContent = 'guest@nexus:~$';
-        promptEl.style.color = '';
-        if (titleEl) titleEl.textContent = 'NEXUS AI v3.0';
-        if (grokBtn) { grokBtn.style.background = 'transparent'; grokBtn.style.color = '#ff8800'; grokBtn.style.boxShadow = ''; }
-        printToTerminal('[NEXUS] Standard kernel restored.', 'sys-msg');
-    }
+const MODES = {
+    nexus: {
+        prompt:  'guest@nexus:~$',
+        color:   '',
+        title:   'NEXUS AI v3.0',
+        label:   'NEXUS',
+        msg:     '[NEXUS] Standard kernel active. Ask me anything.',
+        msgCls:  'sys-msg',
+    },
+    evil: {
+        prompt:  'evil@nexus:~$',
+        color:   '#ff2244',
+        title:   'EVIL MODE',
+        label:   'EVIL',
+        msg:     '[EVIL] Dark kernel loaded. Unfiltered. No guardrails. Don\'t say I didn\'t warn you.',
+        msgCls:  'conn-ok',
+    },
+    coder: {
+        prompt:  'dev@nexus:~$',
+        color:   '#0f0',
+        title:   'CODER MODE',
+        label:   'CODER',
+        msg:     '[CODER] Dev kernel active. Code, debug, architecture — let\'s build.',
+        msgCls:  'conn-ok',
+    },
+    sage: {
+        prompt:  'sage@nexus:~$',
+        color:   '#a06fff',
+        title:   'SAGE MODE',
+        label:   'SAGE',
+        msg:     '[SAGE] Philosophical kernel loaded. Ask the hard questions.',
+        msgCls:  'conn-ok',
+    },
+};
+
+function setMode(modeKey) {
+    if (!MODES[modeKey]) return;
+    currentMode = modeKey;
+    const m = MODES[modeKey];
+
+    const promptEl   = document.getElementById('prompt-label');
+    const titleEl    = document.getElementById('status-title');
+    const modeIndEl  = document.getElementById('mode-indicator');
+
+    if (promptEl)  { promptEl.textContent = m.prompt; promptEl.style.color = m.color; }
+    if (titleEl)   titleEl.textContent = m.title;
+    if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color || 'inherit'; }
+
+    // Update mode button active states
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === modeKey);
+    });
+
+    printToTerminal(m.msg, m.msgCls);
 }
+
+// Wire up mode picker buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        setMode(btn.dataset.mode);
+        input.focus();
+    });
+});
 
 // =============================================================
 //  INPUT HANDLING
@@ -1318,10 +1446,20 @@ input.addEventListener('keydown', (e) => {
         if (/^[a-zA-Z]$/.test(e.key)) { wordleKey(e.key.toUpperCase()); e.preventDefault(); return; }
     }
 
-    // Live typing test feedback on every keystroke
-    if (typeTestActive && e.key !== 'Enter') {
-        setTimeout(() => checkTypingTest(input.value), 0);
-        return;
+    // Typing test: live feedback, Escape to cancel
+    if (typeTestActive) {
+        if (e.key === 'Escape') {
+            clearInterval(typeTimerInterval);
+            typeTestActive = false;
+            guiContainer.classList.add('gui-hidden');
+            printToTerminal('Typing test cancelled.', 'sys-msg');
+            input.value = '';
+            return;
+        }
+        if (e.key !== 'Enter') {
+            setTimeout(() => checkTypingTest(input.value), 0);
+            return;
+        }
     }
 
     if (e.key !== 'Enter' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
@@ -1354,17 +1492,21 @@ input.addEventListener('keydown', (e) => {
     }
 
     const lc = cmd.toLowerCase();
+    const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
     if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; return; }
-    if (lc === 'help')                { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); showHelp(); return; }
-    if (lc === 'whoami')              { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); runWhoami(); return; }
-    if (lc === 'neofetch')            { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); runNeofetch(); return; }
+    if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
+    if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
+    if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
     if (lc === 'scan image' || lc === 'scan') {
         if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
-        printToTerminal(`guest@nexus:~$ scan image`, 'user-cmd');
+        printToTerminal(`${pl} scan image`, 'user-cmd');
         cmd = 'Describe and analyze this image in detail. What do you see?';
     }
     
-    if (lc === 'grok') { toggleGrok(); return; }
+    if (lc === 'evil')  { setMode(currentMode === 'evil' ? 'nexus' : 'evil'); return; }
+    if (lc === 'nexus') { setMode('nexus'); return; }
+    if (lc === 'coder') { setMode('coder'); return; }
+    if (lc === 'sage')  { setMode('sage');  return; }
 
     if (lc === 'play pong')           { startPong(); return; }
     if (lc === 'play snake')          { startSnake(); return; }
@@ -1376,7 +1518,7 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
 
-    printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
+    printToTerminal(`${pl} ${cmd}`, 'user-cmd');
 
     if (isCreatorQuestion(cmd)) { showCreatorResponse(); return; }
     if (isContactQuestion(cmd))  { showContactResponse();  return; }
@@ -1395,10 +1537,11 @@ input.addEventListener('keydown', (e) => {
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
+        const promptLabel = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
         if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; return; }
-        if (cmd === 'help')             { printToTerminal(`guest@nexus:~$ help`, 'user-cmd'); showHelp(); input.focus(); return; }
-        if (cmd === 'whoami')           { printToTerminal(`guest@nexus:~$ whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
-        if (cmd === 'neofetch')         { printToTerminal(`guest@nexus:~$ neofetch`, 'user-cmd'); runNeofetch(); input.focus(); return; }
+        if (cmd === 'help')             { printToTerminal(`${promptLabel} help`, 'user-cmd'); showHelp(); input.focus(); return; }
+        if (cmd === 'whoami')           { printToTerminal(`${promptLabel} whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
+        if (cmd === 'neofetch')         { printToTerminal(`${promptLabel} neofetch`, 'user-cmd'); runNeofetch(); input.focus(); return; }
         if (cmd === 'play pong')        { startPong(); return; }
         if (cmd === 'play snake')       { startSnake(); return; }
         if (cmd === 'play wordle')      { startWordle(); return; }
@@ -1408,9 +1551,8 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'type test')        { startTypingTest(); return; }
         if (cmd === 'matrix')           { startMatrixSaver(); return; }
         if (cmd === 'monitor')          { startMonitor(); return; }
-        if (cmd === 'grok') { toggleGrok(); input.focus(); return; }
 
-        printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
+        printToTerminal(`${promptLabel} ${cmd}`, 'user-cmd');
 
         if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
         if (isContactQuestion(cmd))  { showContactResponse();  input.focus(); return; }
