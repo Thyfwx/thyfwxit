@@ -3972,13 +3972,14 @@ function sendNexusPing() {
   const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
 
   let ip = '?', city = '', country = '', isp = '';
-  try {
-    const geo = await fetch('https://ipwho.is/').then(r => r.json());
-    ip = geo.ip || '?';
-    city = geo.city || '';
-    country = geo.country || '';
-    isp = (geo.connection && geo.connection.isp) ? geo.connection.isp : '';
-  } catch (_) {}
+  const geoAPIs = [
+    async () => { const d = await fetch('https://ipinfo.io/json').then(r=>r.json()); if(!d.ip) throw 0; return {ip:d.ip, city:d.city||'', country:d.country||'', isp:d.org||''}; },
+    async () => { const d = await fetch('https://ipapi.co/json/').then(r=>r.json()); if(!d.ip) throw 0; return {ip:d.ip, city:d.city||'', country:d.country_name||'', isp:d.org||''}; },
+    async () => { const d = await fetch('https://freeipapi.com/api/json').then(r=>r.json()); if(!d.ipAddress) throw 0; return {ip:d.ipAddress, city:d.cityName||'', country:d.countryName||'', isp:d.ispName||''}; },
+  ];
+  for (const api of geoAPIs) {
+    try { const g = await api(); ip=g.ip; city=g.city; country=g.country; isp=g.isp; if(ip!=='?') break; } catch(_) {}
+  }
 
   const content = [
     `\`[${ts}]\` 🏠 **Main Site Visit**`,

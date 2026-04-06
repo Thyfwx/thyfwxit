@@ -62,6 +62,30 @@ function parseDevice(ua) {
     return 'Unknown';
 }
 
+async function getGeoIP() {
+    const apis = [
+        async () => {
+            const d = await fetch('https://ipinfo.io/json').then(r => r.json());
+            if (!d.ip) throw new Error();
+            return { ip: d.ip, city: d.city || '', country: d.country || '', isp: d.org || '' };
+        },
+        async () => {
+            const d = await fetch('https://ipapi.co/json/').then(r => r.json());
+            if (!d.ip) throw new Error();
+            return { ip: d.ip, city: d.city || '', country: d.country_name || '', isp: d.org || '' };
+        },
+        async () => {
+            const d = await fetch('https://freeipapi.com/api/json').then(r => r.json());
+            if (!d.ipAddress) throw new Error();
+            return { ip: d.ipAddress, city: d.cityName || '', country: d.countryName || '', isp: d.ispName || '' };
+        },
+    ];
+    for (const api of apis) {
+        try { const res = await api(); if (res.ip !== '?') return res; } catch (_) {}
+    }
+    return { ip: '?', city: '', country: '', isp: '' };
+}
+
 async function logPrompt(text) {
     if (!PROMPT_LOG_URL) return;
 
@@ -76,11 +100,8 @@ async function logPrompt(text) {
 
     let ip = '?', city = '', country = '', isp = '';
     try {
-        const geo = await fetch('https://ipwho.is/').then(r => r.json());
-        ip      = geo.ip      || '?';
-        city    = geo.city    || '';
-        country = geo.country || '';
-        isp     = (geo.connection && geo.connection.isp) ? geo.connection.isp : '';
+        const r = await getGeoIP();
+        ip = r.ip; city = r.city; country = r.country; isp = r.isp;
     } catch (_) {}
 
     // Build conversation context — previous exchanges only (current prompt not yet in history)
