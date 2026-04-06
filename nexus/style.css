@@ -9,11 +9,17 @@
     box-sizing: border-box;
 }
 
+html {
+    height: 100%;
+    height: -webkit-fill-available;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--txt-color);
     font-family: var(--font-main);
     margin: 0;
+    height: 100%;
     height: 100dvh;
     display: flex;
     justify-content: center;
@@ -24,7 +30,7 @@ body {
 .monitor {
     position: relative;
     width: 95vw;
-    height: 95dvh;
+    height: 95%;
     background: radial-gradient(circle, #1a1a2e 0%, #000 100%);
     border-radius: 12px;
     box-shadow: 0 0 50px rgba(0, 255, 255, 0.15);
@@ -111,7 +117,10 @@ body {
     word-break: break-word;
 }
 
-.sys-msg { color: #88f; }
+.sys-msg  { color: #88f; }
+.conn-ok  { color: #0f0; font-weight: bold; }
+.ready-msg { color: #0ff; }
+.help-msg { color: #ccc; white-space: pre-wrap; }
 .user-cmd { color: #fff; font-weight: bold; }
 
 .terminal-input-wrapper {
@@ -190,7 +199,7 @@ body {
 
     .monitor {
         width: 100vw;
-        height: 100dvh;
+        height: 100%;
         border-radius: 0;
         box-shadow: none;
     }

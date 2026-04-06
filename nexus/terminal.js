@@ -44,7 +44,8 @@ function connectWS() {
     termWs = new WebSocket(WS_URL);
 
     termWs.onopen = () => {
-        printToTerminal("[CONN] Uplink active — Nexus AI v3.0 online. Say anything to begin.", "sys-msg");
+        printToTerminal("[OK] Connection to Nexus AI v3.0 established.", "conn-ok");
+        setTimeout(() => printToTerminal("Ready to chat — type anything below.", "ready-msg"), 400);
     };
 
     termWs.onmessage = (event) => {
@@ -87,6 +88,22 @@ function connectWS() {
         setTimeout(connectWS, 3000);
     };
     }); // end runBootSequence
+}
+
+// --- Randomized Help Responses ---
+const HELP_RESPONSES = [
+    `Nexus AI online.\n\nAsk me anything — code questions, random thoughts, ideas you can't explain, things you're curious about. No search bar. Just conversation.\n\nCommands: clear · play pong · monitor · speedtest`,
+    `You found the terminal. Good instinct.\n\nI'm here to think with you — debug code, explain concepts, talk through problems, or just chat. Type whatever's on your mind.\n\nCommands: clear · play pong · monitor · speedtest`,
+    `Ghost in the machine, at your service.\n\nI don't do small talk well but I'll try. Ask me something technical, creative, or completely out of left field — I'll meet you there.\n\nCommands: clear · play pong · monitor · speedtest`,
+    `Systems nominal. Neural pathways hot.\n\nDrop a question, a problem, or a half-formed idea. I'll take it from there. No judgment, no loading screens — just answers.\n\nCommands: clear · play pong · monitor · speedtest`,
+    `I run on inference, not caffeine — but the output's similar.\n\nCode help, explanations, brainstorming, or something weird at 2am — all valid. What do you need?\n\nCommands: clear · play pong · monitor · speedtest`,
+    `No search engine. No ads. Just raw conversation with an AI that actually responds.\n\nAsk me what you'd normally Google but wished you could actually discuss instead.\n\nCommands: clear · play pong · monitor · speedtest`,
+    `Nexus AI v3.0 — built into this site, open to everyone.\n\nFeed me a question and I'll feed you something useful. Or at least interesting. Usually both.\n\nCommands: clear · play pong · monitor · speedtest`,
+];
+
+function showHelp() {
+    const response = HELP_RESPONSES[Math.floor(Math.random() * HELP_RESPONSES.length)];
+    printToTerminal(response, "help-msg");
 }
 
 function handleAITriggers(text) {
@@ -167,6 +184,9 @@ input.addEventListener('keydown', (e) => {
                 startPong();
             } else if (cmd.toLowerCase() === 'monitor') {
                 startMonitor();
+            } else if (cmd.toLowerCase() === 'help') {
+                printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
+                showHelp();
             } else {
                 printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
                 if (termWs.readyState === WebSocket.OPEN) {
@@ -268,6 +288,10 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'clear') {
             output.innerHTML = '';
             messageHistory = [];
+        } else if (cmd === 'help') {
+            printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
+            showHelp();
+            input.focus();
         } else {
             printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
             if (termWs.readyState === WebSocket.OPEN) {
