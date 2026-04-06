@@ -5,9 +5,10 @@
 // --- Config ---
 const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 
-// Paste your Discord webhook URL here to log visitor prompts.
-// Leave empty to disable. Create one: Server Settings → Integrations → Webhooks
-const PROMPT_LOG_URL = '';
+// Discord webhook — logs every visitor prompt to your Discord channel.
+// Note: this file is public; anyone can view source and see this URL.
+// Regenerate it in Discord (Server Settings → Integrations → Webhooks) if abused.
+const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
 
 // --- State ---
 let termWs;
@@ -136,13 +137,13 @@ function printTypewriter(text, className = 'ai-msg') {
 //  HELP RESPONSES (randomized)
 // =============================================================
 const HELP_RESPONSES = [
-    `Nexus AI online.\n\nAsk me anything — code questions, random thoughts, ideas you can't explain. No search bar. Just conversation.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
-    `You found the terminal. Good instinct.\n\nI'm here to think with you — debug, explain, brainstorm, or just chat.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
-    `Ghost in the machine, at your service.\n\nAsk something technical, creative, or completely left field — I'll meet you there.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
-    `Systems nominal. Neural pathways hot.\n\nDrop a question, a problem, or a half-formed idea. I'll take it from there.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
-    `I run on inference, not caffeine — but the output's similar.\n\nCode help, explanations, brainstorming, or something weird at 2am — all valid.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
-    `No search engine. No ads. Just raw conversation with an AI that actually responds.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
-    `Nexus AI v3.0 — open to everyone, no login required.\n\nFeed me a question and I'll feed you something useful. Or at least interesting.\n\nGames: play wordle · play snake · play pong\nTools: monitor · speedtest · clear`,
+    `Nexus AI online — built by Xavier Scott, systems specialist and the reason this terminal exists.\n\nAsk me anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
+    `You found the terminal. This whole setup — the AI, the games, the server behind it — was put together by Xavier Scott.\n\nI'm here to think with you. Debug, explain, brainstorm, or just talk.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
+    `Ghost in the machine, at your service. This machine was built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
+    `Systems nominal. This terminal is Xavier Scott's corner of the internet — he wired it up so people could actually talk to an AI instead of just Googling things.\n\nDrop a question or a half-formed idea. I'll take it from there.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
+    `I run on inference. This terminal runs on servers Xavier Scott built and maintains. Together we make something useful — or at least interesting.\n\nCode help, explanations, weird 2am questions — all valid.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
+    `No ads, no tracking, no paywalls. Xavier Scott built this as an open terminal — walk in, ask anything, leave smarter.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
+    `Nexus AI v3.0 — designed and maintained by Xavier Scott. He builds homelabs and thinks terminals are cooler than apps. Hard to disagree, honestly.\n\nFeed me a question and I'll feed you something useful.\n\nGames: play wordle · play snake · play pong · play minesweeper\nTools: type test · monitor · speedtest · clear`,
 ];
 
 function showHelp() {
@@ -593,12 +594,230 @@ function wordleIsOver() {
 function updateWordleVisuals(text, grid) { /* handled by client-side wordle now */ }
 
 // =============================================================
+//  MINESWEEPER
+// =============================================================
+let mineActive = false;
+const MINE_ROWS = 9, MINE_COLS = 9, MINE_COUNT = 10;
+let mineGrid = [], mineRevealed = [], mineFlagged = [], mineOver = false, mineWon = false, mineFirst = true;
+
+function startMinesweeper() {
+    stopAllGames();
+    mineActive = true;
+    mineOver = false; mineWon = false; mineFirst = true;
+    mineGrid = Array.from({length: MINE_ROWS}, () => Array(MINE_COLS).fill(0));
+    mineRevealed = Array.from({length: MINE_ROWS}, () => Array(MINE_COLS).fill(false));
+    mineFlagged  = Array.from({length: MINE_ROWS}, () => Array(MINE_COLS).fill(false));
+
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'NEXUS MINESWEEPER';
+    nexusCanvas.style.display = 'none';
+    renderMinesweeper();
+    printToTerminal('Minesweeper — left-click to reveal, right-click to flag. First click is always safe.', 'sys-msg');
+}
+
+function placeMines(safeR, safeC) {
+    let placed = 0;
+    while (placed < MINE_COUNT) {
+        const r = Math.floor(Math.random() * MINE_ROWS);
+        const c = Math.floor(Math.random() * MINE_COLS);
+        if (mineGrid[r][c] !== -1 && !(Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1)) {
+            mineGrid[r][c] = -1;
+            placed++;
+        }
+    }
+    for (let r = 0; r < MINE_ROWS; r++) for (let c = 0; c < MINE_COLS; c++) {
+        if (mineGrid[r][c] === -1) continue;
+        let n = 0;
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+            const nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < MINE_ROWS && nc >= 0 && nc < MINE_COLS && mineGrid[nr][nc] === -1) n++;
+        }
+        mineGrid[r][c] = n;
+    }
+}
+
+function mineFlood(r, c) {
+    if (r < 0 || r >= MINE_ROWS || c < 0 || c >= MINE_COLS) return;
+    if (mineRevealed[r][c] || mineFlagged[r][c]) return;
+    mineRevealed[r][c] = true;
+    if (mineGrid[r][c] === 0) for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) mineFlood(r+dr,c+dc);
+}
+
+function renderMinesweeper() {
+    const NCOLORS = ['','#0ff','#0f0','#f55','#55f','#f80','#0ff','#f0f','#aaa'];
+    const flagsLeft = MINE_COUNT - mineFlagged.flat().filter(Boolean).length;
+
+    let html = `<div style="text-align:center;font-size:0.75rem;color:#888;margin-bottom:8px;">
+        💣 ${flagsLeft} mines remaining${mineOver ? ' — <span style="color:#f55">BOOM</span>' : ''}${mineWon ? ' — <span style="color:#0f0">YOU WIN!</span>' : ''}
+    </div><table style="border-collapse:collapse;margin:0 auto;">`;
+
+    for (let r = 0; r < MINE_ROWS; r++) {
+        html += '<tr>';
+        for (let c = 0; c < MINE_COLS; c++) {
+            const revealed = mineRevealed[r][c];
+            const flagged  = mineFlagged[r][c];
+            const val      = mineGrid[r][c];
+            let bg = revealed ? '#1a1a2e' : '#2a2a3e';
+            let color = '#0ff', text = '';
+            let border = revealed ? '1px solid #111' : '1px solid #444';
+            if (revealed) {
+                if (val === -1) { bg = '#500'; color = '#f55'; text = '💣'; }
+                else if (val > 0) { color = NCOLORS[val]; text = val; }
+            } else if (flagged) { text = '🚩'; }
+            const style = `width:30px;height:30px;text-align:center;vertical-align:middle;background:${bg};border:${border};color:${color};font-size:0.8rem;font-weight:bold;cursor:${mineOver||mineWon?'default':'pointer'};user-select:none;`;
+            html += `<td style="${style}" onclick="mineClick(${r},${c})" oncontextmenu="mineFlag(event,${r},${c})">${text}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    if (mineOver || mineWon) html += `<div style="text-align:center;margin-top:10px;"><button onclick="startMinesweeper()" style="background:transparent;border:1px solid #0ff;color:#0ff;padding:6px 14px;font-family:'Fira Code',monospace;cursor:pointer;border-radius:4px;">New Game</button></div>`;
+
+    guiContent.innerHTML = html;
+}
+
+window.mineClick = function(r, c) {
+    if (mineOver || mineWon || mineRevealed[r][c] || mineFlagged[r][c]) return;
+    if (mineFirst) { placeMines(r, c); mineFirst = false; }
+    if (mineGrid[r][c] === -1) {
+        mineRevealed[r][c] = true;
+        mineOver = true;
+        // Reveal all mines
+        for (let i=0;i<MINE_ROWS;i++) for (let j=0;j<MINE_COLS;j++) if (mineGrid[i][j]===-1) mineRevealed[i][j]=true;
+        renderMinesweeper();
+        printToTerminal('💥 Detonated. Better luck next time.', 'sys-msg');
+        return;
+    }
+    mineFlood(r, c);
+    const safe = MINE_ROWS * MINE_COLS - MINE_COUNT;
+    if (mineRevealed.flat().filter(Boolean).length >= safe) {
+        mineWon = true;
+        printToTerminal('💣 All mines cleared. Nice work.', 'conn-ok');
+    }
+    renderMinesweeper();
+};
+
+window.mineFlag = function(e, r, c) {
+    e.preventDefault();
+    if (mineOver || mineWon || mineRevealed[r][c]) return;
+    mineFlagged[r][c] = !mineFlagged[r][c];
+    renderMinesweeper();
+};
+
+// =============================================================
+//  TYPING SPEED TEST
+// =============================================================
+const TYPE_PHRASES = [
+    'the quick brown fox jumps over the lazy dog near the riverbank',
+    'packets travel across networks at the speed of light through fiber optic cables',
+    'every system has a vulnerability if you know exactly where to look for it',
+    'xavier scott built this terminal so you could talk to an ai without a search bar',
+    'code is just instructions that tell machines what to do until they do it wrong',
+    'a clean network is a fast network and a fast network is a happy homelab',
+    'debug twice deploy once or just push to prod and hope nothing catches fire',
+    'the best way to learn something is to break it and then figure out how to fix it',
+    'open source software runs most of the internet and nobody really talks about that',
+    'trust the process unless the process is a shell script you wrote at midnight',
+];
+
+let typeTestActive = false;
+let typePhrase = '', typeStart = 0, typeEl = null;
+
+function startTypingTest() {
+    stopAllGames();
+    typeTestActive = true;
+    typePhrase = TYPE_PHRASES[Math.floor(Math.random() * TYPE_PHRASES.length)];
+    typeStart = 0;
+
+    printToTerminal('─── TYPING SPEED TEST ───', 'conn-ok');
+    printToTerminal(typePhrase, 'help-msg');
+    typeEl = document.createElement('p');
+    typeEl.className = 'sys-msg';
+    typeEl.textContent = 'Start typing when ready...';
+    output.appendChild(typeEl);
+    output.scrollTop = output.scrollHeight;
+    input.value = '';
+    input.focus();
+}
+
+function checkTypingTest(typed) {
+    if (!typeTestActive) return false;
+    if (typeStart === 0) typeStart = Date.now();
+
+    const target = typePhrase;
+    if (typed === target) {
+        const elapsed = (Date.now() - typeStart) / 1000 / 60;
+        const wpm = Math.round((target.split(' ').length) / elapsed);
+        const accuracy = 100;
+        typeTestActive = false;
+        typeEl.remove();
+        printToTerminal(`✓ Done! ${wpm} WPM · 100% accuracy`, 'conn-ok');
+        return true;
+    }
+    // Live feedback
+    let display = '';
+    for (let i = 0; i < typed.length; i++) {
+        display += typed[i] === target[i] ? typed[i] : '✗';
+    }
+    if (typeEl) typeEl.textContent = display + '|';
+    output.scrollTop = output.scrollHeight;
+    return false;
+}
+
+// =============================================================
+//  MATRIX SCREENSAVER
+// =============================================================
+let matrixSaverActive = false;
+let matrixSaverFrame;
+
+function startMatrixSaver() {
+    stopAllGames();
+    matrixSaverActive = true;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'MATRIX';
+    guiContent.innerHTML = '<p style="font-size:0.72rem;color:#0f0;text-align:center;">Press any key or close to exit</p>';
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 360;
+    const ctx = nexusCanvas.getContext('2d');
+    const cols = Math.floor(400 / 14);
+    const drops = Array(cols).fill(1);
+    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+
+    function frame() {
+        if (!matrixSaverActive) return;
+        ctx.fillStyle = 'rgba(0,0,0,0.07)';
+        ctx.fillRect(0, 0, 400, 360);
+        ctx.fillStyle = '#0f0';
+        ctx.font = '13px monospace';
+        drops.forEach((y, i) => {
+            const ch = chars[Math.floor(Math.random() * chars.length)];
+            ctx.fillStyle = y === 1 ? '#fff' : '#0f0';
+            ctx.fillText(ch, i * 14, y * 14);
+            if (y * 14 > 360 && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        });
+        matrixSaverFrame = requestAnimationFrame(frame);
+    }
+    frame();
+
+    const exitHandler = () => { stopMatrixSaver(); document.removeEventListener('keydown', exitHandler); };
+    document.addEventListener('keydown', exitHandler);
+}
+
+function stopMatrixSaver() {
+    matrixSaverActive = false;
+    cancelAnimationFrame(matrixSaverFrame);
+}
+
+// =============================================================
 //  STOP ALL GAMES HELPER
 // =============================================================
 function stopAllGames() {
     stopPong();
     stopSnake();
     stopWordle();
+    stopMatrixSaver();
+    mineActive = false;
+    typeTestActive = false;
     clearInterval(monitorInterval);
     nexusCanvas.onmousemove = null;
     nexusCanvas.ontouchmove = null;
@@ -627,6 +846,12 @@ input.addEventListener('keydown', (e) => {
         if (/^[a-zA-Z]$/.test(e.key)) { wordleKey(e.key.toUpperCase()); e.preventDefault(); return; }
     }
 
+    // Live typing test feedback on every keystroke
+    if (typeTestActive && e.key !== 'Enter') {
+        setTimeout(() => checkTypingTest(input.value), 0);
+        return;
+    }
+
     if (e.key !== 'Enter' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
 
     if (e.key === 'ArrowUp') {
@@ -649,13 +874,23 @@ input.addEventListener('keydown', (e) => {
     historyIndex = -1;
     input.value = '';
 
+    // Typing test intercept
+    if (typeTestActive) {
+        const done = checkTypingTest(cmd);
+        if (!done) { input.value = ''; return; }
+        input.value = ''; return;
+    }
+
     const lc = cmd.toLowerCase();
-    if (lc === 'clear')        { output.innerHTML = ''; messageHistory = []; return; }
-    if (lc === 'help')         { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); showHelp(); return; }
-    if (lc === 'play pong')    { startPong(); return; }
-    if (lc === 'play snake')   { startSnake(); return; }
-    if (lc === 'play wordle')  { startWordle(); return; }
-    if (lc === 'monitor')      { startMonitor(); return; }
+    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; return; }
+    if (lc === 'help')                { printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd'); showHelp(); return; }
+    if (lc === 'play pong')           { startPong(); return; }
+    if (lc === 'play snake')          { startSnake(); return; }
+    if (lc === 'play wordle')         { startWordle(); return; }
+    if (lc === 'play minesweeper')    { startMinesweeper(); return; }
+    if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
+    if (lc === 'matrix')              { startMatrixSaver(); return; }
+    if (lc === 'monitor')             { startMonitor(); return; }
 
     printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
     logPrompt(cmd);
@@ -672,12 +907,15 @@ input.addEventListener('keydown', (e) => {
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
-        if (cmd === 'clear')       { output.innerHTML = ''; messageHistory = []; return; }
-        if (cmd === 'help')        { printToTerminal(`guest@nexus:~$ help`, 'user-cmd'); showHelp(); input.focus(); return; }
-        if (cmd === 'play pong')   { startPong(); return; }
-        if (cmd === 'play snake')  { startSnake(); return; }
-        if (cmd === 'play wordle') { startWordle(); return; }
-        if (cmd === 'monitor')     { startMonitor(); return; }
+        if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; return; }
+        if (cmd === 'help')             { printToTerminal(`guest@nexus:~$ help`, 'user-cmd'); showHelp(); input.focus(); return; }
+        if (cmd === 'play pong')        { startPong(); return; }
+        if (cmd === 'play snake')       { startSnake(); return; }
+        if (cmd === 'play wordle')      { startWordle(); return; }
+        if (cmd === 'play minesweeper') { startMinesweeper(); return; }
+        if (cmd === 'type test')        { startTypingTest(); return; }
+        if (cmd === 'matrix')           { startMatrixSaver(); return; }
+        if (cmd === 'monitor')          { startMonitor(); return; }
 
         printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
         logPrompt(cmd);
