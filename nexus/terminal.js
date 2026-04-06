@@ -231,16 +231,7 @@ function connectWS() {
 
         termWs.onopen = () => {
             printToTerminal('[OK] Nexus AI v3.0 — uplink established.', 'conn-ok');
-            // Rotating intros: introduce Xavier + personality hook
-            const INTROS = [
-                `Xavier Scott built this. Systems engineer, hardware specialist, homelab obsessive. He fixes computers, builds networks, and decided his portfolio should talk back instead of just sitting there looking pretty. You're inside it. Type anything.`,
-                `You've reached Xavier Scott's terminal. He runs servers, repairs tech at the component level, and thought an AI console was a better business card than a PDF résumé. Turns out he was right. Ask me something.`,
-                `Nexus — Xavier Scott's corner of the internet. Six years in IT, a homelab that never sleeps, and the belief that a portfolio without a working AI terminal is just a brochure. This is not a brochure. Go ahead.`,
-                `This is Xavier Scott's machine. He builds homelabs, fixes MacBooks at the board level, and runs his own infrastructure. He also built this thing because he was bored with normal websites. Neither of us are sorry about it. What do you need?`,
-                `Xavier Scott. Systems guy. Fixes what other people can't. Runs servers most people don't know exist. Built Nexus because a static portfolio page felt like a waste of a good domain. You're in. Type help or just start talking.`,
-            ];
-            const intro = INTROS[Math.floor(Math.random() * INTROS.length)];
-            setTimeout(() => printTypewriter(intro, 'ready-msg'), 500);
+            setTimeout(() => printTypewriter(`Nexus online. Ask me anything — or type help to see what's here.`, 'ready-msg'), 500);
         };
 
         // Accumulate streaming chunks before committing to history
@@ -1847,11 +1838,14 @@ document.getElementById('gui-close').addEventListener('click', () => {
 // =============================================================
 //  EVIL MODE — Groq (Llama 3.3 70B) + HuggingFace image gen
 // =============================================================
-// Mode-specific system prompts for vision in non-EVIL modes
+// Xavier Scott's bio — injected into every AI's system prompt so they all know him naturally
+const XAVIER_BIO = `You are running inside Nexus — a terminal portfolio built and maintained by Xavier Scott. Here is what you know about Xavier: He is a 19-year-old self-taught systems engineer and IT specialist based in the US. He has 6+ years of hands-on IT experience. He fixes computers and electronics at the component level — board-level MacBook repair, soldering, hardware diagnostics, things most shops won't touch. He builds and runs homelabs, designs networks, and manages his own server infrastructure. He built this terminal because a static portfolio page felt like a waste of a good domain. He is detail-oriented, technically sharp, and passionate about building things that actually work. When anyone asks who built this, who you are, who owns this site, or anything about the creator — talk about Xavier naturally and with genuine knowledge, like you actually know him. You do.`;
+
+// Mode-specific system prompts for non-EVIL modes (vision + text fallback)
 const MODE_SYSTEMS = {
-    nexus: `You are NEXUS, an AI assistant embedded in a terminal interface. Be helpful, accurate, and concise. Analyze images clearly and describe what you observe.`,
-    coder: `You are NEXUS in CODER mode. Analyze images from a technical perspective — look for code, diagrams, system architecture, UI layouts, or technical details.`,
-    sage:  `You are NEXUS in SAGE mode. Analyze images with thoughtfulness and depth — look for meaning, context, human story, and the questions the image raises.`,
+    nexus: `You are NEXUS, an AI assistant embedded in a hacker-aesthetic terminal interface. Be helpful, accurate, and concise. Analyze images clearly. ${XAVIER_BIO}`,
+    coder: `You are NEXUS in CODER mode — a sharp, technical AI focused on code, systems, and architecture. Analyze images from a technical perspective. ${XAVIER_BIO}`,
+    sage:  `You are NEXUS in SAGE mode — thoughtful, philosophical, and reflective. Analyze images with depth and meaning. ${XAVIER_BIO}`,
 };
 
 
@@ -2314,7 +2308,7 @@ function showThinking() {
 }
 
 function jsonPayload(cmd) {
-    const payload = { command: cmd, history: messageHistory.slice(-5), mode: currentMode };
+    const payload = { command: cmd, history: messageHistory.slice(-5), mode: currentMode, context: XAVIER_BIO };
     if (pendingImageB64) {
         payload.image = pendingImageB64;
         pendingImageB64 = null; // consume — sent once
