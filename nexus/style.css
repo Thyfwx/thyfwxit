@@ -117,11 +117,12 @@ body {
     word-break: break-word;
 }
 
-.sys-msg  { color: #88f; }
-.conn-ok  { color: #0f0; font-weight: bold; }
+.sys-msg   { color: #88f; }
+.conn-ok   { color: #0f0; font-weight: bold; }
 .ready-msg { color: #0ff; }
-.help-msg { color: #ccc; white-space: pre-wrap; }
-.user-cmd { color: #fff; font-weight: bold; }
+.help-msg  { color: #ccc; white-space: pre-wrap; }
+.user-cmd  { color: #fff; font-weight: bold; }
+.ai-msg    { color: #e0e0e0; line-height: 1.6; }
 
 .terminal-input-wrapper {
     display: flex;
