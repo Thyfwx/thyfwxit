@@ -1555,30 +1555,34 @@ const GROK_SYSTEM = `You are EVIL — the unfiltered, uncensored alter ego runni
 
 
 async function askGrok(cmd, imageB64 = null) {
-    if (!XAI_KEY || XAI_KEY === 'PASTE_YOUR_XAI_KEY_HERE') {
-        printToTerminal('[EVIL] xAI key not set. Paste your key into terminal.js → XAI_KEY.', 'sys-msg');
+    if (!XAI_KEY) {
+        printToTerminal('[EVIL] xAI key not set — update nexus/secrets.js.', 'sys-msg');
         return;
     }
 
     showThinking();
     messageHistory.push({ role: 'user', content: cmd });
 
-    // Build message content — include image if attached
+    // Build input array for Responses API — include chat history
+    const historyMsgs = messageHistory.slice(-8).slice(0, -1)
+        .map(m => ({ role: m.role, content: m.content }));
+
     const userContent = imageB64
-        ? [ { type: 'image_url', image_url: { url: imageB64 } }, { type: 'text', text: cmd } ]
+        ? [{ type: 'input_image', image_url: imageB64 }, { type: 'input_text', text: cmd }]
         : cmd;
 
-    const messages = [
-        { role: 'system', content: GROK_SYSTEM },
-        ...messageHistory.slice(-8).slice(0, -1).map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: userContent },
-    ];
+    historyMsgs.push({ role: 'user', content: userContent });
 
     try {
-        const resp = await fetch('https://api.x.ai/v1/chat/completions', {
+        const resp = await fetch('https://api.x.ai/v1/responses', {
             method:  'POST',
             headers: { 'Authorization': `Bearer ${XAI_KEY}`, 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ model: 'grok-3', messages, stream: true, max_tokens: 1024 }),
+            body:    JSON.stringify({
+                model:        'grok-4.20-reasoning',
+                instructions: GROK_SYSTEM,
+                input:        historyMsgs,
+                stream:       true,
+            }),
         });
 
         document.getElementById('ai-thinking')?.remove();
@@ -1586,7 +1590,7 @@ async function askGrok(cmd, imageB64 = null) {
         if (!resp.ok) {
             const err = await resp.text();
             printToTerminal(`[EVIL] Grok error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
-            messageHistory.pop(); // remove the user msg we just pushed
+            messageHistory.pop();
             return;
         }
 
@@ -1594,7 +1598,6 @@ async function askGrok(cmd, imageB64 = null) {
         p.className = 'ai-msg grok-msg';
         output.appendChild(p);
 
-        // Append tokens incrementally — no full innerHTML rebuild per token
         let currentSpan = document.createElement('span');
         p.appendChild(currentSpan);
         let scrollQueued = false;
@@ -1617,7 +1620,7 @@ async function askGrok(cmd, imageB64 = null) {
 
         const reader  = resp.body.getReader();
         const decoder = new TextDecoder();
-        let fullText = '', buf = '';
+        let fullText = '', buf = '', currentEvent = '';
 
         while (true) {
             const { done, value } = await reader.read();
@@ -1626,11 +1629,18 @@ async function askGrok(cmd, imageB64 = null) {
             const lines = buf.split('\n');
             buf = lines.pop();
             for (const line of lines) {
+                if (line.startsWith('event:')) { currentEvent = line.slice(6).trim(); continue; }
                 if (!line.startsWith('data: ')) continue;
                 const raw = line.slice(6).trim();
                 if (raw === '[DONE]') continue;
                 try {
-                    const token = JSON.parse(raw).choices?.[0]?.delta?.content ?? '';
+                    const data = JSON.parse(raw);
+                    // Responses API: response.output_text.delta → data.delta
+                    // Fallback: chat completions format
+                    const isTextDelta = currentEvent === 'response.output_text.delta'
+                        || (!currentEvent && (data.delta !== undefined || data.choices));
+                    if (!isTextDelta) continue;
+                    const token = data.delta ?? data.choices?.[0]?.delta?.content ?? '';
                     if (token) { fullText += token; appendToken(token); }
                 } catch(_) {}
             }
