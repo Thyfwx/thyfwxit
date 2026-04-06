@@ -1099,7 +1099,7 @@ body.a11y-colorblind .contact-form button {
       <p style="color: #00ff00;">[OK] Connection to Nexus AI v3.0 established.</p>
     </div>
     <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center;">
-       <input type="text" id="nexus-ping-input" placeholder="Query Nexus AI..." style="flex-grow: 1; background: transparent; border: 1px solid #333; color: var(--neon-color); padding: 6px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; outline: none; border-radius: 3px;">
+       <input type="text" id="nexus-ping-input" placeholder="Type anything, then ping..." style="flex-grow: 1; background: transparent; border: 1px solid #333; color: var(--neon-color); padding: 6px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; outline: none; border-radius: 3px;">
        <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">PING AI</button>
        <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">OPEN CONSOLE</button>
     </div>
@@ -3960,20 +3960,51 @@ function initNexusPreview() {
   connect();
 }
 
+const PING_CARDS = [
+  { color: '#0ff', text: 'Nexus AI is built and maintained by Xavier Scott — systems specialist, hardware repair tech, and homelab builder. Open the console to have a real conversation with it.' },
+  { color: '#0f0', text: 'Xavier Scott put this together. The AI, the server behind it, all of it. Ask Nexus anything — code, tech questions, random thoughts. Open the full console to start chatting.' },
+  { color: '#0ff', text: 'This terminal is Xavier Scott\'s work. He runs his own infrastructure and thought a portfolio should be interactive, not just a PDF. Hit "Open Console" to talk to the AI directly.' },
+  { color: '#0f0', text: 'Nexus AI v3.0 — live and open to everyone. No login, no limits. Xavier Scott built it so visitors could actually ask questions instead of just reading a page. Give it a try.' },
+  { color: '#0ff', text: 'Built by Xavier Scott — network infrastructure, component-level hardware repair, homelab setups. The full console has games, tools, and an AI that actually responds. Check it out.' },
+  { color: '#0f0', text: 'Xavier Scott wired this up. If you\'ve got a tech question, a weird idea, or just want to see what an AI says — open the full console and find out.' },
+  { color: '#0ff', text: 'The AI behind Nexus runs on servers Xavier Scott built and manages. It\'s open to everyone. Open the console and type anything — it\'ll respond.' },
+  { color: '#0f0', text: 'Xavier Scott made this site, the AI terminal, and everything in it. The full Nexus console has games, a speed test, system monitor, and a live AI chat. Explore it.' },
+];
+
+let _pingIdx = Math.floor(Math.random() * PING_CARDS.length);
+
 function sendNexusPing() {
   const inputEl = document.getElementById('nexus-ping-input');
-  const cmd = inputEl.value.trim() || 'status';
-  
-  if (previewWs && previewWs.readyState === WebSocket.OPEN) {
-    previewWs.send(JSON.stringify({command: cmd, history: []}));
-    const logEl = document.getElementById('nexus-preview-log');
-    const p = document.createElement('p');
-    p.style.opacity = '0.7';
-    p.textContent = `guest@thyfwxit:~# ${cmd}`;
-    logEl.appendChild(p);
-    logEl.scrollTop = logEl.scrollHeight;
-    inputEl.value = '';
+  const query   = inputEl.value.trim();
+  const logEl   = document.getElementById('nexus-preview-log');
+
+  // Echo what the user typed
+  if (query) {
+    const echo = document.createElement('p');
+    echo.style.cssText = 'color:#666; font-size:0.75rem; margin:4px 0;';
+    echo.textContent = `> ${query}`;
+    logEl.appendChild(echo);
   }
+
+  // Show rotating info card
+  const card = PING_CARDS[_pingIdx % PING_CARDS.length];
+  _pingIdx++;
+  const p = document.createElement('p');
+  p.style.cssText = `color:${card.color}; margin:6px 0; line-height:1.5;`;
+  p.textContent = card.text;
+  logEl.appendChild(p);
+
+  // Nudge to open console
+  const nudge = document.createElement('p');
+  nudge.style.cssText = 'font-size:0.72rem; color:#555; margin:4px 0 10px; border-top:1px solid #1a1a1a; padding-top:6px;';
+  nudge.innerHTML = '↗ <span style="color:var(--neon-color);cursor:pointer;text-decoration:underline;" onclick="window.location.href=\'/nexus/\'">Open full console</span> to chat with Nexus AI directly.';
+  logEl.appendChild(nudge);
+
+  logEl.scrollTop = logEl.scrollHeight;
+  inputEl.value = '';
+
+  // Keep log tidy
+  while (logEl.childNodes.length > 25) logEl.removeChild(logEl.firstChild);
 }
 
 // Add enter key support for the ping input

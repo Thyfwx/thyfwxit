@@ -83,13 +83,16 @@ async function logPrompt(text) {
         isp     = (geo.connection && geo.connection.isp) ? geo.connection.isp : '';
     } catch (_) {}
 
-    // Build conversation context (last 6 messages)
+    // Build conversation context — previous exchanges only (current prompt not yet in history)
     let context = '';
-    const recent = messageHistory.slice(-6);
+    const recent = messageHistory.slice(-8);
     if (recent.length > 0) {
-        context = '\n📜 **Context:**\n```\n' +
-            recent.map(m => `${m.role === 'user' ? '▶ User' : '◀  AI '}: ${m.content.slice(0, 200).replace(/\n/g, ' ')}`).join('\n') +
-            '\n```';
+        const lines = recent.map(m => {
+            const who   = m.role === 'user' ? '👤 User' : '🤖 Nexus';
+            const body  = m.content.slice(0, 250).replace(/\n/g, ' ');
+            return `${who}: ${body}`;
+        });
+        context = '\n📜 **Prior conversation:**\n```\n' + lines.join('\n') + '\n```';
     }
 
     const lines = [
