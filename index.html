@@ -360,6 +360,32 @@ footer {
   canvas {
     max-width: 100%;
   }
+
+  /* Nexus preview card on mobile */
+  #nexusLive .project-card {
+    height: 320px !important;
+  }
+
+  #nexusLive .project-card > div:first-child {
+    font-size: 0.65rem !important;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  #nexus-preview-log {
+    font-size: 0.72rem !important;
+    padding: 10px !important;
+  }
+
+  #nexusLive .project-card > div:last-child {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  #nexus-ping-input {
+    min-width: 0;
+    width: 100% !important;
+  }
 }
 
 .project-card {
@@ -1058,24 +1084,24 @@ body.a11y-colorblind .contact-form button {
 </section>
 
 <section id="nexusLive">
-  <h2><span class="pulse-indicator">●</span> Nexus AI Core: Uplink Enabled</h2>
+  <h2><span class="pulse-indicator">●</span> Nexus AI Core — Live</h2>
   <div class="project-card" style="background: #000; border-color: var(--neon-color); padding: 0; overflow: hidden; position: relative; height: 350px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);">
     <div style="background: var(--neon-color); color: #000; padding: 6px 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
       <div style="display: flex; gap: 15px;">
         <span>NODE: CENTRAL_STATION</span>
-        <span>AUTH: XAVIER_ROOT</span>
+        <span>SESSION: GUEST_OPEN</span>
       </div>
       <span id="nexus-uptime">UPTIME: 00:00:00</span>
     </div>
     <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--neon-color); overflow-y: auto; line-height: 1.5; scroll-behavior: smooth; background: linear-gradient(180deg, #050505 0%, #000 100%);">
       <p style="color: #555;">[BOOT] Initializing encrypted handshake...</p>
-      <p style="color: #555;">[AUTH] Identifying system architect: Xavier Scott...</p>
+      <p style="color: #555;">[AUTH] Open session — no credentials required.</p>
       <p style="color: #00ff00;">[OK] Connection to Nexus AI v3.0 established.</p>
     </div>
     <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center;">
        <input type="text" id="nexus-ping-input" placeholder="Query Nexus AI..." style="flex-grow: 1; background: transparent; border: 1px solid #333; color: var(--neon-color); padding: 6px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; outline: none; border-radius: 3px;">
        <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">PING AI</button>
-       <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">FULL ROOT</button>
+       <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">OPEN CONSOLE</button>
     </div>
   </div>
 </section>
@@ -3873,9 +3899,35 @@ function initNexusPreview() {
   }
   setInterval(updateUptime, 1000);
 
+  const bootWords = [
+    { label: 'BOOT',  text: 'Initializing quantum uplink...' },
+    { label: 'SCAN',  text: 'Probing neural pathways...' },
+    { label: 'SYNC',  text: 'Handshaking with mainframe...' },
+    { label: 'CRYPT', text: 'Securing encrypted channel...' },
+    { label: 'AUTH',  text: 'Verifying node credentials...' },
+    { label: 'ALLOC', text: 'Allocating memory buffers...' },
+    { label: 'EXEC',  text: 'Spawning AI core process...' },
+  ];
+
+  function runBootSequence(callback) {
+    let i = 0;
+    function step() {
+      if (i >= bootWords.length) { callback(); return; }
+      const w = bootWords[i++];
+      const p = document.createElement('p');
+      p.style.color = '#888';
+      p.textContent = `[${w.label}] ${w.text}`;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+      setTimeout(step, 180);
+    }
+    step();
+  }
+
   function connect() {
+    runBootSequence(() => {
     previewWs = new WebSocket('wss://nexus-terminalnexus.onrender.com/ws/terminal');
-    
+
     previewWs.onopen = () => {
       const p = document.createElement('p');
       p.style.color = '#00ff00';
@@ -3903,6 +3955,7 @@ function initNexusPreview() {
       logEl.appendChild(p);
       setTimeout(connect, 5000);
     };
+    }); // end runBootSequence
   }
   connect();
 }

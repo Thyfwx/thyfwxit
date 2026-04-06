@@ -6,7 +6,6 @@ let historyIndex = -1;
 
 const cpuStat = document.getElementById('cpu-stat');
 const memStat = document.getElementById('mem-stat');
-const batStat = document.getElementById('bat-stat');
 const output = document.getElementById('terminal-output');
 const input = document.getElementById('terminal-input');
 const guiContainer = document.getElementById('game-gui-container');
@@ -17,12 +16,35 @@ const nexusCanvas = document.getElementById('nexus-canvas');
 let monitorInterval;
 let cpuData = [];
 
+// --- Boot Sequence Words ---
+const BOOT_WORDS = [
+  { label: 'BOOT',  text: 'Initializing quantum uplink...' },
+  { label: 'SCAN',  text: 'Probing neural pathways...' },
+  { label: 'SYNC',  text: 'Handshaking with mainframe...' },
+  { label: 'CRYPT', text: 'Securing encrypted channel...' },
+  { label: 'AUTH',  text: 'Verifying node credentials...' },
+  { label: 'ALLOC', text: 'Allocating memory buffers...' },
+  { label: 'EXEC',  text: 'Spawning AI core process...' },
+];
+
+function runBootSequence(callback) {
+    let i = 0;
+    function step() {
+        if (i >= BOOT_WORDS.length) { callback(); return; }
+        const w = BOOT_WORDS[i++];
+        printToTerminal(`[${w.label}] ${w.text}`, "sys-msg");
+        setTimeout(step, 200);
+    }
+    step();
+}
+
 // --- WebSocket Connection with Reconnect ---
 function connectWS() {
+    runBootSequence(() => {
     termWs = new WebSocket(WS_URL);
 
     termWs.onopen = () => {
-        printToTerminal("[CONN] Uplink established with Nexus Mainframe.", "sys-msg");
+        printToTerminal("[CONN] Uplink active — Nexus AI v3.0 online. Say anything to begin.", "sys-msg");
     };
 
     termWs.onmessage = (event) => {
@@ -53,7 +75,7 @@ function connectWS() {
             updateWordleVisuals(text, grid);
         }
         
-        if (!text.includes("[GUI_TRIGGER:") && !text.includes("root@nexus")) {
+        if (!text.includes("[GUI_TRIGGER:") && !text.includes("guest@nexus")) {
             messageHistory.push({role: 'assistant', content: text});
         }
         
@@ -64,6 +86,7 @@ function connectWS() {
         printToTerminal("[WARN] Uplink lost. Re-establishing...", "sys-msg");
         setTimeout(connectWS, 3000);
     };
+    }); // end runBootSequence
 }
 
 function handleAITriggers(text) {
@@ -145,7 +168,7 @@ input.addEventListener('keydown', (e) => {
             } else if (cmd.toLowerCase() === 'monitor') {
                 startMonitor();
             } else {
-                printToTerminal(`root@nexus:~# ${cmd}`, 'user-cmd');
+                printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
                 if (termWs.readyState === WebSocket.OPEN) {
                     showThinking();
                     termWs.send(jsonPayload(cmd));
@@ -246,7 +269,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
             output.innerHTML = '';
             messageHistory = [];
         } else {
-            printToTerminal(`root@nexus:~# ${cmd}`, 'user-cmd');
+            printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
             if (termWs.readyState === WebSocket.OPEN) {
                 showThinking();
                 termWs.send(jsonPayload(cmd));

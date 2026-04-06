@@ -12,20 +12,21 @@
         <div class="screen-glare"></div>
         <div class="glass-panel">
             <header class="status-bar">
-                <div class="status-item">CPU: <span id="cpu-stat">--</span></div>
-                <div class="status-item">MEM: <span id="mem-stat">--</span></div>
-                <div class="status-item">BAT: <span id="bat-stat">--</span></div>
-                <div class="status-item geo-stat">LOC: Locating...</div>
+                <div class="status-item"><span class="stat-label">CPU</span> <span id="cpu-stat">--</span></div>
+                <div class="status-item"><span class="stat-label">MEM</span> <span id="mem-stat">--</span></div>
+                <div class="status-item status-title">NEXUS AI v3.0</div>
+                <div class="status-item"><span class="stat-label">SESSION</span> GUEST</div>
             </header>
             
             <main class="terminal-container" id="terminal-container">
                 <div class="terminal-output" id="terminal-output">
-                    <p class="sys-msg">Initializing NEXUS kernel...</p>
-                    <p class="sys-msg">Uplink: wss://nexus-terminalnexus.onrender.com</p>
-                    <p class="sys-msg">Ready.</p>
+                    <p class="sys-msg">[BOOT] Initializing NEXUS kernel...</p>
+                    <p class="sys-msg">[SESS] Open guest session — no login required.</p>
+                    <p class="sys-msg" style="color:#0f0;">[OK] Connection to Nexus AI v3.0 established.</p>
+                    <p class="sys-msg" style="color:#888;">Type a message or command below to begin.</p>
                 </div>
                 <div class="terminal-input-wrapper">
-                    <span class="prompt">root@nexus:~#</span>
+                    <span class="prompt">guest@nexus:~$</span>
                     <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false">
                 </div>
             </main>
