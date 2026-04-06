@@ -15,7 +15,23 @@ let termWs;
 let messageHistory = [];
 let cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 let historyIndex = -1;
-let currentMode = 'nexus'; // Default mode
+let currentMode = 'nexus';
+let sessionGeoData = null; // Store geo data once to avoid repeated API calls
+
+// Pre-fetch Geo Data once per page load to avoid WAF blocking
+async function prefetchGeo() {
+    try {
+        // Use a 5-second delay to avoid triggering "immediate bot" filters
+        setTimeout(async () => {
+            try {
+                sessionGeoData = await fetch('https://ipapi.co/json/').then(r => r.json());
+            } catch(e) {
+                console.log("Geo-IP fetch failed, falling back to basic data.");
+            }
+        }, 5000);
+    } catch(_) {}
+}
+prefetchGeo();
 
 // ... (stats variables) ...
 
@@ -79,12 +95,9 @@ async function logPrompt(text) {
     const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
     const conn   = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
 
-    let ip = '?', city = '', country = '';
-    try {
-        const d = await fetch('https://ipinfo.io/json').then(r => r.json());
-        if (d.ip) { ip = d.ip; city = d.city || ''; country = d.country || ''; }
-    } catch(_) {}
-    const loc = [city, country].filter(Boolean).join(', ') || tz;
+    // Use pre-fetched data if available, otherwise minimal placeholders
+    const ip = sessionGeoData?.ip || '?';
+    const loc = sessionGeoData ? `${sessionGeoData.city || ''}, ${sessionGeoData.country_name || ''}` : tz;
 
     // Build conversation context
     let context = '';
