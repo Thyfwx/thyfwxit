@@ -216,6 +216,13 @@ function connectWS() {
     });
 }
 
+// Keep Render.com instance warm — ping every 20s so it never cold-starts
+setInterval(() => {
+    if (termWs && termWs.readyState === WebSocket.OPEN) {
+        termWs.send('\x06'); // ASCII ACK — backend should ignore non-printable
+    }
+}, 20000);
+
 // =============================================================
 //  TYPEWRITER EFFECT FOR AI RESPONSES
 // =============================================================
@@ -223,22 +230,27 @@ function printTypewriter(text, className = 'ai-msg') {
     const p = document.createElement('p');
     p.className = className;
     output.appendChild(p);
-    output.scrollTop = output.scrollHeight;
 
-    const parts = text.split('\n');
-    let partIdx = 0, charIdx = 0;
+    // Build one <span> per line so we only mutate the current span (O(1) per tick)
+    const lines = text.split('\n');
+    const spans = [];
+    lines.forEach((_, i) => {
+        if (i > 0) p.appendChild(document.createElement('br'));
+        const s = document.createElement('span');
+        p.appendChild(s);
+        spans.push(s);
+    });
+
+    let lineIdx = 0, charIdx = 0;
+    const BATCH = 5; // chars per tick — bump for faster output
 
     function tick() {
-        if (partIdx >= parts.length) return;
-        const part = parts[partIdx];
-        if (charIdx < part.length) {
-            p.innerHTML = parts.slice(0, partIdx).join('<br>') + (partIdx > 0 ? '<br>' : '') + part.slice(0, ++charIdx);
-            output.scrollTop = output.scrollHeight;
-            setTimeout(tick, 10);
-        } else {
-            partIdx++; charIdx = 0;
-            setTimeout(tick, 30);
-        }
+        if (lineIdx >= lines.length) { output.scrollTop = output.scrollHeight; return; }
+        charIdx = Math.min(charIdx + BATCH, lines[lineIdx].length);
+        spans[lineIdx].textContent = lines[lineIdx].slice(0, charIdx);
+        if (charIdx >= lines[lineIdx].length) { lineIdx++; charIdx = 0; }
+        output.scrollTop = output.scrollHeight;
+        setTimeout(tick, 8);
     }
     tick();
 }
@@ -1582,6 +1594,27 @@ async function askGrok(cmd, imageB64 = null) {
         p.className = 'ai-msg grok-msg';
         output.appendChild(p);
 
+        // Append tokens incrementally — no full innerHTML rebuild per token
+        let currentSpan = document.createElement('span');
+        p.appendChild(currentSpan);
+        let scrollQueued = false;
+
+        function appendToken(token) {
+            const parts = token.split('\n');
+            parts.forEach((part, i) => {
+                if (i > 0) {
+                    p.appendChild(document.createElement('br'));
+                    currentSpan = document.createElement('span');
+                    p.appendChild(currentSpan);
+                }
+                if (part) currentSpan.textContent += part;
+            });
+            if (!scrollQueued) {
+                scrollQueued = true;
+                requestAnimationFrame(() => { output.scrollTop = output.scrollHeight; scrollQueued = false; });
+            }
+        }
+
         const reader  = resp.body.getReader();
         const decoder = new TextDecoder();
         let fullText = '', buf = '';
@@ -1598,11 +1631,7 @@ async function askGrok(cmd, imageB64 = null) {
                 if (raw === '[DONE]') continue;
                 try {
                     const token = JSON.parse(raw).choices?.[0]?.delta?.content ?? '';
-                    if (token) {
-                        fullText += token;
-                        p.innerHTML = fullText.replace(/\n/g, '<br>');
-                        output.scrollTop = output.scrollHeight;
-                    }
+                    if (token) { fullText += token; appendToken(token); }
                 } catch(_) {}
             }
         }
