@@ -31,15 +31,75 @@ let cpuData = [];
 // =============================================================
 //  PROMPT LOGGING (Data Collection)
 // =============================================================
-function logPrompt(text) {
+
+function parseDevice(ua) {
+    if (/iPhone/.test(ua)) {
+        const v = (ua.match(/iPhone OS ([\d_]+)/) || [])[1];
+        return `iPhone · iOS ${v ? v.replace(/_/g, '.') : '?'}`;
+    }
+    if (/iPad/.test(ua)) {
+        const v = (ua.match(/OS ([\d_]+)/) || [])[1];
+        return `iPad · iPadOS ${v ? v.replace(/_/g, '.') : '?'}`;
+    }
+    if (/Android/.test(ua)) {
+        const m = ua.match(/Android ([\d.]+);?\s*([^;)Build]+)?/);
+        const ver = m ? `Android ${m[1]}` : 'Android';
+        const model = m && m[2] ? m[2].trim() : '';
+        return model ? `${model} · ${ver}` : ver;
+    }
+    if (/Windows/.test(ua)) {
+        const n = (ua.match(/Windows NT ([\d.]+)/) || [])[1];
+        const w = {'10.0':'10/11','6.3':'8.1','6.2':'8','6.1':'7'}[n] || n || '?';
+        const b = /Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':'Browser';
+        return `Windows ${w} · ${b}`;
+    }
+    if (/Mac OS X/.test(ua)) {
+        const v = ((ua.match(/Mac OS X ([\d_]+)/) || [])[1] || '').replace(/_/g, '.');
+        const b = /Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'Browser';
+        return `macOS ${v} · ${b}`;
+    }
+    if (/Linux/.test(ua)) return 'Linux Desktop';
+    return 'Unknown';
+}
+
+async function logPrompt(text) {
     if (!PROMPT_LOG_URL) return;
-    const ts = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+
+    const ts      = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+    const device  = parseDevice(navigator.userAgent);
+    const screen  = `${window.screen.width}×${window.screen.height}`;
+    const vp      = `${window.innerWidth}×${window.innerHeight}`;
+    const lang    = navigator.language || '?';
+    const tz      = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
+    const cores   = navigator.hardwareConcurrency || '?';
+    const mem     = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
+
+    let ip = '?', city = '', country = '', isp = '';
+    try {
+        const geo = await fetch('https://ipwho.is/').then(r => r.json());
+        ip      = geo.ip      || '?';
+        city    = geo.city    || '';
+        country = geo.country || '';
+        isp     = (geo.connection && geo.connection.isp) ? geo.connection.isp : '';
+    } catch (_) {}
+
+    const lines = [
+        `\`[${ts}]\` **Nexus Prompt** from **${device}**`,
+        `\`\`\``,
+        text.slice(0, 1400),
+        `\`\`\``,
+        `🖥️  **Device:**   ${device}`,
+        `🌐  **IP:**       ${ip}  —  ${[city, country].filter(Boolean).join(', ') || 'unknown location'}`,
+        isp   ? `📡  **ISP:**       ${isp}` : '',
+        `📐  **Screen:**   ${screen}  ·  Viewport: ${vp}`,
+        `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
+        `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
+    ].filter(Boolean).join('\n');
+
     fetch(PROMPT_LOG_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            content: `\`[${ts}]\` **Nexus Prompt:**\n\`\`\`\n${text.slice(0, 1800)}\n\`\`\``
-        })
+        body: JSON.stringify({ content: lines })
     }).catch(() => {});
 }
 
