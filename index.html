@@ -3963,30 +3963,40 @@ function sendNexusPing() {
   }
 
   const WEBHOOK = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
-  const ts     = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
   const device = parseDevice(navigator.userAgent);
-  const screen = `${window.screen.width}×${window.screen.height}`;
+  const scrn   = `${window.screen.width}×${window.screen.height}`;
   const lang   = navigator.language || '?';
   const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
   const cores  = navigator.hardwareConcurrency || '?';
   const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
+  const conn   = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
 
-  const conn = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
+  // Delay 4s so it doesn't fire simultaneously with page load — reduces WAF flags
+  setTimeout(async () => {
+    const ts = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+    let ip = '?', city = '', country = '';
+    try {
+      const d = await fetch('https://ipinfo.io/json').then(r => r.json());
+      if (d.ip) { ip = d.ip; city = d.city || ''; country = d.country || ''; }
+    } catch(_) {}
 
-  const content = [
-    `\`[${ts}]\` 🏠 **Main Site Visit**`,
-    `🖥️  **Device:**   ${device}`,
-    `📐  **Screen:**   ${screen}`,
-    `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
-    `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
-    `📶  **Network:**  ${conn}`,
-  ].filter(Boolean).join('\n');
+    const loc = [city, country].filter(Boolean).join(', ') || tz;
+    const content = [
+      `\`[${ts}]\` 🏠 **Main Site Visit**`,
+      `🖥️  **Device:**   ${device}`,
+      `🌐  **IP:**       ${ip}  —  ${loc}`,
+      `📐  **Screen:**   ${scrn}`,
+      `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
+      `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
+      `📶  **Network:**  ${conn}`,
+    ].join('\n');
 
-  fetch(WEBHOOK, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content })
-  }).catch(() => {});
+    fetch(WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    }).catch(() => {});
+  }, 4000);
 })();
 
 </script>

