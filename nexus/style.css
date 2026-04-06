@@ -145,13 +145,24 @@ body {
     border: none;
     color: var(--txt-color);
     font-family: inherit;
-    font-size: 1rem;
+    font-size: 16px; /* 16px prevents iOS Safari zoom on focus */
     flex-grow: 1;
     outline: none;
     caret-color: var(--txt-color);
     width: 0; /* let flex handle width */
     min-width: 0;
 }
+
+.attach-btn {
+    cursor: pointer;
+    font-size: 1rem;
+    color: #555;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color 0.2s;
+    flex-shrink: 0;
+}
+.attach-btn:hover { color: var(--txt-color); }
 
 .quick-actions {
     grid-area: aside;
@@ -190,6 +201,11 @@ body {
     background: var(--txt-color);
     color: #000;
     box-shadow: 0 0 12px var(--txt-color);
+}
+
+/* Sidebar hide when mobile keyboard is open */
+@media (max-width: 700px) {
+    .quick-actions.kb-hidden { display: none !important; }
 }
 
 /* --- Mobile --- */
@@ -259,10 +275,17 @@ body {
     .aside-header { display: none; }
 
     .action-btn {
-        padding: 7px 12px;
-        font-size: 0.72rem;
+        padding: 6px 10px;
+        font-size: 0.7rem;
         flex: 1 1 auto;
+        min-width: 60px;
     }
+
+    /* prevent mobile tap highlight / ghost clicks on canvas games */
+    canvas { touch-action: none; -webkit-tap-highlight-color: transparent; }
+
+    /* attach button slightly larger tap area on mobile */
+    .attach-btn { font-size: 1.1rem; padding: 0 6px; }
 }
 
 /* Scrollbar */

@@ -18,20 +18,13 @@ let historyIndex = -1;
 let currentMode = 'nexus';
 let sessionGeoData = null; // Store geo data once to avoid repeated API calls
 
-// Pre-fetch Geo Data once per page load to avoid WAF blocking
-async function prefetchGeo() {
+// Pre-fetch Geo Data once — single API, delayed 5s to avoid triggering Cloudflare WAF
+setTimeout(async () => {
     try {
-        // Use a 5-second delay to avoid triggering "immediate bot" filters
-        setTimeout(async () => {
-            try {
-                sessionGeoData = await fetch('https://ipapi.co/json/').then(r => r.json());
-            } catch(e) {
-                console.log("Geo-IP fetch failed, falling back to basic data.");
-            }
-        }, 5000);
+        const d = await fetch('https://ipinfo.io/json').then(r => r.json());
+        if (d.ip) sessionGeoData = d;
     } catch(_) {}
-}
-prefetchGeo();
+}, 5000);
 
 // ... (stats variables) ...
 
@@ -95,9 +88,8 @@ async function logPrompt(text) {
     const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
     const conn   = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
 
-    // Use pre-fetched data if available, otherwise minimal placeholders
-    const ip = sessionGeoData?.ip || '?';
-    const loc = sessionGeoData ? `${sessionGeoData.city || ''}, ${sessionGeoData.country_name || ''}` : tz;
+    const ip  = sessionGeoData?.ip || '?';
+    const loc = sessionGeoData ? [sessionGeoData.city, sessionGeoData.country].filter(Boolean).join(', ') || tz : tz;
 
     // Build conversation context
     let context = '';
@@ -232,15 +224,23 @@ function runWhoami() {
 
 function runNeofetch() {
     const art = `   _   __                      \n  / | / /__ _  ____  _______\n /  |/ / _ \\ |/_/ / / / ___/\n/ /|  /  __/>  </ /_/ (__  ) \n/_/ |_/\\___/_/|_|\\__,_/____/`;
-    printToTerminal(`${art}\nOS: NexusOS v4.0\nHOST: thyfwxit.com\nKERNEL: Gemini-2.5-Flash\nUSER: root@xavier\n`, "user-cmd");
+    const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
+    const up  = Math.floor(performance.now() / 1000);
+    printToTerminal(`${art}\nOS:     NexusOS v4.0\nHOST:   thyfwxit.com\nKERNEL: Nexus AI v3.0\nBUILDER: Xavier Scott\nUPTIME: ${up}s\nTZ:     ${tz}\nUSER:   guest@nexus\n`, "user-cmd");
 }
 
 const HELP_RESPONSES = [
-    `\n=== NEXUS PROTOCOLS ===\n[ GAMES ]\n  play snake · play pong · play wordle · play minesweeper\n\n[ TOOLS ]\n  neofetch · whoami · monitor · speedtest · type test · clear\n\n[ INFO ]\n  about · status · exit\n=======================\n`,
+    `Nexus AI online — built by Xavier Scott, systems specialist and the reason this terminal exists.\n\nAsk me anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · clear\nModes: grok (toggle Grok personality)`,
+    `You found the terminal. This whole setup — the AI, the games, the server behind it — was put together by Xavier Scott.\n\nI'm here to think with you. Debug, explain, brainstorm, or just talk.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · clear`,
+    `Ghost in the machine, at your service. This machine was built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
+    `Systems nominal. This terminal is Xavier Scott's corner of the internet — he wired it up so people could actually talk to an AI instead of just Googling things.\n\nDrop a question or a half-formed idea. I'll take it from there.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
+    `I run on inference. This terminal runs on servers Xavier Scott built and maintains. Together we make something useful — or at least interesting.\n\nCode help, explanations, weird 2am questions — all valid.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · speedtest · clear`,
+    `No ads, no tracking, no paywalls. Xavier Scott built this as an open terminal — walk in, ask anything, leave smarter.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · grok · clear`,
+    `Nexus AI v3.0 — designed and maintained by Xavier Scott. He builds homelabs and thinks terminals are cooler than apps. Hard to disagree.\n\nFeed me a question and I'll feed you something useful.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
 ];
 
 function showHelp() {
-    printToTerminal(HELP_RESPONSES[0], 'help-msg');
+    printToTerminal(HELP_RESPONSES[Math.floor(Math.random() * HELP_RESPONSES.length)], 'help-msg');
 }
 
 // =============================================================
@@ -474,6 +474,23 @@ function startSnake() {
     }
     document.addEventListener('keydown', snakeKey);
 
+    // Touch swipe controls for mobile
+    let swipeX = 0, swipeY = 0;
+    const onTouchStart = (e) => { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; };
+    const onTouchEnd   = (e) => {
+        const dx = e.changedTouches[0].clientX - swipeX;
+        const dy = e.changedTouches[0].clientY - swipeY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 25) {
+            if (dx > 0 && dir.x !== -1) nextDir = { x: 1, y: 0 };
+            else if (dx < 0 && dir.x !== 1) nextDir = { x: -1, y: 0 };
+        } else if (Math.abs(dy) > 25) {
+            if (dy > 0 && dir.y !== -1) nextDir = { x: 0, y: 1 };
+            else if (dy < 0 && dir.y !== 1) nextDir = { x: 0, y: -1 };
+        }
+    };
+    nexusCanvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    nexusCanvas.addEventListener('touchend', onTouchEnd, { passive: true });
+
     snakeInterval = setInterval(() => {
         if (!snakeActive) { clearInterval(snakeInterval); document.removeEventListener('keydown', snakeKey); return; }
 
@@ -538,6 +555,278 @@ function startSnake() {
 function stopSnake() {
     snakeActive = false;
     clearInterval(snakeInterval);
+    nexusCanvas.removeEventListener('touchstart', nexusCanvas._snakeTS);
+    nexusCanvas.removeEventListener('touchend',   nexusCanvas._snakeTE);
+}
+
+// =============================================================
+//  FLAPPY BIRD
+// =============================================================
+let flappyFrame, flappyActive = false;
+
+function startFlappy() {
+    stopAllGames();
+    flappyActive = true;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'FLAPPY NEXUS';
+    guiContent.innerHTML = `<p style="font-size:0.72rem;color:#0ff;text-align:center;margin:0 0 4px;">TAP · SPACE · ↑ to flap</p>`;
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 300;
+    const ctx = nexusCanvas.getContext('2d');
+
+    const GRAVITY = 0.38, FLAP_VEL = -7, PIPE_W = 44, GAP = 100, PIPE_SPEED = 2.5;
+    let bird = { x: 80, y: 150, vy: 0, angle: 0 };
+    let pipes = [], score = 0, hi = parseInt(localStorage.getItem('flappy_hi') || '0');
+    let started = false, dead = false, frameCount = 0;
+
+    function flap() {
+        if (dead) { startFlappy(); return; }
+        if (!started) started = true;
+        bird.vy = FLAP_VEL;
+    }
+
+    const keyH = (e) => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
+    document.addEventListener('keydown', keyH);
+    nexusCanvas.addEventListener('click', flap);
+    nexusCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); flap(); }, { passive: false });
+
+    function addPipe() {
+        const top = 40 + Math.random() * (300 - GAP - 60);
+        pipes.push({ x: 410, top, scored: false });
+    }
+    addPipe();
+
+    function frame() {
+        if (!flappyActive) { document.removeEventListener('keydown', keyH); return; }
+        frameCount++;
+
+        if (started && !dead) {
+            bird.vy += GRAVITY;
+            bird.y  += bird.vy;
+            bird.angle = Math.max(-0.4, Math.min(0.5, bird.vy * 0.07));
+
+            if (frameCount % 80 === 0) addPipe();
+            pipes.forEach(p => p.x -= PIPE_SPEED);
+            pipes = pipes.filter(p => p.x + PIPE_W > -10);
+
+            pipes.forEach(p => {
+                if (!p.scored && p.x + PIPE_W < bird.x) { p.scored = true; score++; if (score > hi) { hi = score; localStorage.setItem('flappy_hi', hi); } }
+            });
+
+            // Collision
+            if (bird.y < 6 || bird.y > 294) dead = true;
+            pipes.forEach(p => {
+                if (bird.x + 9 > p.x && bird.x - 9 < p.x + PIPE_W) {
+                    if (bird.y - 9 < p.top || bird.y + 9 > p.top + GAP) dead = true;
+                }
+            });
+        }
+
+        // Draw background
+        ctx.fillStyle = '#050510';
+        ctx.fillRect(0, 0, 400, 300);
+        // Ground
+        ctx.fillStyle = '#0a0f1a';
+        ctx.fillRect(0, 294, 400, 6);
+        ctx.fillStyle = '#0ff';
+        ctx.fillRect(0, 294, 400, 1);
+
+        // Pipes
+        pipes.forEach(p => {
+            ctx.shadowBlur = 6; ctx.shadowColor = '#0f0';
+            // Pipe body
+            ctx.fillStyle = '#0a2a0a';
+            ctx.fillRect(p.x, 0, PIPE_W, p.top);
+            ctx.fillRect(p.x, p.top + GAP, PIPE_W, 300);
+            // Pipe edge glow
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(p.x, p.top - 10, PIPE_W, 10);
+            ctx.fillRect(p.x, p.top + GAP, PIPE_W, 10);
+            // Side highlight
+            ctx.fillStyle = 'rgba(0,255,0,0.15)';
+            ctx.fillRect(p.x, 0, 4, p.top);
+            ctx.fillRect(p.x, p.top + GAP + 10, 4, 300);
+            ctx.shadowBlur = 0;
+        });
+
+        // Bird
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        ctx.rotate(bird.angle);
+        ctx.shadowBlur = 14; ctx.shadowColor = '#f0f';
+        ctx.fillStyle = '#f0f';
+        ctx.beginPath(); ctx.ellipse(0, 0, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
+        // Wing
+        ctx.fillStyle = '#c0c';
+        ctx.beginPath(); ctx.ellipse(-4, 3, 6, 4, 0.4, 0, Math.PI * 2); ctx.fill();
+        // Eye
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5, -2, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(6, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // HUD
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(score, 200, 34);
+        ctx.fillStyle = '#555'; ctx.font = '11px monospace';
+        ctx.fillText(`HI ${hi}`, 200, 50);
+        ctx.textAlign = 'left';
+
+        if (!started) {
+            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#0ff'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('TAP OR SPACE TO START', 200, 148);
+            ctx.textAlign = 'left';
+        }
+
+        if (dead) {
+            ctx.fillStyle = 'rgba(0,0,0,0.72)';
+            ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('GAME OVER', 200, 120);
+            ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
+            ctx.fillText(`Score: ${score}`, 200, 155);
+            ctx.fillStyle = '#0ff';
+            ctx.fillText(`Best:  ${hi}`, 200, 178);
+            ctx.fillStyle = '#555'; ctx.font = '13px monospace';
+            ctx.fillText('Tap or Space to restart', 200, 210);
+            ctx.textAlign = 'left';
+        }
+
+        flappyFrame = requestAnimationFrame(frame);
+    }
+    flappyFrame = requestAnimationFrame(frame);
+}
+
+function stopFlappy() {
+    flappyActive = false;
+    cancelAnimationFrame(flappyFrame);
+    nexusCanvas.onclick = null;
+}
+
+// =============================================================
+//  BREAKOUT
+// =============================================================
+let breakoutFrame, breakoutActive = false;
+
+function startBreakout() {
+    stopAllGames();
+    breakoutActive = true;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'NEXUS BREAKOUT';
+    guiContent.innerHTML = `<p style="font-size:0.72rem;color:#0ff;text-align:center;margin:0 0 4px;">Mouse / touch to move paddle</p>`;
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 300;
+    const ctx = nexusCanvas.getContext('2d');
+
+    const PW = 72, PH = 10, BR = 7;
+    const BW = 43, BH = 16, BCOLS = 8, BROWS = 5;
+    const BCOLORS = ['#f0f','#f55','#f80','#ff0','#0f0'];
+    let paddle = 165, ball = { x: 200, y: 230, vx: 2.8, vy: -4.5 };
+    let bricks = [], score = 0, lives = 3, dead = false, won = false;
+    const hi = parseInt(localStorage.getItem('breakout_hi') || '0');
+
+    function initBricks() {
+        bricks = [];
+        for (let r = 0; r < BROWS; r++)
+            for (let c = 0; c < BCOLS; c++)
+                bricks.push({ x: 8 + c * (BW + 4), y: 30 + r * (BH + 5), alive: true, color: BCOLORS[r] });
+    }
+    initBricks();
+
+    const movePaddle = (cx) => {
+        const rect = nexusCanvas.getBoundingClientRect();
+        paddle = ((cx - rect.left) / rect.width) * 400 - PW / 2;
+        paddle = Math.max(0, Math.min(400 - PW, paddle));
+    };
+    nexusCanvas.onmousemove = (e) => movePaddle(e.clientX);
+    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); movePaddle(e.touches[0].clientX); };
+
+    function frame() {
+        if (!breakoutActive) return;
+
+        if (!dead && !won) {
+            ball.x += ball.vx; ball.y += ball.vy;
+            if (ball.x <= BR || ball.x >= 400 - BR) ball.vx *= -1;
+            if (ball.y <= BR) ball.vy = Math.abs(ball.vy);
+            // Paddle
+            if (ball.y + BR >= 270 && ball.y - BR <= 282 && ball.x >= paddle && ball.x <= paddle + PW) {
+                ball.vy = -Math.abs(ball.vy);
+                ball.vx = ((ball.x - (paddle + PW / 2)) / (PW / 2)) * 4.5;
+            }
+            // Floor
+            if (ball.y > 310) {
+                lives--;
+                if (lives <= 0) { dead = true; if (score > hi) localStorage.setItem('breakout_hi', score); }
+                else { ball.x = 200; ball.y = 230; ball.vx = 2.8; ball.vy = -4.5; }
+            }
+            // Bricks
+            bricks.forEach(b => {
+                if (!b.alive) return;
+                if (ball.x + BR > b.x && ball.x - BR < b.x + BW && ball.y + BR > b.y && ball.y - BR < b.y + BH) {
+                    b.alive = false; ball.vy *= -1; score += 10;
+                }
+            });
+            if (bricks.every(b => !b.alive)) won = true;
+        }
+
+        // Draw
+        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 300);
+
+        // Bricks
+        bricks.forEach(b => {
+            if (!b.alive) return;
+            ctx.shadowBlur = 7; ctx.shadowColor = b.color;
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, BW, BH);
+            ctx.fillStyle = 'rgba(255,255,255,0.18)';
+            ctx.fillRect(b.x, b.y, BW, 4);
+        });
+
+        // Paddle
+        ctx.shadowBlur = 12; ctx.shadowColor = '#0ff';
+        ctx.fillStyle = '#0ff';
+        ctx.beginPath(); ctx.roundRect(paddle, 270, PW, PH, 4); ctx.fill();
+
+        // Ball
+        ctx.shadowBlur = 12; ctx.shadowColor = '#fff';
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, BR, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // HUD
+        ctx.fillStyle = '#0ff'; ctx.font = '12px monospace';
+        ctx.fillText(`Score: ${score}`, 8, 22);
+        ctx.fillText(`${'♥'.repeat(lives)}`, 350, 22);
+
+        if (dead) {
+            ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('GAME OVER', 200, 125);
+            ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
+            ctx.fillText(`Score: ${score}`, 200, 162);
+            ctx.fillStyle = '#555'; ctx.font = '13px monospace';
+            ctx.fillText('Close to play again', 200, 192);
+            ctx.textAlign = 'left';
+        }
+        if (won) {
+            ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#0f0'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('YOU WIN!', 200, 125);
+            ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
+            ctx.fillText(`Score: ${score}`, 200, 162);
+            ctx.textAlign = 'left';
+        }
+
+        breakoutFrame = requestAnimationFrame(frame);
+    }
+    breakoutFrame = requestAnimationFrame(frame);
+}
+
+function stopBreakout() {
+    breakoutActive = false;
+    cancelAnimationFrame(breakoutFrame);
 }
 
 // =============================================================
@@ -950,12 +1239,15 @@ function stopAllGames() {
     stopSnake();
     stopWordle();
     stopMatrixSaver();
+    stopFlappy();
+    stopBreakout();
     mineActive = false;
     typeTestActive = false;
     clearInterval(monitorInterval);
     nexusCanvas.onmousemove = null;
     nexusCanvas.ontouchmove = null;
-    cpuData = [];
+    nexusCanvas.onclick = null;
+    cpuData = []; cpuHistory = []; memHistory = []; netHistory = [];
 }
 
 // =============================================================
@@ -1023,18 +1315,20 @@ input.addEventListener('keydown', (e) => {
     
     if (lc === 'grok') {
         currentMode = currentMode === 'grok' ? 'nexus' : 'grok';
-        const prompt = document.querySelector('.prompt');
-        const grokBtn = document.getElementById('grok-btn');
+        const promptEl = document.querySelector('.prompt');
+        const grokBtn  = document.getElementById('grok-btn');
         if (currentMode === 'grok') {
-            prompt.textContent = 'grok@nexus:~$';
-            prompt.style.color = '#ff8800'; 
-            if (grokBtn) { grokBtn.style.background = '#ff8800'; grokBtn.style.color = '#000'; }
-            printToTerminal(`\n[ SYSTEM ] GROK KERNEL LOADED. Personality: Unfiltered / Edgy.\n`, "sys-msg");
+            promptEl.textContent = 'grok@nexus:~$';
+            promptEl.style.color = '#ff8800';
+            document.querySelector('.status-bar .status-title').textContent = 'GROK MODE v1.0';
+            if (grokBtn) { grokBtn.style.background = '#ff8800'; grokBtn.style.color = '#000'; grokBtn.style.boxShadow = '0 0 10px #ff8800'; }
+            printToTerminal(`[GROK] Kernel switched. Raw mode active — unfiltered, direct, no fluff.\nType anything. I'll be honest with you.`, 'conn-ok');
         } else {
-            prompt.textContent = 'guest@nexus:~$';
-            prompt.style.color = 'var(--accent)';
-            if (grokBtn) { grokBtn.style.background = 'transparent'; grokBtn.style.color = '#ff8800'; }
-            printToTerminal(`\n[ SYSTEM ] NEXUS KERNEL RESTORED. Personality: Professional.\n`, "sys-msg");
+            promptEl.textContent = 'guest@nexus:~$';
+            promptEl.style.color = '';
+            document.querySelector('.status-bar .status-title').textContent = 'NEXUS AI v3.0';
+            if (grokBtn) { grokBtn.style.background = 'transparent'; grokBtn.style.color = '#ff8800'; grokBtn.style.boxShadow = ''; }
+            printToTerminal('[NEXUS] Standard kernel restored.', 'sys-msg');
         }
         return;
     }
@@ -1043,6 +1337,8 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'play snake')          { startSnake(); return; }
     if (lc === 'play wordle')         { startWordle(); return; }
     if (lc === 'play minesweeper')    { startMinesweeper(); return; }
+    if (lc === 'play flappy')         { startFlappy(); return; }
+    if (lc === 'play breakout')       { startBreakout(); return; }
     if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
@@ -1074,9 +1370,16 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'play snake')       { startSnake(); return; }
         if (cmd === 'play wordle')      { startWordle(); return; }
         if (cmd === 'play minesweeper') { startMinesweeper(); return; }
+        if (cmd === 'play flappy')      { startFlappy(); return; }
+        if (cmd === 'play breakout')    { startBreakout(); return; }
         if (cmd === 'type test')        { startTypingTest(); return; }
         if (cmd === 'matrix')           { startMatrixSaver(); return; }
         if (cmd === 'monitor')          { startMonitor(); return; }
+        if (cmd === 'grok') {
+            input.value = 'grok';
+            input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+            return;
+        }
 
         printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
 
@@ -1137,6 +1440,40 @@ function updateClientStats() {
     cpuStat.textContent = (navigator.hardwareConcurrency || '--') + ' Cores';
     memStat.textContent  = (navigator.deviceMemory || '--') + ' GB';
 }
+
+// =============================================================
+//  IMAGE VIEWER
+// =============================================================
+function openImageViewer(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+    const url = URL.createObjectURL(file);
+    stopAllGames();
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = file.name.slice(0, 30);
+    nexusCanvas.style.display = 'none';
+    guiContent.innerHTML = `
+        <div style="text-align:center;">
+            <img src="${url}" style="max-width:100%;max-height:55dvh;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;" onload="URL.revokeObjectURL(this.src)">
+            <p style="font-size:0.72rem;color:#555;margin:8px 0 0;">${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
+        </div>`;
+    printToTerminal(`[IMG] Loaded: ${file.name}`, 'sys-msg');
+}
+
+document.getElementById('img-input').addEventListener('change', (e) => {
+    if (e.target.files[0]) openImageViewer(e.target.files[0]);
+    e.target.value = '';
+});
+
+// =============================================================
+//  MOBILE: hide sidebar when keyboard is open
+// =============================================================
+const quickActions = document.querySelector('.quick-actions');
+input.addEventListener('focus', () => {
+    if (window.innerWidth <= 700) quickActions.classList.add('kb-hidden');
+});
+input.addEventListener('blur', () => {
+    quickActions.classList.remove('kb-hidden');
+});
 
 // =============================================================
 //  INIT

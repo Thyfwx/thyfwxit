@@ -17,12 +17,16 @@
                 <div class="status-item status-title">NEXUS AI v3.0</div>
                 <div class="status-item"><span class="stat-label">SESSION</span> GUEST</div>
             </header>
-            
+
             <main class="terminal-container" id="terminal-container">
                 <div class="terminal-output" id="terminal-output"></div>
                 <div class="terminal-input-wrapper">
                     <span class="prompt">guest@nexus:~$</span>
                     <input type="text" id="terminal-input" autocomplete="off" autofocus spellcheck="false">
+                    <label class="attach-btn" title="View image">
+                        📎
+                        <input type="file" id="img-input" accept="image/*" style="display:none;">
+                    </label>
                 </div>
             </main>
 
@@ -32,16 +36,17 @@
                 <button class="action-btn" data-cmd="play snake">Snake</button>
                 <button class="action-btn" data-cmd="play pong">Pong</button>
                 <button class="action-btn" data-cmd="play minesweeper">Minesweeper</button>
+                <button class="action-btn" data-cmd="play flappy">Flappy</button>
+                <button class="action-btn" data-cmd="play breakout">Breakout</button>
                 <div class="aside-header" style="margin-top:8px;">TOOLS</div>
                 <button class="action-btn" data-cmd="type test">Type Test</button>
                 <button class="action-btn" data-cmd="matrix">Matrix</button>
-                <button class="action-btn" data-cmd="speedtest">Speedtest</button>
-                <button class="action-btn" data-cmd="grok" style="border-color: #ff8800; color: #ff8800;" id="grok-btn">Grok Mode</button>
                 <button class="action-btn" data-cmd="monitor">Monitor</button>
+                <button class="action-btn" data-cmd="grok" style="border-color:#ff8800;color:#ff8800;" id="grok-btn">Grok</button>
                 <button class="action-btn" data-cmd="help">Help</button>
                 <button class="action-btn" data-cmd="clear">Clear</button>
             </aside>
-            
+
             <div id="game-gui-container" class="gui-hidden">
                 <div id="gui-header">
                     <span id="gui-title">8-BIT SYSTEM</span>
