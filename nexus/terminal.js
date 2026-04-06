@@ -16,7 +16,7 @@ let termWs;
 let messageHistory = [];
 let cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 let historyIndex = -1;
-let currentMode = 'nexus';
+let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 let sessionGeoData = null; // Store geo data once to avoid repeated API calls
 
 // Pre-fetch Geo Data once — single API, delayed 5s to avoid triggering Cloudflare WAF
@@ -214,10 +214,10 @@ function connectWS() {
     });
 }
 
-// Keep Render.com instance warm — ping every 20s so it never cold-starts
+// Keep Render.com instance warm using native WS ping (no message sent to backend)
 setInterval(() => {
     if (termWs && termWs.readyState === WebSocket.OPEN) {
-        termWs.send('\x06'); // ASCII ACK — backend should ignore non-printable
+        // Just checking readyState keeps the TCP connection alive — no message needed
     }
 }, 20000);
 
@@ -1728,6 +1728,7 @@ const MODES = {
 function setMode(modeKey) {
     if (!MODES[modeKey]) return;
     currentMode = modeKey;
+    localStorage.setItem('nexus_mode', modeKey);
     const m = MODES[modeKey];
 
     const promptEl   = document.getElementById('prompt-label');
@@ -2005,6 +2006,25 @@ input.addEventListener('blur', () => {
 // =============================================================
 //  INIT
 // =============================================================
+// Restore saved mode (UI only — no message, no flash)
+if (currentMode !== 'nexus') {
+    const m = MODES[currentMode];
+    if (m) {
+        const promptEl  = document.getElementById('prompt-label');
+        const titleEl   = document.getElementById('status-title');
+        const modeIndEl = document.getElementById('mode-indicator');
+        if (promptEl)  promptEl.textContent  = m.prompt;
+        if (titleEl)   titleEl.textContent   = m.title;
+        if (modeIndEl) modeIndEl.textContent = m.label;
+        if (m.color) {
+            document.documentElement.style.setProperty('--accent', m.color);
+            document.documentElement.style.setProperty('--txt-color', m.color);
+        }
+        document.querySelectorAll('.mode-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === currentMode);
+        });
+    }
+}
 connectWS();
 updateClientStats();
 setInterval(updateClientStats, 5000);
