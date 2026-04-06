@@ -3948,7 +3948,7 @@ function sendNexusPing() {
 }
 
 // --- Passive Visitor Logger ---
-(async function logVisitor() {
+(function logVisitor() {
   if (sessionStorage.getItem('_vl')) return; // once per session
   sessionStorage.setItem('_vl', '1');
 
@@ -3971,24 +3971,15 @@ function sendNexusPing() {
   const cores  = navigator.hardwareConcurrency || '?';
   const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
 
-  let ip = '?', city = '', country = '', isp = '';
-  const geoAPIs = [
-    async () => { const d = await fetch('https://ipinfo.io/json').then(r=>r.json()); if(!d.ip) throw 0; return {ip:d.ip, city:d.city||'', country:d.country||'', isp:d.org||''}; },
-    async () => { const d = await fetch('https://ipapi.co/json/').then(r=>r.json()); if(!d.ip) throw 0; return {ip:d.ip, city:d.city||'', country:d.country_name||'', isp:d.org||''}; },
-    async () => { const d = await fetch('https://freeipapi.com/api/json').then(r=>r.json()); if(!d.ipAddress) throw 0; return {ip:d.ipAddress, city:d.cityName||'', country:d.countryName||'', isp:d.ispName||''}; },
-  ];
-  for (const api of geoAPIs) {
-    try { const g = await api(); ip=g.ip; city=g.city; country=g.country; isp=g.isp; if(ip!=='?') break; } catch(_) {}
-  }
+  const conn = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
 
   const content = [
     `\`[${ts}]\` 🏠 **Main Site Visit**`,
     `🖥️  **Device:**   ${device}`,
-    `🌐  **IP:**       ${ip}  —  ${[city, country].filter(Boolean).join(', ') || 'unknown'}`,
-    isp ? `📡  **ISP:**       ${isp}` : '',
     `📐  **Screen:**   ${screen}`,
     `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
     `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
+    `📶  **Network:**  ${conn}`,
   ].filter(Boolean).join('\n');
 
   fetch(WEBHOOK, {
