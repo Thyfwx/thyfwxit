@@ -9,8 +9,6 @@ const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
 
 // xAI / Grok — used when EVIL mode is active.
-// Key is loaded from nexus/secrets.js (gitignored) as window.XAI_KEY.
-// Never hardcode the key here — this file is public.
 const XAI_KEY = window.XAI_KEY || '';
 
 // --- State ---
