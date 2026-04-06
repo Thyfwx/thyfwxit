@@ -1091,17 +1091,16 @@ body.a11y-colorblind .contact-form button {
         <span>NODE: CENTRAL_STATION</span>
         <span>SESSION: GUEST_OPEN</span>
       </div>
-      <span id="nexus-uptime">UPTIME: 00:00:00</span>
+      <span style="color:#0f0;">● ONLINE</span>
     </div>
     <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--neon-color); overflow-y: auto; line-height: 1.5; scroll-behavior: smooth; background: linear-gradient(180deg, #050505 0%, #000 100%);">
       <p style="color: #555;">[BOOT] Initializing encrypted handshake...</p>
       <p style="color: #555;">[AUTH] Open session — no credentials required.</p>
       <p style="color: #00ff00;">[OK] Connection to Nexus AI v3.0 established.</p>
     </div>
-    <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center;">
-       <input type="text" id="nexus-ping-input" placeholder="Type anything, then ping..." style="flex-grow: 1; background: transparent; border: 1px solid #333; color: var(--neon-color); padding: 6px 12px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; outline: none; border-radius: 3px;">
-       <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">PING AI</button>
-       <button class="jump-btn" style="padding: 6px 12px; font-size: 0.7rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">OPEN CONSOLE</button>
+    <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center; justify-content: flex-end;">
+       <button class="jump-btn" style="padding: 8px 18px; font-size: 0.75rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">PING</button>
+       <button class="jump-btn" style="padding: 8px 18px; font-size: 0.75rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">OPEN CONSOLE</button>
     </div>
   </div>
 </section>
@@ -3884,21 +3883,8 @@ function updateTetris(currentTime) {
   ctxTetris.lineWidth = 1;
 }
 
-let previewWs = null;
 function initNexusPreview() {
   const logEl = document.getElementById('nexus-preview-log');
-  const uptimeEl = document.getElementById('nexus-uptime');
-  let startTime = Date.now();
-
-  function updateUptime() {
-    let diff = Math.floor((Date.now() - startTime) / 1000);
-    let h = Math.floor(diff / 3600).toString().padStart(2, '0');
-    let m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-    let s = (diff % 60).toString().padStart(2, '0');
-    uptimeEl.textContent = `UPTIME: ${h}:${m}:${s}`;
-  }
-  setInterval(updateUptime, 1000);
-
   const bootWords = [
     { label: 'BOOT',  text: 'Initializing quantum uplink...' },
     { label: 'SCAN',  text: 'Probing neural pathways...' },
@@ -3908,56 +3894,24 @@ function initNexusPreview() {
     { label: 'ALLOC', text: 'Allocating memory buffers...' },
     { label: 'EXEC',  text: 'Spawning AI core process...' },
   ];
-
-  function runBootSequence(callback) {
-    let i = 0;
-    function step() {
-      if (i >= bootWords.length) { callback(); return; }
-      const w = bootWords[i++];
-      const p = document.createElement('p');
-      p.style.color = '#888';
-      p.textContent = `[${w.label}] ${w.text}`;
-      logEl.appendChild(p);
-      logEl.scrollTop = logEl.scrollHeight;
-      setTimeout(step, 180);
-    }
-    step();
-  }
-
-  function connect() {
-    runBootSequence(() => {
-    previewWs = new WebSocket('wss://nexus-terminalnexus.onrender.com/ws/terminal');
-
-    previewWs.onopen = () => {
+  let i = 0;
+  function step() {
+    if (i >= bootWords.length) {
       const p = document.createElement('p');
       p.style.color = '#00ff00';
-      p.textContent = '[CONN] Secure link established with central node.';
+      p.textContent = '[OK] Nexus AI v3.0 online. Press PING to learn more.';
       logEl.appendChild(p);
-    };
-
-    previewWs.onmessage = (event) => {
-      const text = event.data;
-      if (text.includes("[GUI_TRIGGER:")) return; // Skip GUI tags in preview
-      
-      const p = document.createElement('p');
-      p.innerHTML = `> ${text.replace(/\n/g, '<br>')}`;
-      logEl.appendChild(p);
-      logEl.scrollTop = logEl.scrollHeight;
-      
-      // Keep log clean
-      if (logEl.childNodes.length > 50) logEl.removeChild(logEl.firstChild);
-    };
-
-    previewWs.onclose = () => {
-      const p = document.createElement('p');
-      p.style.color = '#ff0000';
-      p.textContent = '[ERR] Connection lost. Attempting reconnect...';
-      logEl.appendChild(p);
-      setTimeout(connect, 5000);
-    };
-    }); // end runBootSequence
+      return;
+    }
+    const w = bootWords[i++];
+    const p = document.createElement('p');
+    p.style.color = '#666';
+    p.textContent = `[${w.label}] ${w.text}`;
+    logEl.appendChild(p);
+    logEl.scrollTop = logEl.scrollHeight;
+    setTimeout(step, 180);
   }
-  connect();
+  step();
 }
 
 const PING_CARDS = [
@@ -3974,48 +3928,25 @@ const PING_CARDS = [
 let _pingIdx = Math.floor(Math.random() * PING_CARDS.length);
 
 function sendNexusPing() {
-  const inputEl = document.getElementById('nexus-ping-input');
-  const query   = inputEl.value.trim();
-  const logEl   = document.getElementById('nexus-preview-log');
+  const logEl = document.getElementById('nexus-preview-log');
 
-  // Echo what the user typed
-  if (query) {
-    const echo = document.createElement('p');
-    echo.style.cssText = 'color:#666; font-size:0.75rem; margin:4px 0;';
-    echo.textContent = `> ${query}`;
-    logEl.appendChild(echo);
-  }
-
-  // Show rotating info card
   const card = PING_CARDS[_pingIdx % PING_CARDS.length];
   _pingIdx++;
+
   const p = document.createElement('p');
-  p.style.cssText = `color:${card.color}; margin:6px 0; line-height:1.5;`;
+  p.style.cssText = `color:${card.color}; margin:8px 0 4px; line-height:1.5;`;
   p.textContent = card.text;
   logEl.appendChild(p);
 
-  // Nudge to open console
   const nudge = document.createElement('p');
-  nudge.style.cssText = 'font-size:0.72rem; color:#555; margin:4px 0 10px; border-top:1px solid #1a1a1a; padding-top:6px;';
-  nudge.innerHTML = '↗ <span style="color:var(--neon-color);cursor:pointer;text-decoration:underline;" onclick="window.location.href=\'/nexus/\'">Open full console</span> to chat with Nexus AI directly.';
+  nudge.style.cssText = 'font-size:0.72rem; color:#555; margin:2px 0 10px; border-top:1px solid #1a1a1a; padding-top:6px;';
+  nudge.innerHTML = '↗ <span style="color:var(--neon-color);cursor:pointer;text-decoration:underline;" onclick="window.location.href=\'/nexus/\'">Open full console</span> to chat with Nexus AI.';
   logEl.appendChild(nudge);
 
   logEl.scrollTop = logEl.scrollHeight;
-  inputEl.value = '';
-
-  // Keep log tidy
-  while (logEl.childNodes.length > 25) logEl.removeChild(logEl.firstChild);
+  while (logEl.childNodes.length > 30) logEl.removeChild(logEl.firstChild);
 }
 
-// Add enter key support for the ping input
-document.addEventListener('DOMContentLoaded', () => {
-  const inputEl = document.getElementById('nexus-ping-input');
-  if (inputEl) {
-    inputEl.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') sendNexusPing();
-    });
-  }
-});
 
 
 </script>
