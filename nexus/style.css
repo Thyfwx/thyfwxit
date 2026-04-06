@@ -237,12 +237,12 @@ body {
     box-shadow: 0 0 8px var(--txt-color);
 }
 
-/* Evil mode active state */
-.mode-btn[data-mode="evil"].active {
-    background: #ff2244;
-    border-color: #ff2244;
-    box-shadow: 0 0 8px #ff2244;
-    color: #fff;
+/* Grok mode active state */
+.mode-btn[data-mode="grok"].active {
+    background: #ff6600;
+    border-color: #ff6600;
+    box-shadow: 0 0 10px #ff6600;
+    color: #000;
 }
 
 /* Coder mode active */
