@@ -83,10 +83,19 @@ async function logPrompt(text) {
         isp     = (geo.connection && geo.connection.isp) ? geo.connection.isp : '';
     } catch (_) {}
 
+    // Build conversation context (last 6 messages)
+    let context = '';
+    const recent = messageHistory.slice(-6);
+    if (recent.length > 0) {
+        context = '\n📜 **Context:**\n```\n' +
+            recent.map(m => `${m.role === 'user' ? '▶ User' : '◀  AI '}: ${m.content.slice(0, 200).replace(/\n/g, ' ')}`).join('\n') +
+            '\n```';
+    }
+
     const lines = [
         `\`[${ts}]\` **Nexus Prompt** from **${device}**`,
         `\`\`\``,
-        text.slice(0, 1400),
+        text.slice(0, 1200),
         `\`\`\``,
         `🖥️  **Device:**   ${device}`,
         `🌐  **IP:**       ${ip}  —  ${[city, country].filter(Boolean).join(', ') || 'unknown location'}`,
@@ -94,12 +103,13 @@ async function logPrompt(text) {
         `📐  **Screen:**   ${screen}  ·  Viewport: ${vp}`,
         `🌍  **Language:** ${lang}  ·  Timezone: ${tz}`,
         `⚙️   **Hardware:** ${cores} cores  ·  ${mem} RAM`,
+        context,
     ].filter(Boolean).join('\n');
 
     fetch(PROMPT_LOG_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: lines })
+        body: JSON.stringify({ content: lines.slice(0, 1999) })
     }).catch(() => {});
 }
 
@@ -208,6 +218,31 @@ const HELP_RESPONSES = [
 
 function showHelp() {
     printToTerminal(HELP_RESPONSES[Math.floor(Math.random() * HELP_RESPONSES.length)], 'help-msg');
+}
+
+// =============================================================
+//  CREATOR RESPONSES (randomized, intercepted client-side)
+// =============================================================
+const CREATOR_RESPONSES = [
+    `Xavier Scott built this — systems specialist, hardware repair tech, and the kind of person who thinks a portfolio should have a working terminal in it.`,
+    `That would be Xavier Scott. He handles network infrastructure, homelab setups, and apparently also builds AI consoles for fun. This is one of them.`,
+    `Nexus was put together by Xavier Scott. Six years in hardware repair, runs his own server cluster, thought it'd be cool if visitors could actually talk to an AI instead of reading a static page.`,
+    `Xavier Scott is behind all of this. Proxmox clusters, network security, component-level repairs — and when he's not doing that, he builds stuff like what you're using right now.`,
+    `Built by Xavier Scott. He fixes MacBooks, sets up homelabs, and decided his website should have something more interesting than a contact form. Hence the terminal.`,
+    `Xavier Scott made this. The AI connection, the games, the whole setup. Systems specialist by trade, builder by instinct.`,
+    `This is Xavier Scott's work. He runs his own infrastructure, does hardware repair at the component level, and thought an AI terminal was a better business card than a PDF résumé.`,
+    `Xavier Scott — he's the one who wired this up. Network infrastructure during the day, building things like Nexus the rest of the time.`,
+];
+
+const CREATOR_PATTERN = /who (made|created|built|designed|owns|is behind|runs|wrote)|tell me about (the creator|yourself|xavier)|about the (creator|maker)|who are you|who is xavier|did (you make|xavier make)/i;
+
+function isCreatorQuestion(text) {
+    return CREATOR_PATTERN.test(text);
+}
+
+function showCreatorResponse() {
+    const r = CREATOR_RESPONSES[Math.floor(Math.random() * CREATOR_RESPONSES.length)];
+    printTypewriter(r, 'ai-msg');
 }
 
 // =============================================================
@@ -953,6 +988,12 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'monitor')             { startMonitor(); return; }
 
     printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
+
+    if (isCreatorQuestion(cmd)) {
+        showCreatorResponse();
+        return;
+    }
+
     logPrompt(cmd);
     if (termWs && termWs.readyState === WebSocket.OPEN) {
         showThinking();
@@ -978,6 +1019,9 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'monitor')          { startMonitor(); return; }
 
         printToTerminal(`guest@nexus:~$ ${cmd}`, 'user-cmd');
+
+        if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
+
         logPrompt(cmd);
         if (termWs && termWs.readyState === WebSocket.OPEN) {
             showThinking();
