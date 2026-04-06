@@ -1414,12 +1414,12 @@ const MODES = {
         msg:     '[NEXUS] Standard kernel active. Ask me anything.',
         msgCls:  'sys-msg',
     },
-    grok: {
-        prompt:  'grok@nexus:~$',
+    evil: {
+        prompt:  'evil@nexus:~$',
         color:   '#ff6600',
-        title:   'GROK MODE',
-        label:   'GROK',
-        msg:     '[GROK] xAI Grok persona loaded — raw, unfiltered, no corporate fluff. Say what you actually want to know.',
+        title:   'EVIL MODE  ⚡ Grok',
+        label:   'EVIL',
+        msg:     '[EVIL] Grok kernel loaded — raw, unfiltered, no guardrails. Say what you actually want to know.',
         msgCls:  'conn-ok',
     },
     coder: {
@@ -1537,7 +1537,7 @@ input.addEventListener('keydown', (e) => {
         cmd = 'Describe and analyze this image in detail. What do you see?';
     }
     
-    if (lc === 'grok')  { setMode(currentMode === 'grok' ? 'nexus' : 'grok'); return; }
+    if (lc === 'evil')  { setMode(currentMode === 'evil' ? 'nexus' : 'evil'); return; }
     if (lc === 'nexus') { setMode('nexus'); return; }
     if (lc === 'coder') { setMode('coder'); return; }
     if (lc === 'sage')  { setMode('sage');  return; }

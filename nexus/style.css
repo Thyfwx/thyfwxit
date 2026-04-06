@@ -237,8 +237,8 @@ body {
     box-shadow: 0 0 8px var(--txt-color);
 }
 
-/* Grok mode active state */
-.mode-btn[data-mode="grok"].active {
+/* Evil / Grok mode active state */
+.mode-btn[data-mode="evil"].active {
     background: #ff6600;
     border-color: #ff6600;
     box-shadow: 0 0 10px #ff6600;
