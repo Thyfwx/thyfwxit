@@ -6,7 +6,7 @@
 const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 
 // Discord webhook
-const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
+const PROMPT_LOG_URL = 'https://discord.com/api/webhooks/1490672363585667172/jC2FuHfPCjpxvw8ximwBlVqQlxS7P_WQ-Tu3Du6ZOQI5WRhyafm5n2tV7FOP1Dax83yW';
 
 // EVIL mode routes through Cloudflare Worker — keys stored as CF secrets, never in browser
 const EVIL_PROXY = 'https://nexus-evil-proxy.xavierscott300.workers.dev';
@@ -18,12 +18,18 @@ let cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 let historyIndex = -1;
 let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 
-// Persist chat history across sessions
+// Per-mode chat history — each AI has its own separate memory
+const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage' };
+
 function saveHistory() {
-    try { localStorage.setItem('nexus_history', JSON.stringify(messageHistory.slice(-30))); } catch(_) {}
+    const key = HISTORY_KEYS[currentMode];
+    if (!key) return;
+    try { localStorage.setItem(key, JSON.stringify(messageHistory.slice(-40))); } catch(_) {}
 }
-function loadHistory() {
-    try { return JSON.parse(localStorage.getItem('nexus_history') || '[]'); } catch(_) { return []; }
+function loadHistory(mode) {
+    const key = HISTORY_KEYS[mode || currentMode];
+    if (!key) return [];
+    try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(_) { return []; }
 }
 let sessionGeoData = null; // Store geo data once to avoid repeated API calls
 
@@ -348,17 +354,74 @@ function showHelp() {
     printToTerminal(HELP_RESPONSES[Math.floor(Math.random() * HELP_RESPONSES.length)], 'help-msg');
 }
 
+const MODE_COLORS = { nexus: '#0ff', evil: '#ff6600', coder: '#0f0', sage: '#a06fff' };
+
+// Open the history GUI panel
 function showHistory() {
-    const hist = loadHistory();
-    if (!hist.length) { printToTerminal('No chat history saved yet.', 'sys-msg'); return; }
-    printToTerminal(`── Chat History (${hist.length} messages) ──`, 'sys-msg');
-    hist.forEach(m => {
-        const cls  = m.role === 'user' ? 'user-cmd' : 'ai-msg';
-        const pre  = m.role === 'user' ? '▶ You: ' : '◀ AI:  ';
-        printToTerminal(pre + m.content.slice(0, 200) + (m.content.length > 200 ? '…' : ''), cls);
-    });
-    printToTerminal('── End of history · type clear to wipe ──', 'sys-msg');
+    stopAllGames();
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'SESSION LOGS';
+    nexusCanvas.style.display = 'none';
+    renderHistoryTab(currentMode);
 }
+
+// Render a mode's history tab — exposed globally for onclick attrs
+window.renderHistoryTab = function(mode) {
+    const allModes = ['nexus', 'evil', 'coder', 'sage'];
+
+    const tabs = allModes.map(m => {
+        const count = loadHistory(m).length;
+        const active = m === mode;
+        const col = MODE_COLORS[m] || '#0ff';
+        return `<button onclick="renderHistoryTab('${m}')" style="
+            padding:5px 9px;flex:1;
+            background:${active ? col : 'transparent'};
+            border:1px solid ${col};
+            color:${active ? '#000' : col};
+            font-family:'Fira Code',monospace;font-size:0.6rem;font-weight:bold;
+            cursor:pointer;letter-spacing:1px;border-radius:3px;transition:all 0.1s;
+        ">${m.toUpperCase()}${count ? ` (${count})` : ''}</button>`;
+    }).join('');
+
+    const hist = loadHistory(mode);
+    const col  = MODE_COLORS[mode] || '#0ff';
+
+    let msgs = '';
+    if (hist.length) {
+        [...hist].reverse().forEach(msg => {
+            const isUser = msg.role === 'user';
+            const label  = isUser ? 'YOU' : `${mode.toUpperCase()} AI`;
+            const lc     = isUser ? '#555' : col;
+            const safe   = (msg.content || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            msgs += `<div style="padding:7px 10px;margin-bottom:4px;border-left:2px solid ${isUser ? '#222' : col};
+                background:rgba(255,255,255,0.015);border-radius:0 4px 4px 0;">
+                <div style="font-size:0.58rem;color:${lc};letter-spacing:1px;margin-bottom:2px;font-weight:bold;">${label}</div>
+                <div style="font-size:0.78rem;color:${isUser ? '#bbb' : '#999'};line-height:1.55;word-break:break-word;white-space:pre-wrap;">${safe.slice(0,400)}${safe.length > 400 ? '…' : ''}</div>
+            </div>`;
+        });
+    } else {
+        msgs = `<div style="color:#252525;text-align:center;padding:30px 0;font-size:0.8rem;">No ${mode.toUpperCase()} history yet.<br><span style="font-size:0.65rem;color:#1a1a1a;">Switch to ${mode.toUpperCase()} and start a conversation.</span></div>`;
+    }
+
+    guiContent.innerHTML = `
+        <div style="display:flex;gap:4px;margin-bottom:10px;">${tabs}</div>
+        <div style="overflow-y:auto;max-height:calc(65dvh - 70px);">${msgs}</div>
+        ${hist.length ? `
+        <div style="margin-top:7px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #111;padding-top:7px;">
+            <span style="color:#222;font-size:0.6rem;">${hist.length} messages stored</span>
+            <button onclick="clearModeHistory('${mode}')" style="background:transparent;border:1px solid #f44;color:#f44;
+                padding:3px 10px;font-family:'Fira Code',monospace;font-size:0.6rem;cursor:pointer;border-radius:3px;">
+                CLEAR ${mode.toUpperCase()}
+            </button>
+        </div>` : ''}`;
+};
+
+window.clearModeHistory = function(mode) {
+    localStorage.removeItem(HISTORY_KEYS[mode]);
+    if (mode === currentMode) messageHistory = [];
+    renderHistoryTab(mode);
+    printToTerminal(`[SYS] ${mode.toUpperCase()} history cleared.`, 'sys-msg');
+};
 
 // =============================================================
 //  CREATOR RESPONSES (randomized, intercepted client-side)
@@ -2012,8 +2075,12 @@ const MODES = {
 
 function setMode(modeKey) {
     if (!MODES[modeKey]) return;
+    // Save current mode's history before switching (keeps them separate)
+    saveHistory();
     currentMode = modeKey;
     localStorage.setItem('nexus_mode', modeKey);
+    // Load the new mode's history into active memory
+    messageHistory = loadHistory(modeKey);
     const m = MODES[modeKey];
 
     const promptEl   = document.getElementById('prompt-label');
@@ -2102,8 +2169,8 @@ input.addEventListener('keydown', (e) => {
 
     const lc = cmd.toLowerCase();
     const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
-    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; localStorage.removeItem('nexus_history'); return; }
-    if (lc === 'history')             { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHistory(); return; }
+    if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; localStorage.removeItem(HISTORY_KEYS[currentMode]); return; }
+    if (lc === 'history')             { showHistory(); return; }
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
@@ -2160,7 +2227,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
         const promptLabel = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
-        if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; return; }
+        if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; localStorage.removeItem(HISTORY_KEYS[currentMode]); return; }
         if (cmd === 'help')             { printToTerminal(`${promptLabel} help`, 'user-cmd'); showHelp(); input.focus(); return; }
         if (cmd === 'whoami')           { printToTerminal(`${promptLabel} whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
         if (cmd === 'neofetch')         { printToTerminal(`${promptLabel} neofetch`, 'user-cmd'); runNeofetch(); input.focus(); return; }
@@ -2319,11 +2386,14 @@ if (currentMode !== 'nexus') {
         });
     }
 }
-// Restore previous session history into memory (not displayed — use 'history' to view)
-const _savedHistory = loadHistory();
+// Restore current mode's history into memory
+const _savedHistory = loadHistory(currentMode);
 if (_savedHistory.length) {
     messageHistory = _savedHistory;
-    setTimeout(() => printToTerminal(`[SYS] ${_savedHistory.length} messages from last session — type <b style="color:#0ff">history</b> to view.`, 'sys-msg'), 2000);
+    setTimeout(() => {
+        const col = MODE_COLORS[currentMode] || '#0ff';
+        printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages from last session — type <b style="color:${col}">history</b> to view all modes.`, 'sys-msg');
+    }, 2000);
 }
 
 connectWS();
