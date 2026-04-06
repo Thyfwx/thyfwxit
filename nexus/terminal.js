@@ -1942,7 +1942,7 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
 
         if (!resp.ok) {
             const err = await resp.text();
-            printToTerminal(`[EVIL] Error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
+            printToTerminal(`[${currentMode.toUpperCase()}] Error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
             messageHistory.pop();
             return;
         }
@@ -2001,7 +2001,7 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
 
     } catch (err) {
         document.getElementById('ai-thinking')?.remove();
-        printToTerminal(`[EVIL] Connection failed — ${err.message}`, 'sys-msg');
+        printToTerminal(`[${currentMode.toUpperCase()}] Connection failed — ${err.message}`, 'sys-msg');
         messageHistory.pop();
     }
 }
