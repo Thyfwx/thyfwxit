@@ -1007,29 +1007,6 @@ body.a11y-colorblind .project-card {
 body.a11y-colorblind .contact-form button {
   background: #0099cc;
 }
-
-/* Section scroll reveal */
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 0.55s ease, transform 0.55s ease;
-}
-.reveal.visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-body.a11y-no-anim .reveal {
-  opacity: 1 !important;
-  transform: none !important;
-  transition: none !important;
-}
-
-/* Tetris mobile buttons */
-#tetrisControls .jump-btn {
-  font-size: 1.3em;
-  padding: 12px 18px;
-  min-width: 60px;
-}
 </style>
 </head>
 <body>
@@ -1062,11 +1039,11 @@ body.a11y-no-anim .reveal {
 
 <div id="kawaiiOv" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9998; overflow:hidden; transform:translateZ(0); will-change:transform;"></div>
 
-<header id="mainHeader" class="reveal" tabindex="0">
+<header id="mainHeader" tabindex="0">
   <h1 id="mainTitle">Systems Specialist & Network Infrastructure</h1>
 </header>
 
-<section class="reveal">
+<section>
   <h2>Project Showcase</h2>
   <div class="project-grid">
     <div class="project-card">
@@ -1080,12 +1057,12 @@ body.a11y-no-anim .reveal {
   </div>
 </section>
 
-<section class="reveal">
+<section>
   <h2><span class="pulse-indicator">●</span> Tech Tip of the Day</h2>
   <p id="techTipText">Loading tip...</p>
 </section>
 
-<section class="reveal">
+<section>
   <h2>Hardware Technical Environment</h2>
   <ul>
     <li><b>Hardware Repair</b>: 6 years of specialized experience fixing <b>Windows PCs</b>, <b>MacBooks</b>, and <b>mobile devices</b>.</li>
@@ -1094,7 +1071,7 @@ body.a11y-no-anim .reveal {
   </ul>
 </section>
 
-<section id="systemStatus" class="reveal">
+<section id="systemStatus">
   <h2>Live Infrastructure Status</h2>
   <p>Monitoring critical node uptime across local and remote environments.</p>
   <div class="status-grid">
@@ -1106,7 +1083,7 @@ body.a11y-no-anim .reveal {
   <p id="statusTimestamp" style="font-size: 0.75em; color: #666; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
 </section>
 
-<section id="nexusLive" class="reveal">
+<section id="nexusLive">
   <h2><span class="pulse-indicator">●</span> Nexus AI Core — Live</h2>
   <div class="project-card" style="background: #000; border-color: var(--neon-color); padding: 0; overflow: hidden; position: relative; height: 350px; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);">
     <div style="background: var(--neon-color); color: #000; padding: 6px 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
@@ -1129,7 +1106,7 @@ body.a11y-no-anim .reveal {
   </div>
 </section>
 
-<section id="githubActivity" class="reveal">
+<section id="githubActivity">
   <h2>Latest Site Update</h2>
   <div id="commitWidget" style="display:flex; align-items:flex-start; gap:14px; background:#111; border:1px solid var(--neon-color); border-radius:5px; padding:18px; min-height:60px;">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="var(--neon-color)" aria-hidden="true" style="flex-shrink:0; margin-top:2px;"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -1141,14 +1118,8 @@ body.a11y-no-anim .reveal {
 </section>
 
 
-<section class="game-container reveal" id="gameArea">
-  <h2 id="gameTitle">Cyber Runner</h2>
-
-  <div class="game-mode-tabs" id="gameTabs">
-    <button class="game-tab-btn active" id="tab-runner" onclick="window.switchGame('runner')">⚡ Runner</button>
-    <button class="game-tab-btn" id="tab-target" onclick="window.switchGame('target')">🎯 Target</button>
-    <button class="game-tab-btn" id="tab-tetris" onclick="window.switchGame('tetris')">⬛ Tetris</button>
-  </div>
+<section class="game-container" id="gameArea">
+  <h2 id="gameTitle">Cyber Runner Game</h2>
 
   <div class="game-screen-wrapper" id="gameScreenWrapper">
     <div class="crt-overlay" id="crtOverlayElement"></div>
@@ -1157,10 +1128,11 @@ body.a11y-no-anim .reveal {
     <canvas id="tetrisGame" width="400" height="400" style="display:none;" role="img" aria-label="Tetris Terminal — use arrow keys or swipe to move pieces"></canvas>
   </div>
 
-  <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap</b> to Jump.</p>
+  <p style="font-size: 0.9em; margin-bottom: 5px;" id="gamePrompt">Press <b>Space</b> or <b>Tap Game</b> to Jump.</p>
+  <p id="secretText" style="font-size: 0.8em; color: #888; margin-top: 5px; transition: color 0.3s; cursor: pointer;" onclick="window.switchGame('target')">Secret: Type or tap <b style="color: var(--neon-color);">duck</b> for a secret game mode ;)</p>
 
   <div id="publicDifficulty" style="display:none; margin-top: 15px;">
-    <label style="color: var(--neon-color); font-weight: bold;">Difficulty: </label>
+    <label style="color: var(--neon-color); font-weight: bold;">Target Difficulty: </label>
     <select id="publicDiffSelect" style="background:#111; color:#fff; border:1px solid var(--neon-color); padding:5px; border-radius:3px; outline:none;">
       <option value="8">Easy (8 Misses)</option>
       <option value="6" selected>Normal (6 Misses)</option>
@@ -1171,16 +1143,9 @@ body.a11y-no-anim .reveal {
   <div class="controls-wrapper" id="runnerControls">
     <button id="mobileJumpBtn" class="jump-btn">JUMP</button>
   </div>
-
-  <div class="controls-wrapper" id="tetrisControls" style="display:none;">
-    <button class="jump-btn" id="tetBtnLeft">◀</button>
-    <button class="jump-btn" id="tetBtnRotate">↺</button>
-    <button class="jump-btn" id="tetBtnRight">▶</button>
-    <button class="jump-btn" id="tetBtnDown">▼</button>
-  </div>
 </section>
 
-<section class="reveal">
+<section>
   <h2>Request Service</h2>
   <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST" aria-label="Service request form">
     <label for="formName" class="sr-only">Your Name</label>
@@ -2126,22 +2091,15 @@ window.switchGame = function(mode) {
   activeGameMode = mode;
 
   const jumpCanvas = document.getElementById('jumpGame');
-  const tgtCanvas  = document.getElementById('targetGame');
-  const tetCanvas  = document.getElementById('tetrisGame');
+  const tgtCanvas = document.getElementById('targetGame');
+  const tetCanvas = document.getElementById('tetrisGame');
 
   if (jumpCanvas) jumpCanvas.style.display = 'none';
-  if (tgtCanvas)  tgtCanvas.style.display  = 'none';
-  if (tetCanvas)  tetCanvas.style.display  = 'none';
+  if (tgtCanvas) tgtCanvas.style.display = 'none';
+  if (tetCanvas) tetCanvas.style.display = 'none';
 
-  document.getElementById('runnerControls').style.display  = 'none';
-  document.getElementById('tetrisControls').style.display  = 'none';
+  document.getElementById('runnerControls').style.display = 'none';
   document.getElementById('publicDifficulty').style.display = 'none';
-
-  // Update active tab
-  document.querySelectorAll('.game-tab-btn').forEach(b => b.classList.remove('active'));
-  const tabMap = { runner: 'tab-runner', target: 'tab-target', tetris: 'tab-tetris' };
-  const activeTab = document.getElementById(tabMap[mode]);
-  if (activeTab) activeTab.classList.add('active');
 
   const now = performance.now();
 
@@ -2150,7 +2108,9 @@ window.switchGame = function(mode) {
     if (jumpCanvas) jumpCanvas.style.display = 'block';
     document.getElementById('runnerControls').style.display = 'flex';
     document.getElementById('gamePrompt').style.display = 'block';
-    document.getElementById('gameTitle').innerText = "Cyber Runner";
+    const secretEl = document.getElementById('secretText');
+    if (secretEl) secretEl.style.display = 'block';
+    document.getElementById('gameTitle').innerText = "Cyber Runner Game";
     document.getElementById('gameTitle').style.color = "var(--neon-color)";
     resetRunnerState();
     runnerFirstFrame = true;
@@ -2161,8 +2121,10 @@ window.switchGame = function(mode) {
     if (tgtCanvas) tgtCanvas.style.display = 'block';
     document.getElementById('publicDifficulty').style.display = 'block';
     document.getElementById('gamePrompt').style.display = 'none';
+    const secretEl2 = document.getElementById('secretText');
+    if (secretEl2) secretEl2.style.display = 'none';
     document.getElementById('gameTitle').innerText = "Matrix Target Simulator";
-    document.getElementById('gameTitle').style.color = "var(--neon-color)";
+    document.getElementById('gameTitle').style.color = "red";
     resetTargetState();
     targetLastTime = now;
     targetAnimId = requestAnimationFrame(updateTargetGame);
@@ -2170,9 +2132,10 @@ window.switchGame = function(mode) {
     tetrisActive = true;
     if (tetCanvas) tetCanvas.style.display = 'block';
     document.getElementById('gamePrompt').style.display = 'none';
-    document.getElementById('tetrisControls').style.display = 'flex';
-    document.getElementById('gameTitle').innerText = "Tetris Terminal";
-    document.getElementById('gameTitle').style.color = "var(--neon-color)";
+    const secretEl3 = document.getElementById('secretText');
+    if (secretEl3) secretEl3.style.display = 'none';
+    document.getElementById('gameTitle').innerText = "TETRIS TERMINAL";
+    document.getElementById('gameTitle').style.color = "cyan";
     initTetris();
     tetrisLastTime = now;
     tetrisAnimId = requestAnimationFrame(updateTetris);
@@ -4021,34 +3984,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') sendNexusPing();
     });
   }
-
-  // Tetris mobile buttons
-  document.getElementById('tetBtnLeft')?.addEventListener('click', () => {
-    if (tetrisActive && !tetrisGameOver) tMove(-1);
-  });
-  document.getElementById('tetBtnRight')?.addEventListener('click', () => {
-    if (tetrisActive && !tetrisGameOver) tMove(1);
-  });
-  document.getElementById('tetBtnRotate')?.addEventListener('click', () => {
-    if (tetrisActive && !tetrisGameOver) tRotate();
-  });
-  document.getElementById('tetBtnDown')?.addEventListener('click', () => {
-    if (tetrisActive && !tetrisGameOver) { tDrop(); tetrisScore += (1 * tetrisScoreMult); }
-  });
 });
-
-// Section scroll reveal
-(function() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-        observer.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.08 });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-})();
 
 
 </script>
