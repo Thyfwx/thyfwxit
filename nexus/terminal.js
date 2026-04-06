@@ -31,7 +31,6 @@ const nexusCanvas  = document.getElementById('nexus-canvas');
 let monitorInterval;
 let cpuData = [];
 let cpuHistory = [], memHistory = [], netHistory = [];
-let snakeActive = false;
 
 // =============================================================
 //  PROMPT LOGGING (Data Collection)
