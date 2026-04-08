@@ -468,6 +468,61 @@ body {
     letter-spacing: 0.5px;
 }
 
+.a11y-section-label {
+    color: #336;
+    font-size: 0.58rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 8px 0 4px;
+}
+
+/* Voice picker select */
+.a11y-voice-sel {
+    width: 100%;
+    background: #0a0a18;
+    border: 1px solid #1a1a3a;
+    color: #7af;
+    font-family: inherit;
+    font-size: 0.65rem;
+    padding: 5px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.a11y-voice-sel:hover,
+.a11y-voice-sel:focus { border-color: rgba(0,255,255,0.4); }
+.a11y-voice-sel option { background: #0a0a14; color: #7af; }
+
+/* ── Redesigned accessibility open button ────────────────────────── */
+.a11y-open-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 8px 0;
+    background: linear-gradient(135deg, rgba(0,255,255,0.04) 0%, rgba(100,0,255,0.06) 100%);
+    border: 1px solid rgba(0,255,255,0.2);
+    border-radius: 6px;
+    color: rgba(0,255,255,0.6);
+    font-family: inherit;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.a11y-open-btn:hover {
+    border-color: rgba(0,255,255,0.6);
+    color: #0ff;
+    background: rgba(0,255,255,0.07);
+    box-shadow: 0 0 10px rgba(0,255,255,0.12);
+}
+.a11y-icon { font-size: 0.9rem; line-height: 1; }
+.a11y-label { font-weight: 600; }
+
 /* ============================================================
    ACCESSIBILITY BODY CLASSES
    ============================================================ */

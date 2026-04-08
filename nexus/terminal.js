@@ -2644,6 +2644,14 @@ input.addEventListener('keydown', (e) => {
             window.speechSynthesis.cancel();
             const utt = new SpeechSynthesisUtterance(spokenText);
             utt.rate = 0.92; utt.pitch = 1;
+            const savedVoice = localStorage.getItem('nexus_tts_voice');
+            const voices = window.speechSynthesis.getVoices();
+            if (savedVoice && voices.length) {
+                const v = voices.find(v => v.name === savedVoice);
+                if (v) utt.voice = v;
+            } else if (voices.length) {
+                utt.voice = _pickBestVoice(voices);
+            }
             window.speechSynthesis.speak(utt);
             printToTerminal(`[${currentMode.toUpperCase()}] Speaking: "${spokenText.slice(0,100)}${spokenText.length > 100 ? '…' : ''}"`, 'sys-msg');
         } else {
@@ -2961,40 +2969,110 @@ function _a11ySyncButtons() {
 
 function toggleA11yClass(cls) {
     document.body.classList.toggle(cls);
-    // font-size: only one size active at a time
     if (cls === 'a11y-large' && document.body.classList.contains(cls))  document.body.classList.remove('a11y-xl');
     if (cls === 'a11y-xl'    && document.body.classList.contains(cls))  document.body.classList.remove('a11y-large');
     _a11ySave();
     _a11ySyncButtons();
 }
 
+// ── Voice selection helpers ──────────────────────────────────────────────────
+// Preferred voice names in priority order (Google > Microsoft > macOS > default)
+const _VOICE_PREF = [
+    'Google US English', 'Google UK English Female', 'Google UK English Male',
+    'Microsoft Aria Online (Natural) - English (United States)',
+    'Microsoft Jenny Online (Natural) - English (United States)',
+    'Microsoft Guy Online (Natural) - English (United States)',
+    'Microsoft Zira - English (United States)',
+    'Microsoft David - English (United States)',
+    'Samantha', 'Alex', 'Karen', 'Daniel',
+];
+
+function _pickBestVoice(voices) {
+    // Try ranked preferences first
+    for (const name of _VOICE_PREF) {
+        const v = voices.find(v => v.name === name);
+        if (v) return v;
+    }
+    // Fall back to any en-US voice, then any English voice
+    return voices.find(v => v.lang === 'en-US')
+        || voices.find(v => v.lang.startsWith('en'))
+        || voices[0];
+}
+
+function _buildVoiceOptions(sel) {
+    const voices = window.speechSynthesis.getVoices();
+    const saved  = localStorage.getItem('nexus_tts_voice');
+    // Only show English voices to keep list manageable
+    const eng = voices.filter(v => v.lang.startsWith('en'));
+    sel.innerHTML = '<option value="">— Auto (best available) —</option>';
+    eng.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        if (v.name === saved) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    if (!saved) {
+        // Pre-select the best one so users see what'll be used
+        const best = _pickBestVoice(eng.length ? eng : voices);
+        if (best) {
+            const match = sel.querySelector(`option[value="${CSS.escape(best.name)}"]`);
+            if (match) match.selected = true;
+        }
+    }
+}
+
 function toggleA11yPanel() {
     const panel = document.getElementById('a11y-panel');
     if (panel) { panel.classList.toggle('a11y-panel-open'); return; }
-    // Build panel if first time
+
     const el = document.createElement('div');
     el.id = 'a11y-panel';
     el.className = 'a11y-panel a11y-panel-open';
     el.innerHTML = `
         <div class="a11y-panel-header">
-            <span>ACCESSIBILITY</span>
+            <span>♿ ACCESSIBILITY</span>
             <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">✕</button>
         </div>
+
+        <div class="a11y-section-label">TEXT SIZE</div>
         <div class="a11y-row">
-            <button class="a11y-toggle" data-class="a11y-large" onclick="toggleA11yClass('a11y-large')">Large Text</button>
-            <button class="a11y-toggle" data-class="a11y-xl" onclick="toggleA11yClass('a11y-xl')">XL Text</button>
+            <button class="a11y-toggle" data-class="a11y-large" onclick="toggleA11yClass('a11y-large')">Large</button>
+            <button class="a11y-toggle" data-class="a11y-xl"    onclick="toggleA11yClass('a11y-xl')">Extra Large</button>
         </div>
+
+        <div class="a11y-section-label">DISPLAY</div>
         <div class="a11y-row">
-            <button class="a11y-toggle" data-class="a11y-high-contrast" onclick="toggleA11yClass('a11y-high-contrast')">High Contrast</button>
-            <button class="a11y-toggle" data-class="a11y-reduce-motion" onclick="toggleA11yClass('a11y-reduce-motion')">Reduce Motion</button>
+            <button class="a11y-toggle" data-class="a11y-high-contrast"  onclick="toggleA11yClass('a11y-high-contrast')">High Contrast</button>
+            <button class="a11y-toggle" data-class="a11y-reduce-motion"  onclick="toggleA11yClass('a11y-reduce-motion')">Less Motion</button>
         </div>
         <div class="a11y-row">
             <button class="a11y-toggle" data-class="a11y-dyslexic" onclick="toggleA11yClass('a11y-dyslexic')">Dyslexia Font</button>
         </div>
-        <div class="a11y-tip">Settings saved automatically.</div>
+
+        <div class="a11y-section-label">VOICE (speak command)</div>
+        <select id="a11y-voice-sel" class="a11y-voice-sel">
+            <option value="">Loading voices…</option>
+        </select>
+
+        <div class="a11y-tip">All settings saved automatically.</div>
     `;
     document.querySelector('.glass-panel').appendChild(el);
     _a11ySyncButtons();
+
+    // Populate voice picker — voices load async in Chrome
+    const sel = el.querySelector('#a11y-voice-sel');
+    const doPopulate = () => _buildVoiceOptions(sel);
+    if (window.speechSynthesis.getVoices().length) {
+        doPopulate();
+    } else {
+        window.speechSynthesis.addEventListener('voiceschanged', doPopulate, { once: true });
+    }
+
+    sel.addEventListener('change', () => {
+        if (sel.value) localStorage.setItem('nexus_tts_voice', sel.value);
+        else           localStorage.removeItem('nexus_tts_voice');
+    });
 }
 
 // Restore on load
