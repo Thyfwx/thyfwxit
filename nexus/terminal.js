@@ -20,6 +20,10 @@ let cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 let historyIndex = -1;
 let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 
+// Global think timeout — shared between showThinking() and _clearThinking() closure
+let _thinkTimeout = null;
+let _thinkFallbackCmd = null; // cmd to retry via CF Worker if WS times out
+
 const MODE_THEMES = {
     nexus: { title: 'NEXUS // Terminal', color: '#4af' },
     evil:  { title: 'EVIL // Unfiltered', color: '#ff6600' },
@@ -301,11 +305,11 @@ function doConnect() {
 
     // Accumulate streaming chunks before committing to history
     let _streamBuf = '', _streamTimer = null;
-    let _thinkTimeout = null; // safety net: auto-clear thinking if server never responds
 
     function _clearThinking() {
-        clearTimeout(_thinkTimeout);
+        clearTimeout(_thinkTimeout); // _thinkTimeout is global
         _thinkTimeout = null;
+        _thinkFallbackCmd = null;
         document.getElementById('ai-thinking')?.remove();
     }
 
@@ -2687,10 +2691,15 @@ input.addEventListener('keydown', (e) => {
         // Route image analysis through vision model for any mode
         askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     } else if (termWs && termWs.readyState === WebSocket.OPEN) {
-        showThinking();
+        showThinking(cmd);
         termWs.send(jsonPayload(cmd));
         _wsSendTime = Date.now();
         messageHistory.push({ role: 'user', content: cmd });
+    } else {
+        // WS not open — go straight to CF Worker fallback
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        printToTerminal(`[SYS] Server offline — routing via Groq...`, 'sys-msg');
+        askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     }
 });
 
@@ -2745,10 +2754,13 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         } else if (snap) {
             askEvil(cmd, snap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
         } else if (termWs && termWs.readyState === WebSocket.OPEN) {
-            showThinking();
+            showThinking(cmd);
             termWs.send(jsonPayload(cmd));
             _wsSendTime = Date.now();
             messageHistory.push({ role: 'user', content: cmd });
+        } else {
+            printToTerminal(`[SYS] Server offline — routing via Groq...`, 'sys-msg');
+            askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
         }
         input.focus();
     });
@@ -2765,8 +2777,11 @@ function printToTerminal(text, className = 'sys-msg') {
     output.scrollTop = output.scrollHeight;
 }
 
-function showThinking() {
+function showThinking(cmd) {
     document.getElementById('ai-thinking')?.remove(); // clear any stale one first
+    clearTimeout(_thinkTimeout);
+    _thinkFallbackCmd = cmd || null;
+
     const col = MODE_COLORS[currentMode] || '#4af';
     const label = (currentMode === 'evil' ? 'EVIL' : currentMode === 'coder' ? 'CODER' : currentMode === 'sage' ? 'SAGE' : 'NEXUS');
     const p = document.createElement('p');
@@ -2783,15 +2798,20 @@ function showThinking() {
     output.appendChild(p);
     output.scrollTop = output.scrollHeight;
 
-    // Safety net: auto-clear after 30s and tell the user something went wrong
-    if (typeof _thinkTimeout !== 'undefined') {
-        clearTimeout(_thinkTimeout);
-        _thinkTimeout = setTimeout(() => {
-            document.getElementById('ai-thinking')?.remove();
-            _thinkTimeout = null;
-            printToTerminal(`[${label}] No response after 30s — server may be rate-limited or restarting. Try again.`, 'sys-msg');
-        }, 30000);
-    }
+    // After 18s with no WS response, fall back to CF Worker (Groq) with mode system prompt.
+    // This makes NEXUS/CODER/SAGE resilient to Render.com cold starts or Gemini hangs.
+    _thinkTimeout = setTimeout(() => {
+        document.getElementById('ai-thinking')?.remove();
+        _thinkTimeout = null;
+        const fallback = _thinkFallbackCmd;
+        _thinkFallbackCmd = null;
+        if (fallback && currentMode !== 'evil') {
+            printToTerminal(`[SYS] Server slow — retrying via Groq...`, 'sys-msg');
+            askEvil(fallback, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        } else {
+            printToTerminal(`[${label}] No response after 18s — try again.`, 'sys-msg');
+        }
+    }, 18000);
 }
 
 // Log AI responses to Discord so full conversations are visible in logs
