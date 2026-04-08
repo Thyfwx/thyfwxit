@@ -808,7 +808,6 @@ function startPong() {
 }
 
 function launchPong(difficulty) {
-    // Difficulty settings: { aiSpeed, reactionInterval, imprecision, ballSpeed }
     const DIFF = {
         easy:   { aiSpeed: 2,   interval: 20, imprecision: 80, ballSpeed: 4   },
         medium: { aiSpeed: 3.5, interval: 14, imprecision: 45, ballSpeed: 5   },
@@ -816,38 +815,77 @@ function launchPong(difficulty) {
         insane: { aiSpeed: 7.5, interval:  4, imprecision:  4, ballSpeed: 8   },
     };
     const d = DIFF[difficulty] || DIFF.medium;
+    const WIN_SCORE = 7;
 
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 6px;font-size:0.75rem;">
             <span style="color:#0ff;">YOU</span>
-            <span style="color:#555;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()}</span>
+            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()} · First to ${WIN_SCORE}</span>
             <span style="color:#88f;">CPU</span>
         </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
+    // Starfield background — generated once
+    const stars = Array.from({length: 60}, () => ({
+        x: Math.random()*400, y: Math.random()*300,
+        r: Math.random()*1.2 + 0.3, a: Math.random()*0.5 + 0.1
+    }));
+
     const FPS = 60, STEP = 1000 / FPS;
     let last = 0;
     const PADDLE_H = 75, PADDLE_W = 10;
-
     let paddleY = 112, ballX = 200, ballY = 150;
     let ballVX = d.ballSpeed, ballVY = 3;
     let aiY = 112, pScore = 0, aScore = 0;
     let aiTargetY = 150, aiTick = 0;
+    let gameEnded = false;
 
     const move = (y) => {
         const r = nexusCanvas.getBoundingClientRect();
         paddleY = Math.max(0, Math.min(300 - PADDLE_H, (y - r.top) * (300 / r.height) - PADDLE_H / 2));
     };
-    nexusCanvas.onmousemove = (e) => move(e.clientY);
-    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); move(e.touches[0].clientY); };
+    nexusCanvas.onmousemove = (e) => { if (!gameEnded) move(e.clientY); };
+    nexusCanvas.ontouchmove = (e) => { if (!gameEnded) { e.preventDefault(); move(e.touches[0].clientY); } };
 
     function resetBall(dir) {
         ballX = 200; ballY = 60 + Math.random() * 180;
         ballVX = (dir || (Math.random() > 0.5 ? 1 : -1)) * d.ballSpeed;
         ballVY = (Math.random() > 0.5 ? 1 : -1) * (2.5 + Math.random() * 1.5);
         aiTick = 0;
+    }
+
+    function drawEnd(playerWon) {
+        // Stop loop first
+        const r = pongRaf; pongRaf = null; cancelAnimationFrame(r);
+        gameEnded = true;
+
+        // Draw final frame background
+        ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
+        stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
+
+        // Full-screen overlay
+        ctx.fillStyle = playerWon ? 'rgba(0,20,0,0.88)' : 'rgba(20,0,0,0.88)';
+        ctx.fillRect(0, 0, 400, 300);
+
+        // Border
+        const borderCol = playerWon ? '#0f0' : '#f44';
+        ctx.strokeStyle = borderCol; ctx.lineWidth = 2;
+        ctx.strokeRect(20, 70, 360, 160);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
+        ctx.fillText(playerWon ? 'YOU WIN!' : 'GAME OVER', 200, 118);
+        ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
+        ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
+        ctx.fillStyle = '#555'; ctx.font = '12px monospace';
+        ctx.fillText(playerWon ? 'You beat the CPU.' : 'The CPU won this one.', 200, 174);
+        ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
+        ctx.fillText('CLICK to rematch', 200, 204);
+        ctx.textAlign = 'left';
+
+        nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchPong(difficulty); };
     }
 
     function tick(ts) {
@@ -858,18 +896,15 @@ function launchPong(difficulty) {
 
         // AI movement
         aiTick++;
-        if (aiTick % d.interval === 0) {
-            aiTargetY = ballY - PADDLE_H / 2 + (Math.random() - 0.5) * d.imprecision;
-        }
+        if (aiTick % d.interval === 0) aiTargetY = ballY - PADDLE_H / 2 + (Math.random() - 0.5) * d.imprecision;
         if (aiY < aiTargetY) aiY = Math.min(aiY + d.aiSpeed, aiTargetY);
         else                  aiY = Math.max(aiY - d.aiSpeed, aiTargetY);
         aiY = Math.max(0, Math.min(300 - PADDLE_H, aiY));
 
         ballX += ballVX; ballY += ballVY;
-        if (ballY <= 4)       { ballVY =  Math.abs(ballVY); ballY = 5; }
-        if (ballY >= 296)     { ballVY = -Math.abs(ballVY); ballY = 295; }
+        if (ballY <= 4)   { ballVY =  Math.abs(ballVY); ballY = 5; }
+        if (ballY >= 296) { ballVY = -Math.abs(ballVY); ballY = 295; }
 
-        // Player paddle
         const pRight = 8 + PADDLE_W;
         if (ballVX < 0 && ballX - 5 <= pRight && ballX + 5 >= 8 && ballY + 5 > paddleY && ballY - 5 < paddleY + PADDLE_H) {
             ballVX = Math.abs(ballVX) * 1.05;
@@ -877,7 +912,6 @@ function launchPong(difficulty) {
             ballVY = Math.max(-9, Math.min(9, ballVY));
             ballX = pRight + 6;
         }
-        // AI paddle
         const aiLeft = 382;
         if (ballVX > 0 && ballX + 5 >= aiLeft && ballX - 5 <= aiLeft + PADDLE_W && ballY + 5 > aiY && ballY - 5 < aiY + PADDLE_H) {
             ballVX = -Math.abs(ballVX) * 1.05;
@@ -886,19 +920,31 @@ function launchPong(difficulty) {
             ballX = aiLeft - 6;
         }
 
-        if (ballX < 0)   { aScore++; resetBall(1);  }
-        if (ballX > 400) { pScore++; resetBall(-1); }
+        if (ballX < 0)   { aScore++; if (aScore >= WIN_SCORE) { drawEnd(false); return; } resetBall(1); }
+        if (ballX > 400) { pScore++; if (pScore >= WIN_SCORE) { drawEnd(true);  return; } resetBall(-1); }
 
-        // Draw
-        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 300);
+        // Draw — starfield background
+        ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
+        stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
+
+        // Center line
         ctx.setLineDash([8, 8]);
-        ctx.strokeStyle = 'rgba(0,255,255,0.1)'; ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(0,255,255,0.12)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(200, 0); ctx.lineTo(200, 300); ctx.stroke();
         ctx.setLineDash([]);
 
-        ctx.fillStyle = '#0ff'; ctx.font = 'bold 26px monospace'; ctx.textAlign = 'center';
+        // Score
+        ctx.fillStyle = 'rgba(0,255,255,0.55)'; ctx.font = 'bold 26px monospace'; ctx.textAlign = 'center';
         ctx.fillText(pScore, 90, 34); ctx.fillText(aScore, 310, 34);
         ctx.textAlign = 'left';
+
+        // Progress pips (dots showing how close each player is to winning)
+        for (let i = 0; i < WIN_SCORE; i++) {
+            ctx.fillStyle = i < pScore ? '#0ff' : 'rgba(0,255,255,0.12)';
+            ctx.beginPath(); ctx.arc(22 + i * 18, 46, 4, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = i < aScore ? '#88f' : 'rgba(136,136,255,0.12)';
+            ctx.beginPath(); ctx.arc(378 - i * 18, 46, 4, 0, Math.PI*2); ctx.fill();
+        }
 
         ctx.shadowBlur = 12;
         ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff';
@@ -954,18 +1000,60 @@ function launchSnake(snakeMode) {
     const stealth  = snakeMode === 'stealth';
     const endless  = snakeMode === 'endless';
     const speedRun = snakeMode === 'speed';
+    const hiKey    = `snake_hi_${snakeMode}`;
+    let   snakeHi  = parseInt(localStorage.getItem(hiKey) || '0');
 
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px;font-size:0.75rem;color:#0ff;margin-bottom:4px;">
             <span>Arrows · WASD · Swipe</span>
             <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${snakeMode.toUpperCase()}</span>
-            <span>Score: <b id="snake-score">0</b></span>
+            <span>Score: <b id="snake-score">0</b> &nbsp;<span style="color:#333">HI:${snakeHi}</span></span>
         </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 360;
     const ctx = nexusCanvas.getContext('2d');
     const CELL = 20, COLS = 20, ROWS = 18;
     snakeActive = true;
+
+    // Pre-draw background once into an offscreen canvas for perf
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = 400; bgCanvas.height = 360;
+    const bgCtx = bgCanvas.getContext('2d');
+    (function buildBg() {
+        if (stealth) {
+            bgCtx.fillStyle = '#000';
+            bgCtx.fillRect(0, 0, 400, 360);
+            return;
+        }
+        // Dark base
+        bgCtx.fillStyle = '#02040a';
+        bgCtx.fillRect(0, 0, 400, 360);
+        // Grid lines
+        bgCtx.strokeStyle = 'rgba(0,255,80,0.055)'; bgCtx.lineWidth = 0.5;
+        for (let x = 0; x <= COLS; x++) { bgCtx.beginPath(); bgCtx.moveTo(x*CELL,0); bgCtx.lineTo(x*CELL,ROWS*CELL); bgCtx.stroke(); }
+        for (let y = 0; y <= ROWS; y++) { bgCtx.beginPath(); bgCtx.moveTo(0,y*CELL); bgCtx.lineTo(COLS*CELL,y*CELL); bgCtx.stroke(); }
+        // Faint circuit traces
+        bgCtx.strokeStyle = 'rgba(0,255,100,0.09)'; bgCtx.lineWidth = 1.5;
+        const traces = [[0,3,4,3,4,8,7,8],[COLS,12,COLS-3,12,COLS-3,7,COLS-6,7],[5,0,5,4,10,4],[8,ROWS,8,ROWS-3,14,ROWS-3,14,ROWS-6]];
+        traces.forEach(pts => {
+            bgCtx.beginPath(); bgCtx.moveTo(pts[0]*CELL, pts[1]*CELL);
+            for (let i=2;i<pts.length;i+=2) bgCtx.lineTo(pts[i]*CELL, pts[i+1]*CELL);
+            bgCtx.stroke();
+        });
+        // Glowing nodes at circuit corners
+        bgCtx.shadowBlur = 6; bgCtx.shadowColor = '#0f4';
+        bgCtx.fillStyle = 'rgba(0,255,80,0.35)';
+        [[4,3],[4,8],[7,8],[COLS-3,12],[COLS-3,7],[5,4],[10,4],[8,ROWS-3],[14,ROWS-3],[14,ROWS-6]].forEach(([cx,cy]) => {
+            bgCtx.beginPath(); bgCtx.arc(cx*CELL, cy*CELL, 2.5, 0, Math.PI*2); bgCtx.fill();
+        });
+        bgCtx.shadowBlur = 0;
+        // Endless mode: wrap edge indicators
+        if (endless) {
+            bgCtx.fillStyle = 'rgba(0,255,100,0.04)';
+            bgCtx.fillRect(0,0,3,ROWS*CELL); bgCtx.fillRect(COLS*CELL-3,0,3,ROWS*CELL);
+            bgCtx.fillRect(0,0,COLS*CELL,3); bgCtx.fillRect(0,ROWS*CELL-3,COLS*CELL,3);
+        }
+    })();
 
     let snake = [{ x: 10, y: 9 }, { x: 9, y: 9 }, { x: 8, y: 9 }];
     let dir = { x: 1, y: 0 }, nextDir = { x: 1, y: 0 };
@@ -981,25 +1069,31 @@ function launchSnake(snakeMode) {
     }
 
     _snakeKey = (e) => {
+        if (dead) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); launchSnake(snakeMode); }
+            return;
+        }
         if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
-        if ((e.key === 'ArrowUp'    || e.key === 'w') && dir.y !== 1)  nextDir = { x: 0, y: -1 };
-        if ((e.key === 'ArrowDown'  || e.key === 's') && dir.y !== -1) nextDir = { x: 0, y: 1 };
-        if ((e.key === 'ArrowLeft'  || e.key === 'a') && dir.x !== 1)  nextDir = { x: -1, y: 0 };
-        if ((e.key === 'ArrowRight' || e.key === 'd') && dir.x !== -1) nextDir = { x: 1, y: 0 };
+        // Guard against 180° reverse using nextDir (not dir) so rapid keypresses don't teleport into self
+        if ((e.key === 'ArrowUp'    || e.key === 'w') && nextDir.y !== 1)  nextDir = { x: 0, y: -1 };
+        if ((e.key === 'ArrowDown'  || e.key === 's') && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
+        if ((e.key === 'ArrowLeft'  || e.key === 'a') && nextDir.x !== 1)  nextDir = { x: -1, y: 0 };
+        if ((e.key === 'ArrowRight' || e.key === 'd') && nextDir.x !== -1) nextDir = { x: 1, y: 0 };
     };
     document.addEventListener('keydown', _snakeKey);
 
     let swipeX = 0, swipeY = 0;
     _snakeTS = (e) => { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; };
     _snakeTE = (e) => {
+        if (dead) { launchSnake(snakeMode); return; }
         const dx = e.changedTouches[0].clientX - swipeX;
         const dy = e.changedTouches[0].clientY - swipeY;
         if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 25) {
-            if (dx > 0 && dir.x !== -1) nextDir = { x: 1, y: 0 };
-            else if (dx < 0 && dir.x !== 1) nextDir = { x: -1, y: 0 };
+            if (dx > 0 && nextDir.x !== -1) nextDir = { x: 1, y: 0 };
+            else if (dx < 0 && nextDir.x !== 1) nextDir = { x: -1, y: 0 };
         } else if (Math.abs(dy) > 25) {
-            if (dy > 0 && dir.y !== -1) nextDir = { x: 0, y: 1 };
-            else if (dy < 0 && dir.y !== 1) nextDir = { x: 0, y: -1 };
+            if (dy > 0 && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
+            else if (dy < 0 && nextDir.y !== 1) nextDir = { x: 0, y: -1 };
         }
     };
     nexusCanvas.addEventListener('touchstart', _snakeTS, { passive: true });
@@ -1007,24 +1101,51 @@ function launchSnake(snakeMode) {
 
     function gameOver() {
         dead = true;
-        drawSnake();
-        ctx.fillStyle = 'rgba(0,0,0,0.76)'; ctx.fillRect(0, 0, 400, 360);
-        ctx.fillStyle = '#f0f'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER', 200, 155);
-        ctx.fillStyle = '#0ff'; ctx.font = '16px monospace';
+        // STOP the loop immediately — this prevents drawSnake() from wiping the death screen
+        snakeActive = false;
+        cancelAnimationFrame(snakeRaf);
+        if (score > snakeHi) { snakeHi = score; localStorage.setItem(hiKey, snakeHi); }
+
+        drawSnake(); // draw final game state first
+
+        // Death overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.82)';
+        ctx.fillRect(0, 0, 400, 360);
+
+        // Glitch border
+        ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
+        ctx.strokeRect(16, 90, 368, 180);
+        ctx.strokeStyle = 'rgba(0,255,255,0.4)'; ctx.lineWidth = 1;
+        ctx.strokeRect(14, 88, 372, 184);
+
+        ctx.textAlign = 'center';
+        // Title
+        ctx.fillStyle = '#f0f'; ctx.font = 'bold 32px monospace';
+        ctx.fillText('YOU DIED', 200, 138);
+        // Mode badge
+        ctx.fillStyle = '#333'; ctx.font = '11px monospace';
+        ctx.fillText(`— ${snakeMode.toUpperCase()} MODE —`, 200, 158);
+        // Score
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace';
         ctx.fillText(`Score: ${score}`, 200, 190);
-        ctx.fillStyle = '#555'; ctx.font = '13px monospace';
-        ctx.fillText('Close to restart', 200, 222);
+        // High score
+        const isNew = score === snakeHi && score > 0;
+        ctx.fillStyle = isNew ? '#ff0' : '#555';
+        ctx.font = '13px monospace';
+        ctx.fillText(isNew ? `★ NEW BEST: ${snakeHi} ★` : `Best: ${snakeHi}`, 200, 212);
+        // Restart prompt
+        ctx.fillStyle = '#0ff'; ctx.font = '12px monospace';
+        ctx.fillText('CLICK · ENTER · SWIPE  to restart', 200, 244);
         ctx.textAlign = 'left';
+
+        nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchSnake(snakeMode); };
     }
 
     function frame(ts) {
         if (!snakeActive) return;
-        snakeRaf = requestAnimationFrame(frame);
-
-        if (ts - lastStep < stepMs) { drawSnake(); return; }
+        // Register next frame AFTER dead check so death screen is never overwritten
+        if (ts - lastStep < stepMs) { drawSnake(); snakeRaf = requestAnimationFrame(frame); return; }
         lastStep = ts;
-        if (dead) return;
 
         dir = nextDir;
         let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
@@ -1032,10 +1153,12 @@ function launchSnake(snakeMode) {
         if (endless) {
             head.x = (head.x + COLS) % COLS;
             head.y = (head.y + ROWS) % ROWS;
-            if (snake.some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
+            // Skip self-check on tail tip (it's about to vacate unless we just ate)
+            const body = snake.slice(0, snake.length - 1);
+            if (body.some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
         } else {
             if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-                snake.some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
+                snake.slice(0, snake.length - 1).some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
         }
 
         const ate = head.x === apple.x && head.y === apple.y;
@@ -1047,30 +1170,25 @@ function launchSnake(snakeMode) {
             if (speedRun) stepMs = Math.max(40, 70  - Math.floor(score / 3) * 8);
             else          stepMs = Math.max(50, 100 - Math.floor(score / 5) * 8);
         } else snake.pop();
+
+        drawSnake();
+        snakeRaf = requestAnimationFrame(frame);
     }
 
     function drawSnake() {
-        // Performance: no per-segment shadowBlur — single glow only on head & apple
-        ctx.fillStyle = stealth ? '#000' : '#050510';
-        ctx.fillRect(0, 0, 400, 360);
-
-        if (!stealth) {
-            ctx.strokeStyle = 'rgba(0,255,255,0.04)'; ctx.lineWidth = 0.5;
-            for (let x = 0; x <= COLS; x++) { ctx.beginPath(); ctx.moveTo(x*CELL,0); ctx.lineTo(x*CELL,ROWS*CELL); ctx.stroke(); }
-            for (let y = 0; y <= ROWS; y++) { ctx.beginPath(); ctx.moveTo(0,y*CELL); ctx.lineTo(COLS*CELL,y*CELL); ctx.stroke(); }
-        }
+        ctx.drawImage(bgCanvas, 0, 0); // blit pre-drawn background
 
         // Apple glow
         ctx.shadowBlur = 10; ctx.shadowColor = '#f0f'; ctx.fillStyle = '#f0f';
         ctx.fillRect(apple.x*CELL+3, apple.y*CELL+3, CELL-6, CELL-6);
 
-        // Body — no shadow per segment (big perf win in Chrome)
+        // Body segments — no per-segment shadow (perf)
         ctx.shadowBlur = 0;
         snake.forEach((seg, i) => {
-            ctx.fillStyle = i === 0 ? '#fff' : `hsl(${180 + i * 2},100%,60%)`;
+            ctx.fillStyle = i === 0 ? '#fff' : `hsl(${140 + i * 3},100%,55%)`;
             ctx.fillRect(seg.x*CELL+1, seg.y*CELL+1, CELL-2, CELL-2);
         });
-        // Head glow only (single shadowBlur call total)
+        // Head glow only
         if (snake.length > 0) {
             ctx.shadowBlur = 14; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#fff';
             ctx.fillRect(snake[0].x*CELL+1, snake[0].y*CELL+1, CELL-2, CELL-2);
@@ -1110,6 +1228,46 @@ function startFlappy() {
     let pipes = [], score = 0, hi = parseInt(localStorage.getItem('flappy_hi') || '0');
     let started = false, dead = false;
     let lastTs = 0, nextPipeMs = 1400; // time-based pipe spawning
+
+    // Pre-generate city skyline background
+    const cityBg = document.createElement('canvas');
+    cityBg.width = 400; cityBg.height = 300;
+    (function buildCity() {
+        const c = cityBg.getContext('2d');
+        // Sky gradient — deep purple/navy
+        const grad = c.createLinearGradient(0, 0, 0, 300);
+        grad.addColorStop(0, '#06010f'); grad.addColorStop(0.7, '#0a0520'); grad.addColorStop(1, '#12082a');
+        c.fillStyle = grad; c.fillRect(0, 0, 400, 300);
+        // Distant stars
+        for (let i = 0; i < 35; i++) {
+            const a = Math.random() * 0.5 + 0.1;
+            c.fillStyle = `rgba(255,255,255,${a})`;
+            c.beginPath(); c.arc(Math.random()*400, Math.random()*160, Math.random()*0.8+0.3, 0, Math.PI*2); c.fill();
+        }
+        // City silhouette — far layer (darker)
+        c.fillStyle = '#0d0520';
+        const farBuildings = [0,220,30,200,60,210,90,185,130,195,160,175,200,190,240,170,280,180,310,165,350,178,380,190,400,220,400,300,0,300];
+        c.beginPath(); c.moveTo(farBuildings[0], farBuildings[1]);
+        for (let i=2;i<farBuildings.length;i+=2) c.lineTo(farBuildings[i], farBuildings[i+1]);
+        c.fill();
+        // City silhouette — near layer
+        c.fillStyle = '#080414';
+        const nearBuildings = [0,260,20,235,50,240,80,220,110,230,140,215,165,225,195,210,220,218,250,200,280,210,310,195,340,208,370,215,400,260,400,300,0,300];
+        c.beginPath(); c.moveTo(nearBuildings[0], nearBuildings[1]);
+        for (let i=2;i<nearBuildings.length;i+=2) c.lineTo(nearBuildings[i], nearBuildings[i+1]);
+        c.fill();
+        // Window lights — tiny random lit windows on buildings
+        c.fillStyle = 'rgba(255,220,100,0.45)';
+        for (let i = 0; i < 40; i++) {
+            const wx = Math.random()*380 + 10, wy = 175 + Math.random()*60;
+            c.fillRect(wx, wy, 2, 2);
+        }
+        c.fillStyle = 'rgba(100,200,255,0.3)';
+        for (let i = 0; i < 20; i++) {
+            const wx = Math.random()*380 + 10, wy = 200 + Math.random()*45;
+            c.fillRect(wx, wy, 2, 3);
+        }
+    })();
 
     function flap() {
         if (dead) { startFlappy(); return; }
@@ -1160,30 +1318,29 @@ function startFlappy() {
             });
         }
 
-        // Draw background
-        ctx.fillStyle = '#050510';
-        ctx.fillRect(0, 0, 400, 300);
+        // Draw city background
+        ctx.drawImage(cityBg, 0, 0);
         // Ground
-        ctx.fillStyle = '#0a0f1a';
-        ctx.fillRect(0, 294, 400, 6);
-        ctx.fillStyle = '#0ff';
-        ctx.fillRect(0, 294, 400, 1);
+        ctx.fillStyle = '#0a0518';
+        ctx.fillRect(0, 291, 400, 9);
+        ctx.fillStyle = '#c0f'; ctx.shadowBlur = 4; ctx.shadowColor = '#c0f';
+        ctx.fillRect(0, 291, 400, 1);
+        ctx.shadowBlur = 0;
 
-        // Pipes
+        // Pipes — neon purple theme to match city
         pipes.forEach(p => {
-            ctx.shadowBlur = 6; ctx.shadowColor = '#0f0';
-            // Pipe body
-            ctx.fillStyle = '#0a2a0a';
+            ctx.shadowBlur = 6; ctx.shadowColor = '#80f';
+            ctx.fillStyle = '#1a0830';
             ctx.fillRect(p.x, 0, PIPE_W, p.top);
             ctx.fillRect(p.x, p.top + GAP, PIPE_W, 300);
-            // Pipe edge glow
-            ctx.fillStyle = '#0f0';
-            ctx.fillRect(p.x, p.top - 10, PIPE_W, 10);
-            ctx.fillRect(p.x, p.top + GAP, PIPE_W, 10);
-            // Side highlight
-            ctx.fillStyle = 'rgba(0,255,0,0.15)';
-            ctx.fillRect(p.x, 0, 4, p.top);
-            ctx.fillRect(p.x, p.top + GAP + 10, 4, 300);
+            // Pipe caps
+            ctx.fillStyle = '#80f';
+            ctx.fillRect(p.x - 3, p.top - 10, PIPE_W + 6, 10);
+            ctx.fillRect(p.x - 3, p.top + GAP, PIPE_W + 6, 10);
+            // Edge highlight
+            ctx.fillStyle = 'rgba(180,80,255,0.15)';
+            ctx.fillRect(p.x + PIPE_W - 4, 0, 4, p.top);
+            ctx.fillRect(p.x + PIPE_W - 4, p.top + GAP + 10, 4, 300);
             ctx.shadowBlur = 0;
         });
 
@@ -1194,10 +1351,8 @@ function startFlappy() {
         ctx.shadowBlur = 14; ctx.shadowColor = '#f0f';
         ctx.fillStyle = '#f0f';
         ctx.beginPath(); ctx.ellipse(0, 0, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
-        // Wing
         ctx.fillStyle = '#c0c';
         ctx.beginPath(); ctx.ellipse(-4, 3, 6, 4, 0.4, 0, Math.PI * 2); ctx.fill();
-        // Eye
         ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5, -2, 3, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(6, -2, 1.5, 0, Math.PI * 2); ctx.fill();
         ctx.shadowBlur = 0;
@@ -1211,24 +1366,33 @@ function startFlappy() {
         ctx.textAlign = 'left';
 
         if (!started) {
-            ctx.fillStyle = 'rgba(0,0,0,0.55)';
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
             ctx.fillRect(0, 0, 400, 300);
-            ctx.fillStyle = '#0ff'; ctx.font = 'bold 15px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('TAP OR SPACE TO START', 200, 148);
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('FLAPPY NEXUS', 200, 128);
+            ctx.fillStyle = '#0ff'; ctx.font = '13px monospace';
+            ctx.fillText('TAP  ·  SPACE  ·  ↑  to flap', 200, 155);
             ctx.textAlign = 'left';
         }
 
         if (dead) {
-            ctx.fillStyle = 'rgba(0,0,0,0.72)';
+            ctx.fillStyle = 'rgba(6,1,15,0.88)';
             ctx.fillRect(0, 0, 400, 300);
-            ctx.fillStyle = '#f0f'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('GAME OVER', 200, 120);
+            // Border
+            ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
+            ctx.strokeRect(20, 70, 360, 160);
+            ctx.strokeStyle = 'rgba(0,255,255,0.3)'; ctx.lineWidth = 1;
+            ctx.strokeRect(18, 68, 364, 164);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 30px monospace';
+            ctx.fillText('GAME OVER', 200, 116);
             ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
-            ctx.fillText(`Score: ${score}`, 200, 155);
-            ctx.fillStyle = '#0ff';
-            ctx.fillText(`Best:  ${hi}`, 200, 178);
-            ctx.fillStyle = '#555'; ctx.font = '13px monospace';
-            ctx.fillText('Tap or Space to restart', 200, 210);
+            ctx.fillText(`Score: ${score}`, 200, 150);
+            const isNew = score === hi && score > 0;
+            ctx.fillStyle = isNew ? '#ff0' : '#0ff';
+            ctx.fillText(isNew ? `★ NEW BEST: ${hi} ★` : `Best: ${hi}`, 200, 174);
+            ctx.fillStyle = '#555'; ctx.font = '12px monospace';
+            ctx.fillText('TAP · SPACE to retry', 200, 208);
             ctx.textAlign = 'left';
         }
 
@@ -1300,6 +1464,32 @@ function launchBreakout(difficulty) {
     let lastTs = 0;
     let hi = parseInt(localStorage.getItem('breakout_hi') || '0');
 
+    // Pre-draw circuit board background
+    const brkBg = document.createElement('canvas');
+    brkBg.width = 400; brkBg.height = 300;
+    (function buildBrkBg() {
+        const c = brkBg.getContext('2d');
+        c.fillStyle = '#020510'; c.fillRect(0, 0, 400, 300);
+        // Circuit grid
+        c.strokeStyle = 'rgba(0,255,100,0.04)'; c.lineWidth = 0.5;
+        for (let x = 0; x <= 400; x += 25) { c.beginPath(); c.moveTo(x,0); c.lineTo(x,300); c.stroke(); }
+        for (let y = 0; y <= 300; y += 25) { c.beginPath(); c.moveTo(0,y); c.lineTo(400,y); c.stroke(); }
+        // Thicker traces
+        c.strokeStyle = 'rgba(0,180,100,0.07)'; c.lineWidth = 1.5;
+        [[0,50,100,50,100,125,175,125],[400,200,300,200,300,75,225,75],[0,225,150,225,150,175],[400,100,250,100,250,250,400,250]].forEach(pts => {
+            c.beginPath(); c.moveTo(pts[0],pts[1]);
+            for (let i=2;i<pts.length;i+=2) c.lineTo(pts[i],pts[i+1]);
+            c.stroke();
+        });
+        // Nodes
+        c.shadowBlur = 5; c.shadowColor = '#0f8';
+        c.fillStyle = 'rgba(0,255,120,0.3)';
+        [[100,50],[100,125],[175,125],[300,200],[300,75],[225,75],[150,225],[150,175],[250,100],[250,250]].forEach(([x,y]) => {
+            c.beginPath(); c.arc(x, y, 3, 0, Math.PI*2); c.fill();
+        });
+        c.shadowBlur = 0;
+    })();
+
     function initBricks() {
         bricks = [];
         for (let r = 0; r < BROWS; r++)
@@ -1355,10 +1545,10 @@ function launchBreakout(difficulty) {
             if (bricks.every(b => !b.alive)) { won = true; if (score > hi) { hi = score; localStorage.setItem('breakout_hi', score); } }
         }
 
-        // Draw
-        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 300);
+        // Draw — circuit board background
+        ctx.drawImage(brkBg, 0, 0);
 
-        // Bricks — no per-brick shadowBlur (perf)
+        // Bricks
         bricks.forEach(b => {
             if (!b.alive) return;
             ctx.fillStyle = b.color;
@@ -1379,22 +1569,40 @@ function launchBreakout(difficulty) {
         ctx.shadowBlur = 0;
 
         if (dead) {
-            ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, 400, 300);
-            ctx.fillStyle = '#f0f'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('GAME OVER', 200, 125);
+            ctx.fillStyle = 'rgba(2,5,16,0.88)'; ctx.fillRect(0, 0, 400, 300);
+            ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
+            ctx.strokeRect(20, 75, 360, 155);
+            ctx.strokeStyle = 'rgba(0,255,255,0.3)'; ctx.lineWidth = 1;
+            ctx.strokeRect(18, 73, 364, 159);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 30px monospace';
+            ctx.fillText('GAME OVER', 200, 120);
             ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
-            ctx.fillText(`Score: ${score}`, 200, 162);
-            ctx.fillStyle = '#555'; ctx.font = '13px monospace';
-            ctx.fillText('Close to play again', 200, 192);
+            ctx.fillText(`Score: ${score}`, 200, 154);
+            const isNewHi = score > 0 && score >= hi;
+            ctx.fillStyle = isNewHi ? '#ff0' : '#555';
+            ctx.font = '12px monospace';
+            ctx.fillText(isNewHi ? `★ NEW BEST: ${hi} ★` : `Best: ${hi}`, 200, 178);
+            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
+            ctx.fillText('CLICK to play again', 200, 208);
             ctx.textAlign = 'left';
+            nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
         }
         if (won) {
-            ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, 400, 300);
-            ctx.fillStyle = '#0f0'; ctx.font = 'bold 28px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('YOU WIN!', 200, 125);
+            ctx.fillStyle = 'rgba(0,10,2,0.88)'; ctx.fillRect(0, 0, 400, 300);
+            ctx.strokeStyle = '#0f0'; ctx.lineWidth = 2;
+            ctx.strokeRect(20, 75, 360, 155);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#0f0'; ctx.font = 'bold 30px monospace';
+            ctx.fillText('BOARD CLEARED!', 200, 120);
             ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
-            ctx.fillText(`Score: ${score}`, 200, 162);
+            ctx.fillText(`Score: ${score}`, 200, 154);
+            ctx.fillStyle = score >= hi ? '#ff0' : '#555'; ctx.font = '12px monospace';
+            ctx.fillText(score >= hi ? `★ NEW BEST: ${hi} ★` : `Best: ${hi}`, 200, 178);
+            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
+            ctx.fillText('CLICK to play again', 200, 208);
             ctx.textAlign = 'left';
+            nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
         }
 
         breakoutFrame = requestAnimationFrame(frame);
