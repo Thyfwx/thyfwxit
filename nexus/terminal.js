@@ -2225,60 +2225,6 @@ const MODE_SYSTEMS = {
     sage:  `You are NEXUS in SAGE mode — thoughtful, philosophical, and reflective. Analyze images with depth and meaning. ${XAVIER_BIO}`,
 };
 
-// ── Gemini via Render HTTP endpoint (used when WS is offline) ─────────────────
-// Key stays on the server — never in the browser.
-const RENDER_HTTP = 'https://nexus-terminalnexus.onrender.com';
-
-async function askGemini(cmd, systemPrompt, className = 'ai-msg') {
-    showThinking(cmd);
-
-    const clearThink = () => {
-        clearTimeout(_thinkTimeout); _thinkTimeout = null; _thinkFallbackCmd = null;
-        document.getElementById('ai-thinking')?.remove();
-    };
-
-    try {
-        const resp = await fetch(`${RENDER_HTTP}/ai`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                prompt:  cmd,
-                history: (messageHistory || []).slice(-10),
-                system:  systemPrompt,
-            }),
-            signal: AbortSignal.timeout(45000), // give Render time to spin up
-        });
-        clearThink();
-
-        if (!resp.ok) {
-            const err = await resp.json().catch(() => ({}));
-            printToTerminal(`[SYS] Gemini error — ${err.error || resp.status}`, 'sys-msg');
-            return;
-        }
-
-        const data = await resp.json();
-        const text = data?.text;
-        if (!text) {
-            printToTerminal('[SYS] Gemini returned no response.', 'sys-msg');
-            return;
-        }
-
-        printTypewriter(text, className);
-        messageHistory.push({ role: 'assistant', content: text.slice(0, 600) });
-        if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
-        saveHistory();
-        _logAIResponse(text);
-
-    } catch (e) {
-        clearThink();
-        if (e.name === 'TimeoutError' || e.name === 'AbortError') {
-            printToTerminal('[SYS] Gemini server is waking up — wait ~30s and try again.', 'sys-msg');
-        } else {
-            printToTerminal(`[SYS] Gemini unreachable — ${e.message?.slice(0,80) || 'network error'}`, 'sys-msg');
-        }
-    }
-}
-
 
 
 // Image generation — Pollinations.ai first (free, no key), HF FLUX fallback
@@ -2754,9 +2700,9 @@ input.addEventListener('keydown', (e) => {
         _wsSendTime = Date.now();
         messageHistory.push({ role: 'user', content: cmd });
     } else {
-        // WS not open — go straight to CF Worker fallback
+        // WS offline — route through CF Worker (always on, no spin-up)
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        askGemini(cmd, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     }
 });
 
@@ -2816,7 +2762,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
             _wsSendTime = Date.now();
             messageHistory.push({ role: 'user', content: cmd });
         } else {
-            printToTerminal(`[SYS] Server offline — routing via Groq...`, 'sys-msg');
+            // WS offline — route through CF Worker (always on)
             askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
         }
         input.focus();
@@ -2863,10 +2809,10 @@ function showThinking(cmd) {
         const fallback = _thinkFallbackCmd;
         _thinkFallbackCmd = null;
         if (fallback && currentMode !== 'evil') {
-            printToTerminal(`[SYS] Server slow — retrying via Groq...`, 'sys-msg');
+            // WS timed out — retry instantly via CF Worker (no "routing via..." noise)
             askEvil(fallback, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-        } else {
-            printToTerminal(`[${label}] No response after 18s — try again.`, 'sys-msg');
+        } else if (fallback && currentMode === 'evil') {
+            askEvil(fallback, null);
         }
     }, 18000);
 }
