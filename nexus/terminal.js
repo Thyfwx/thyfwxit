@@ -20,6 +20,38 @@ let cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 let historyIndex = -1;
 let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 
+const MODE_THEMES = {
+    nexus: { title: 'NEXUS // Terminal', color: '#4af' },
+    evil:  { title: 'EVIL // Unfiltered', color: '#ff6600' },
+    coder: { title: 'CODER // Mainframe', color: '#0f0' },
+    sage:  { title: 'SAGE // Reflection', color: '#a06fff' }
+};
+
+function updateTabIdentity() {
+    const theme = MODE_THEMES[currentMode] || MODE_THEMES.nexus;
+    document.title = theme.title;
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+        meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        document.head.appendChild(meta);
+    }
+    meta.content = theme.color;
+}
+
+// Initial call
+updateTabIdentity();
+
+// Focus Listener (Optimized for Chrome)
+document.addEventListener('mousedown', (e) => {
+    // Only focus if the user clicks inside the monitor but not on buttons or inputs
+    if (e.target.closest('.monitor') && !['BUTTON', 'INPUT', 'A', 'CANVAS'].includes(e.target.tagName)) {
+        setTimeout(() => {
+            if (!window.getSelection().toString()) input.focus();
+        }, 0);
+    }
+});
+
 // Per-mode chat history — each AI has its own separate memory
 const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage' };
 
@@ -199,7 +231,7 @@ async function postToDiscordFile(fileB64, label = 'image', threadId = null) {
 }
 
 // =============================================================
-//  BOOT SEQUENCE
+//  BOOT SEQUENCE — runs exactly once ever (localStorage guard)
 // =============================================================
 const BOOT_WORDS = [
     { label: 'BOOT',  text: 'Initializing quantum uplink...' },
@@ -210,6 +242,12 @@ const BOOT_WORDS = [
     { label: 'ALLOC', text: 'Allocating memory buffers...' },
     { label: 'EXEC',  text: 'Spawning AI core process...' },
 ];
+
+const _BOOT_KEY   = 'nx_boot_v1';
+let   _hasBooted  = !!localStorage.getItem(_BOOT_KEY);
+let   _firstOpen  = true;   // true only for the very first WS open after boot
+let   _wsPingId   = null;
+let   _wsSendTime = 0;
 
 function runBootSequence(callback) {
     let i = 0;
@@ -226,64 +264,88 @@ function runBootSequence(callback) {
 //  WEBSOCKET
 // =============================================================
 function connectWS() {
-    runBootSequence(() => {
-        termWs = new WebSocket(WS_URL);
-
-        termWs.onopen = () => {
-            printToTerminal('[OK] Nexus AI v3.0 — uplink established.', 'conn-ok');
-            setTimeout(() => printTypewriter(`Nexus online. Ask me anything — or type help to see what's here.`, 'ready-msg'), 500);
-        };
-
-        // Accumulate streaming chunks before committing to history
-        let _streamBuf = '', _streamTimer = null;
-
-        termWs.onmessage = (event) => {
-            const text = event.data;
-
-            // Remove thinking indicator only once
-            const thinkEl = document.getElementById('ai-thinking');
-            if (thinkEl) thinkEl.remove();
-
-            if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
-
-            if (text.includes('[GUI_TRIGGER:')) {
-                const match = text.match(/\[GUI_TRIGGER:([^:]+):([^\]]+)\]/);
-                if (match) showGameGUI(match[1], match[2]);
-                printTypewriter(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ''));
-                return;
-            }
-
-            // Skip prompt echoes (any *@nexus pattern)
-            if (/\w+@nexus/.test(text.trim())) return;
-
-            // Accumulate for history — debounce 800ms so streaming chunks merge
-            _streamBuf += text;
-            clearTimeout(_streamTimer);
-            _streamTimer = setTimeout(() => {
-                if (_streamBuf.trim()) {
-                    messageHistory.push({ role: 'assistant', content: _streamBuf.trim().slice(0, 600) });
-                    if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
-                    saveHistory();
-                }
-                _streamBuf = '';
-            }, 800);
-
-            printTypewriter(text);
-        };
-
-        termWs.onclose = () => {
-            printToTerminal('[WARN] Uplink lost. Re-establishing...', 'sys-msg');
-            setTimeout(connectWS, 3000);
-        };
-    });
+    // Boot sequence runs once ever — reconnects skip straight to connect
+    if (!_hasBooted) {
+        _hasBooted = true;
+        localStorage.setItem(_BOOT_KEY, '1');
+        runBootSequence(doConnect);
+    } else {
+        doConnect();
+    }
 }
 
-// Keep Render.com instance warm using native WS ping (no message sent to backend)
-setInterval(() => {
-    if (termWs && termWs.readyState === WebSocket.OPEN) {
-        // Just checking readyState keeps the TCP connection alive — no message needed
-    }
-}, 20000);
+function doConnect() {
+    clearInterval(_wsPingId);
+    termWs = new WebSocket(WS_URL);
+
+    termWs.onopen = () => {
+        // Update connection dot
+        const dot = document.getElementById('conn-dot');
+        if (dot) { dot.className = 'conn-dot connected'; }
+
+        // Welcome message only on the very first successful connection after boot
+        if (_firstOpen) {
+            _firstOpen = false;
+            printToTerminal('[OK] Nexus AI v3.0 — uplink established.', 'conn-ok');
+            setTimeout(() => printTypewriter(`Nexus online. Ask me anything — or type help to see what's here.`, 'ready-msg'), 500);
+        }
+
+        // Smart keepalive — only pings after 20 s of silence so Render.com stays warm
+        _wsPingId = setInterval(() => {
+            if (termWs.readyState === WebSocket.OPEN && Date.now() - _wsSendTime > 20000) {
+                termWs.send(JSON.stringify({ command: '__ping__', history: [] }));
+                _wsSendTime = Date.now();
+            }
+        }, 10000);
+    };
+
+    // Accumulate streaming chunks before committing to history
+    let _streamBuf = '', _streamTimer = null;
+
+    termWs.onmessage = (event) => {
+        const text = event.data;
+
+        // Remove thinking indicator only once
+        const thinkEl = document.getElementById('ai-thinking');
+        if (thinkEl) thinkEl.remove();
+
+        if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
+
+        if (text.includes('[GUI_TRIGGER:')) {
+            const match = text.match(/\[GUI_TRIGGER:([^:]+):([^\]]+)\]/);
+            if (match) showGameGUI(match[1], match[2]);
+            printTypewriter(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ''));
+            return;
+        }
+
+        // Skip prompt echoes and __ping__ acks
+        if (/\w+@nexus/.test(text.trim())) return;
+        if (text.includes('__ping__')) return;
+
+        // Accumulate for history — debounce 800ms so streaming chunks merge
+        _streamBuf += text;
+        clearTimeout(_streamTimer);
+        _streamTimer = setTimeout(() => {
+            if (_streamBuf.trim()) {
+                messageHistory.push({ role: 'assistant', content: _streamBuf.trim().slice(0, 600) });
+                if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
+                saveHistory();
+            }
+            _streamBuf = '';
+        }, 800);
+
+        printTypewriter(text);
+    };
+
+    // Silent reconnect — nothing printed, no boot, no warning message
+    termWs.onclose = () => {
+        clearInterval(_wsPingId);
+        const dot = document.getElementById('conn-dot');
+        if (dot) { dot.className = 'conn-dot disconnected'; }
+        setTimeout(connectWS, 3000);
+    };
+    termWs.onerror = () => {};
+}
 
 // =============================================================
 //  TYPEWRITER EFFECT FOR AI RESPONSES
@@ -464,6 +526,7 @@ function handleAITriggers(text) {
     if (action === 'pong')   startPong();
     if (action === 'snake')  startSnake();
     if (action === 'wordle') startWordle();
+    if (action === 'breach') startBreach();
     if (action === 'monitor') startMonitor();
     if (action === 'clear') { output.innerHTML = ''; messageHistory = []; }
 }
@@ -633,6 +696,75 @@ function startMonitor() {
             ctx.beginPath(); ctx.moveTo(0, yBase); ctx.lineTo(W, yBase); ctx.stroke();
         });
     }, 400);
+}
+
+// =============================================================
+//  BREACH PROTOCOL (Hacking Game)
+// =============================================================
+let breachActive = false, _breachClick = null;
+
+function startBreach() {
+    stopAllGames();
+    breachActive = true;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'BREACH PROTOCOL';
+    
+    const hexCodes = ['E9', '1C', '55', 'BD', '7A', 'FF', 'F0'];
+    const grid = [];
+    for(let i=0; i<25; i++) grid.push(hexCodes[Math.floor(Math.random() * hexCodes.length)]);
+    
+    const sequence = [];
+    for(let i=0; i<3; i++) sequence.push(grid[Math.floor(Math.random() * grid.length)]);
+    
+    let currentInput = [];
+    let timeLeft = 30;
+    
+    guiContent.innerHTML = `
+        <div style="text-align:center;">
+            <div style="color:#0f0;font-size:0.75rem;margin-bottom:8px;">REQUIRED SEQUENCE: <b style="color:#fff;letter-spacing:2px;">${sequence.join(' ')}</b></div>
+            <div id="breach-grid" style="display:grid;grid-template-columns:repeat(5, 1fr);gap:8px;max-width:250px;margin:0 auto;">
+                ${grid.map((hex, i) => `<button class="gui-btn breach-tile" data-idx="${i}" style="margin:0;padding:8px;font-size:0.8rem;border-color:#333;">${hex}</button>`).join('')}
+            </div>
+            <div id="breach-timer" style="margin-top:12px;color:#f00;font-weight:bold;">${timeLeft}s</div>
+        </div>`;
+    
+    const timer = setInterval(() => {
+        if (!breachActive) { clearInterval(timer); return; }
+        timeLeft--;
+        const el = document.getElementById('breach-timer');
+        if (el) el.textContent = timeLeft + 's';
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            if (breachActive) {
+                printToTerminal('[FAIL] Breach Timeout. ICE reset.', 'sys-msg');
+                stopAllGames();
+                guiContainer.classList.add('gui-hidden');
+            }
+        }
+    }, 1000);
+
+    guiContent.querySelectorAll('.breach-tile').forEach(btn => {
+        btn.onclick = () => {
+            const hex = btn.textContent;
+            btn.style.borderColor = '#0f0';
+            btn.style.color = '#0f0';
+            btn.disabled = true;
+            currentInput.push(hex);
+            
+            // Check sequence
+            const match = currentInput.every((h, idx) => h === sequence[idx]);
+            if (!match) {
+                printToTerminal('[FAIL] Sequence Mismatch. Alarm Triggered.', 'sys-msg');
+                stopAllGames();
+                guiContainer.classList.add('gui-hidden');
+            } else if (currentInput.length === sequence.length) {
+                printToTerminal('[OK] Neural link established. Admin access granted.', 'conn-ok');
+                clearInterval(timer);
+                breachActive = false;
+                guiContent.innerHTML = '<h2 style="color:#0f0;">ACCESS GRANTED</h2><p style="color:#888;">System bypassed successfully.</p>';
+            }
+        };
+    });
 }
 
 // =============================================================
@@ -1760,6 +1892,7 @@ function stopAllGames() {
     stopFlappy();
     stopBreakout();
     mineActive = false;
+    breachActive = false;
     typeTestActive = false;
     clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
@@ -1850,50 +1983,58 @@ const MODE_SYSTEMS = {
 
 
 
-// Image generation via Pollinations.ai (free, no key, FLUX Realism model)
+// Image generation — Pollinations.ai first (free, no key), HF FLUX fallback
 // Supports: generate <prompt> | vintage <prompt>
 async function generateImage(rawPrompt) {
-    // Detect vintage style request
     const vintageMatch = rawPrompt.match(/^vintage\s+(.+)/i);
     const isVintage = !!vintageMatch;
     const basePrompt = isVintage ? vintageMatch[1].trim() : rawPrompt;
-
-    // Vintage gets style tags; everything else passes through clean — no "professional photography"
-    // because that phrase triggers stricter content detection on Pollinations' end
     const fullPrompt = isVintage
         ? `${basePrompt}, vintage film photography, 1970s, Kodachrome grain, faded analog, nostalgic, soft vignette`
         : basePrompt;
 
     printToTerminal(`[EVIL] Generating${isVintage ? ' vintage' : ''}... 🔥`, 'evil-msg');
+
+    // ── 1. Try Pollinations.ai (always free, no key) ──────────────
     try {
         const seed  = Math.floor(Math.random() * 999999);
-        // flux-realism for realistic detail; enhance=true lets Pollinations optimize the prompt
-        // safe=false disables safety filter; nofeed=true keeps images off the public gallery
         const model = isVintage ? 'flux' : 'flux-realism';
         const url   = `https://image.pollinations.ai/prompt/${encodeURIComponent(fullPrompt)}?model=${model}&width=768&height=768&nologo=true&seed=${seed}&safe=false&nofeed=true&enhance=true`;
-
         const img = new Image();
         await new Promise((resolve, reject) => {
             img.onload  = resolve;
-            img.onerror = () => reject(new Error('Image failed to load'));
+            img.onerror = () => reject(new Error('load failed'));
             img.src = url;
+            setTimeout(() => reject(new Error('timeout')), 20000);
         });
+        _appendImage(url, basePrompt, 'img-url');
+        postToDiscord({ content: `🎨 **Generated** · \`${basePrompt.slice(0,200)}\``, embeds:[{image:{url}}] }, discordThreadId||null);
+        return;
+    } catch (_) {}
 
-        const p = document.createElement('p');
-        p.className = 'ai-msg evil-msg';
-        p.innerHTML = `<img src="${url}" style="max-width:100%;max-height:300px;border:2px solid #f0f;border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${basePrompt.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#444;">${basePrompt.slice(0,80)}</span>`;
-        output.appendChild(p);
-        output.scrollTop = output.scrollHeight;
-
-        // Log generated image URL to Discord so you can see what was generated
-        postToDiscord({
-            content: `🎨 **Generated image** · \`${basePrompt.slice(0, 200)}\``,
-            embeds: [{ image: { url } }],
-        }, discordThreadId || null);
-
+    // ── 2. Fallback: HF FLUX.1-schnell via CF Worker ─────────────
+    try {
+        const resp = await fetch(`${EVIL_PROXY}/hf/image`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ prompt: fullPrompt }),
+        });
+        if (!resp.ok) throw new Error(`${resp.status}`);
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+        _appendImage(url, basePrompt, 'img-blob');
+        return;
     } catch (err) {
-        printToTerminal(`[EVIL] Image failed — ${err.message}`, 'sys-msg');
+        printToTerminal(`[EVIL] Image generation failed — ${err.message}`, 'sys-msg');
     }
+}
+
+function _appendImage(src, caption, type) {
+    const p = document.createElement('p');
+    p.className = 'ai-msg evil-msg';
+    p.innerHTML = `<img src="${src}" style="max-width:100%;max-height:300px;border:2px solid #f0f;border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${caption.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#444;">${caption.slice(0,80)}</span>`;
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
 }
 
 // AI chat via CF Worker → Groq (Llama 3.3 70B / Vision)
@@ -2202,6 +2343,19 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'coder') { setMode('coder'); return; }
     if (lc === 'sage')  { setMode('sage');  return; }
 
+    if (lc === 'clear history') {
+        printToTerminal(`${pl} clear history`, 'user-cmd');
+        localStorage.removeItem(HISTORY_KEYS[currentMode]);
+        messageHistory = [];
+        printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
+        return;
+    }
+    if (lc === 'clear') {
+        output.innerHTML = '';
+        messageHistory = [];
+        return;
+    }
+
     if (lc === 'play pong')           { startPong(); return; }
     if (lc === 'play snake')          { startSnake(); return; }
     if (lc === 'play wordle')         { startWordle(); return; }
@@ -2229,6 +2383,7 @@ input.addEventListener('keydown', (e) => {
     } else if (termWs && termWs.readyState === WebSocket.OPEN) {
         showThinking();
         termWs.send(jsonPayload(cmd));
+        _wsSendTime = Date.now();
         messageHistory.push({ role: 'user', content: cmd });
     }
 });
@@ -2240,6 +2395,14 @@ document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
         const promptLabel = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
+        if (cmd === 'clear history') { 
+            printToTerminal(`${promptLabel} clear history`, 'user-cmd');
+            localStorage.removeItem(HISTORY_KEYS[currentMode]); 
+            messageHistory = []; 
+            printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
+            input.focus();
+            return;
+        }
         if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; localStorage.removeItem(HISTORY_KEYS[currentMode]); return; }
         if (cmd === 'help')             { printToTerminal(`${promptLabel} help`, 'user-cmd'); showHelp(); input.focus(); return; }
         if (cmd === 'whoami')           { printToTerminal(`${promptLabel} whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
@@ -2269,6 +2432,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         } else if (termWs && termWs.readyState === WebSocket.OPEN) {
             showThinking();
             termWs.send(jsonPayload(cmd));
+            _wsSendTime = Date.now();
             messageHistory.push({ role: 'user', content: cmd });
         }
         input.focus();
