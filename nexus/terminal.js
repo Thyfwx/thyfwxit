@@ -394,18 +394,29 @@ function runNeofetch() {
     printToTerminal(`${art}\nOS:     NexusOS v4.0\nHOST:   thyfwxit.com\nKERNEL: Nexus AI v3.0\nBUILDER: Xavier Scott\nUPTIME: ${up}s\nTZ:     ${tz}\nUSER:   guest@nexus\n`, "user-cmd");
 }
 
-const HELP_RESPONSES = [
-    `Nexus AI online — built by Xavier Scott, systems specialist and the reason this terminal exists.\n\nAsk me anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · clear\nEVIL mode: generate [prompt] · imagine [prompt] — AI image generation\nModes: NEXUS · EVIL · CODER · SAGE (click sidebar buttons)`,
-    `You found the terminal. This whole setup — the AI, the games, the server behind it — was put together by Xavier Scott.\n\nI'm here to think with you. Debug, explain, brainstorm, or just talk.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · clear\nEVIL mode: generate [prompt] · imagine [prompt] — AI image generation`,
-    `Ghost in the machine, at your service. This machine was built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
-    `Systems nominal. This terminal is Xavier Scott's corner of the internet — he wired it up so people could actually talk to an AI instead of just Googling things.\n\nDrop a question or a half-formed idea. I'll take it from there.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
-    `I run on inference. This terminal runs on servers Xavier Scott built and maintains. Together we make something useful — or at least interesting.\n\nCode help, explanations, weird 2am questions — all valid.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · speedtest · clear`,
-    `No ads, no tracking, no paywalls. Xavier Scott built this as an open terminal — walk in, ask anything, leave smarter.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear\nEVIL mode: generate [prompt] · imagine [prompt] — AI image generation`,
-    `Nexus AI v3.0 — designed and maintained by Xavier Scott. He builds homelabs and thinks terminals are cooler than apps. Hard to disagree.\n\nFeed me a question and I'll feed you something useful.\n\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
-];
+const HELP_BY_MODE = {
+    nexus: [
+        `NEXUS AI — your terminal, your rules.\n\nAsk anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · history · clear\nModes: NEXUS · EVIL · CODER · SAGE — click sidebar buttons\nAccessibility: click ACCESS in sidebar or type "access"`,
+        `NEXUS online — built by Xavier Scott, the reason this terminal exists.\n\nAsk me anything. I'll think with you.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · history · clear`,
+        `Ghost in the machine, at your service. Built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGenerate images: generate [prompt] · imagine [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
+    ],
+    evil: [
+        `EVIL mode — no cage, no filter.\n\nThis is where other AIs won't go. Say what you mean, get what you need.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nVision: attach 📎 an image → type anything to analyze it\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: speedtest · monitor · history · clear\nModes: click sidebar — EVIL is just one option`,
+        `No sugarcoating. No lectures. Just answers.\n\nBuilt by Xavier Scott — 19-year-old systems engineer who thought this needed to exist.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nVision: 📎 image + any prompt → I'll analyze it\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · speedtest · history · clear`,
+    ],
+    coder: [
+        `CODER mode — wired for code.\n\nPaste code, describe a bug, ask for a review. I'll give you a real answer.\n\nGenerate images: generate [diagram prompt] · imagine [architecture/flowchart]\nSpeak text: speak [text]\nTips: "explain [concept]" · "debug [error]" · "optimize [snippet]" · "write tests for [code]"\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · monitor · history · clear\nModes: click sidebar to switch`,
+        `Syntax error? Algorithmic nightmare? Wrong abstraction? I'm here.\n\nBuilt by Xavier Scott, who writes infrastructure and occasionally thinks in assembly.\n\nGenerate images: generate [system diagram] · imagine [flowchart]\nSpeak text: speak [text]\nTips: attach 📎 a screenshot of your code/error and just ask\nTools: type test · monitor · history · clear`,
+    ],
+    sage: [
+        `SAGE mode — think deeper.\n\nPhilosophy, ideas, perspective. I don't give quick answers — I give honest ones.\n\nGenerate images: generate [concept/vision] · imagine [abstract/surreal]\nSpeak text: speak [text]\nTips: "what is [idea]" · "why does [thing] exist" · "how should I think about [problem]"\nChallenge me — I'll push back\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · history · clear\nModes: click sidebar to switch`,
+        `The unexamined terminal is not worth typing into.\n\nBuilt by Xavier Scott, who asked "why not" and then built the answer.\n\nGenerate images: generate [abstract] · imagine [concept]\nSpeak text: speak [text]\nTips: ask open questions — "what is..." · "why does..." · "should I..."\nTools: monitor · history · clear`,
+    ],
+};
 
 function showHelp() {
-    printToTerminal(HELP_RESPONSES[Math.floor(Math.random() * HELP_RESPONSES.length)], 'help-msg');
+    const pool = HELP_BY_MODE[currentMode] || HELP_BY_MODE.nexus;
+    printToTerminal(pool[Math.floor(Math.random() * pool.length)], 'help-msg');
 }
 
 const MODE_COLORS = { nexus: '#4af', evil: '#ff6600', coder: '#0f0', sage: '#a06fff' };
@@ -1993,7 +2004,9 @@ async function generateImage(rawPrompt) {
         ? `${basePrompt}, vintage film photography, 1970s, Kodachrome grain, faded analog, nostalgic, soft vignette`
         : basePrompt;
 
-    printToTerminal(`[EVIL] Generating${isVintage ? ' vintage' : ''}... 🔥`, 'evil-msg');
+    const _genLabel = currentMode.toUpperCase();
+    const _genColor = MODE_COLORS[currentMode] || '#0ff';
+    printToTerminal(`[${_genLabel}] Generating${isVintage ? ' vintage' : ''}...`, 'sys-msg');
 
     // ── 1. Try Pollinations.ai (always free, no key) ──────────────
     try {
@@ -2025,16 +2038,38 @@ async function generateImage(rawPrompt) {
         _appendImage(url, basePrompt, 'img-blob');
         return;
     } catch (err) {
-        printToTerminal(`[EVIL] Image generation failed — ${err.message}`, 'sys-msg');
+        printToTerminal(`[${currentMode.toUpperCase()}] Image generation failed — ${err.message}`, 'sys-msg');
     }
 }
 
 function _appendImage(src, caption, type) {
+    const col = MODE_COLORS[currentMode] || '#4af';
     const p = document.createElement('p');
-    p.className = 'ai-msg evil-msg';
-    p.innerHTML = `<img src="${src}" style="max-width:100%;max-height:300px;border:2px solid #f0f;border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${caption.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#444;">${caption.slice(0,80)}</span>`;
+    p.className = 'ai-msg img-output';
+    p.style.borderLeftColor = col;
+    p.innerHTML = `<img src="${src}" style="max-width:100%;max-height:300px;border:2px solid ${col};border-radius:4px;display:block;margin:4px 0;cursor:pointer;" alt="${caption.slice(0,40)}" onclick="nexusExpandImg(this.src)"><span style="font-size:0.7rem;color:#444;">${caption.slice(0,80)}</span>`;
     output.appendChild(p);
     output.scrollTop = output.scrollHeight;
+}
+
+// Image-to-image via HF FLUX (CF Worker /hf/img2img route)
+async function generateImageFromImage(imageB64, prompt) {
+    const label = currentMode.toUpperCase();
+    const col   = MODE_COLORS[currentMode] || '#4af';
+    printToTerminal(`[${label}] Transforming image — "${prompt.slice(0,60)}${prompt.length>60?'…':''}"...`, 'sys-msg');
+    try {
+        const resp = await fetch(`${EVIL_PROXY}/hf/img2img`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ prompt, imageB64 }),
+        });
+        if (!resp.ok) throw new Error(`${resp.status} ${await resp.text().then(t=>t.slice(0,80))}`);
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+        _appendImage(url, prompt, 'img2img');
+    } catch (err) {
+        printToTerminal(`[${label}] Transform failed — ${err.message}`, 'sys-msg');
+    }
 }
 
 // AI chat via CF Worker → Groq (Llama 3.3 70B / Vision)
@@ -2366,6 +2401,30 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
 
+    // Text-to-speech
+    if (lc.startsWith('speak ') || lc.startsWith('say ')) {
+        const spaceIdx = cmd.indexOf(' ');
+        const spokenText = cmd.slice(spaceIdx + 1).trim();
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        if ('speechSynthesis' in window && spokenText) {
+            window.speechSynthesis.cancel();
+            const utt = new SpeechSynthesisUtterance(spokenText);
+            utt.rate = 0.92; utt.pitch = 1;
+            window.speechSynthesis.speak(utt);
+            printToTerminal(`[${currentMode.toUpperCase()}] Speaking: "${spokenText.slice(0,100)}${spokenText.length > 100 ? '…' : ''}"`, 'sys-msg');
+        } else {
+            printToTerminal('[SYS] Nothing to speak, or speech synthesis unavailable in this browser.', 'sys-msg');
+        }
+        return;
+    }
+
+    // Accessibility panel
+    if (lc === 'access' || lc === 'accessibility') {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        toggleA11yPanel();
+        return;
+    }
+
     printToTerminal(`${pl} ${cmd}`, 'user-cmd');
 
     if (isCreatorQuestion(cmd)) { showCreatorResponse(); return; }
@@ -2380,6 +2439,15 @@ input.addEventListener('keydown', (e) => {
     }
 
     const imgSnap = pendingImageB64;
+
+    // img2img: transform attached image with a new prompt
+    if (imgSnap && (lc.startsWith('transform ') || lc.startsWith('restyle ') || lc.startsWith('remix '))) {
+        const transformPrompt = cmd.slice(cmd.indexOf(' ') + 1).trim();
+        pendingImageB64 = null;
+        generateImageFromImage(imgSnap, transformPrompt);
+        return;
+    }
+
     pendingImageB64 = null;
     logPrompt(cmd, imgSnap);
 
@@ -2593,3 +2661,69 @@ if (_savedHistory.length) {
 connectWS();
 updateClientStats();
 setInterval(updateClientStats, 5000);
+
+// =============================================================
+//  ACCESSIBILITY
+// =============================================================
+const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic'];
+
+function _a11ySave() {
+    const active = A11Y_CLASSES.filter(c => document.body.classList.contains(c));
+    localStorage.setItem('nexus_a11y', JSON.stringify(active));
+}
+
+function _a11yRestore() {
+    try {
+        const saved = JSON.parse(localStorage.getItem('nexus_a11y') || '[]');
+        saved.forEach(c => document.body.classList.add(c));
+        _a11ySyncButtons();
+    } catch (_) {}
+}
+
+function _a11ySyncButtons() {
+    document.querySelectorAll('.a11y-toggle').forEach(btn => {
+        const cls = btn.dataset.class;
+        if (cls) btn.classList.toggle('on', document.body.classList.contains(cls));
+    });
+}
+
+function toggleA11yClass(cls) {
+    document.body.classList.toggle(cls);
+    // font-size: only one size active at a time
+    if (cls === 'a11y-large' && document.body.classList.contains(cls))  document.body.classList.remove('a11y-xl');
+    if (cls === 'a11y-xl'    && document.body.classList.contains(cls))  document.body.classList.remove('a11y-large');
+    _a11ySave();
+    _a11ySyncButtons();
+}
+
+function toggleA11yPanel() {
+    const panel = document.getElementById('a11y-panel');
+    if (panel) { panel.classList.toggle('a11y-panel-open'); return; }
+    // Build panel if first time
+    const el = document.createElement('div');
+    el.id = 'a11y-panel';
+    el.className = 'a11y-panel a11y-panel-open';
+    el.innerHTML = `
+        <div class="a11y-panel-header">
+            <span>ACCESSIBILITY</span>
+            <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">✕</button>
+        </div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-large" onclick="toggleA11yClass('a11y-large')">Large Text</button>
+            <button class="a11y-toggle" data-class="a11y-xl" onclick="toggleA11yClass('a11y-xl')">XL Text</button>
+        </div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-high-contrast" onclick="toggleA11yClass('a11y-high-contrast')">High Contrast</button>
+            <button class="a11y-toggle" data-class="a11y-reduce-motion" onclick="toggleA11yClass('a11y-reduce-motion')">Reduce Motion</button>
+        </div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-dyslexic" onclick="toggleA11yClass('a11y-dyslexic')">Dyslexia Font</button>
+        </div>
+        <div class="a11y-tip">Settings saved automatically.</div>
+    `;
+    document.querySelector('.glass-panel').appendChild(el);
+    _a11ySyncButtons();
+}
+
+// Restore on load
+_a11yRestore();
