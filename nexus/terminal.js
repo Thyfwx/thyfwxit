@@ -2969,8 +2969,6 @@ function toggleA11yClass(cls) {
     if (cls === 'a11y-xl'    && document.body.classList.contains(cls))  document.body.classList.remove('a11y-large');
     _a11ySave();
     _a11ySyncButtons();
-    // Close panel immediately after selecting a setting
-    document.getElementById('a11y-panel')?.classList.remove('a11y-panel-open');
 }
 
 // ── Voice selection helpers ──────────────────────────────────────────────────
@@ -2999,30 +2997,40 @@ function _pickBestVoice(voices) {
 
 function _buildVoiceOptions(sel) {
     const voices = window.speechSynthesis.getVoices();
-    const saved  = localStorage.getItem('nexus_tts_voice');
-    // Only show English voices to keep list manageable
-    const eng = voices.filter(v => v.lang.startsWith('en'));
+    if (!voices.length) {
+        sel.innerHTML = '<option value="">No voices available</option>';
+        return;
+    }
+    const saved = localStorage.getItem('nexus_tts_voice');
+    const list  = voices.filter(v => v.lang.startsWith('en'));
     sel.innerHTML = '<option value="">— Auto (best available) —</option>';
-    eng.forEach(v => {
+    (list.length ? list : voices).forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.name;
         opt.textContent = `${v.name} (${v.lang})`;
-        if (v.name === saved) opt.selected = true;
         sel.appendChild(opt);
     });
-    if (!saved) {
-        // Pre-select the best one so users see what'll be used
-        const best = _pickBestVoice(eng.length ? eng : voices);
-        if (best) {
-            const match = sel.querySelector(`option[value="${CSS.escape(best.name)}"]`);
-            if (match) match.selected = true;
-        }
+    // Set selection using sel.value — simpler and always works
+    if (saved) {
+        sel.value = saved;
+        if (!sel.value) { sel.value = ''; localStorage.removeItem('nexus_tts_voice'); }
+    } else {
+        const best = _pickBestVoice(list.length ? list : voices);
+        if (best) sel.value = best.name;
     }
 }
 
 function toggleA11yPanel() {
     const panel = document.getElementById('a11y-panel');
-    if (panel) { panel.classList.toggle('a11y-panel-open'); return; }
+    if (panel) {
+        panel.classList.toggle('a11y-panel-open');
+        // Re-populate voices each open (Chrome loads them async after first gesture)
+        if (panel.classList.contains('a11y-panel-open')) {
+            const sel = panel.querySelector('#a11y-voice-sel');
+            if (sel) _buildVoiceOptions(sel);
+        }
+        return;
+    }
 
     const el = document.createElement('div');
     el.id = 'a11y-panel';
