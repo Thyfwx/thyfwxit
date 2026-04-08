@@ -49,7 +49,7 @@ updateTabIdentity();
 // Focus Listener (Optimized for Chrome)
 document.addEventListener('mousedown', (e) => {
     // Only focus if the user clicks inside the monitor but not on buttons or inputs
-    if (e.target.closest('.monitor') && !['BUTTON', 'INPUT', 'A', 'CANVAS'].includes(e.target.tagName)) {
+    if (e.target.closest('.monitor') && !['BUTTON', 'INPUT', 'SELECT', 'OPTION', 'A', 'CANVAS'].includes(e.target.tagName) && !e.target.closest('.a11y-panel')) {
         setTimeout(() => {
             if (!window.getSelection().toString()) input.focus();
         }, 0);
@@ -2225,6 +2225,71 @@ const MODE_SYSTEMS = {
     sage:  `You are NEXUS in SAGE mode — thoughtful, philosophical, and reflective. Analyze images with depth and meaning. ${XAVIER_BIO}`,
 };
 
+// ── Direct Gemini call from browser (used when WS server is offline) ──────────
+async function askGemini(cmd, systemPrompt, className = 'ai-msg') {
+    const key = window.GEMINI_KEY;
+    if (!key) {
+        printToTerminal('[SYS] Gemini key not available.', 'sys-msg');
+        return;
+    }
+
+    showThinking(cmd);
+
+    // Build contents from history
+    const history = (messageHistory || []).slice(-10);
+    const contents = [];
+    for (const h of history) {
+        const role = h.role === 'assistant' ? 'model' : 'user';
+        if (typeof h.content === 'string' && h.content.trim())
+            contents.push({ role, parts: [{ text: h.content }] });
+    }
+    contents.push({ role: 'user', parts: [{ text: cmd }] });
+
+    const payload = {
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { maxOutputTokens: 1500, temperature: 0.9 },
+    };
+
+    // Clear thinking indicator helper
+    const clearThink = () => {
+        clearTimeout(_thinkTimeout); _thinkTimeout = null; _thinkFallbackCmd = null;
+        document.getElementById('ai-thinking')?.remove();
+    };
+
+    try {
+        const resp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+        );
+        clearThink();
+
+        if (!resp.ok) {
+            const err = await resp.text();
+            printToTerminal(`[SYS] Gemini error ${resp.status} — ${JSON.parse(err)?.error?.message || err.slice(0,120)}`, 'sys-msg');
+            return;
+        }
+
+        const data  = await resp.json();
+        const text  = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) {
+            const reason = data?.candidates?.[0]?.finishReason || 'UNKNOWN';
+            printToTerminal(`[SYS] Gemini returned nothing (${reason}).`, 'sys-msg');
+            return;
+        }
+
+        printTypewriter(text, className);
+        messageHistory.push({ role: 'assistant', content: text.slice(0, 600) });
+        if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
+        saveHistory();
+        _logAIResponse(text);
+
+    } catch (e) {
+        clearThink();
+        printToTerminal(`[SYS] Gemini connection error — ${e.message?.slice(0,80) || 'network failure'}`, 'sys-msg');
+    }
+}
+
 
 
 // Image generation — Pollinations.ai first (free, no key), HF FLUX fallback
@@ -2702,8 +2767,7 @@ input.addEventListener('keydown', (e) => {
     } else {
         // WS not open — go straight to CF Worker fallback
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        printToTerminal(`[SYS] Server offline — routing via Groq...`, 'sys-msg');
-        askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        askGemini(cmd, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     }
 });
 
@@ -2941,7 +3005,7 @@ setInterval(updateClientStats, 5000);
 // =============================================================
 //  ACCESSIBILITY
 // =============================================================
-const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic'];
+const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic', 'a11y-wide-spacing', 'a11y-bold', 'a11y-dim'];
 
 function _a11ySave() {
     const active = A11Y_CLASSES.filter(c => document.body.classList.contains(c));
@@ -3047,13 +3111,22 @@ function toggleA11yPanel() {
             <button class="a11y-toggle" data-class="a11y-xl"    onclick="toggleA11yClass('a11y-xl')">Extra Large</button>
         </div>
 
-        <div class="a11y-section-label">DISPLAY</div>
+        <div class="a11y-section-label">TEXT STYLE</div>
         <div class="a11y-row">
-            <button class="a11y-toggle" data-class="a11y-high-contrast"  onclick="toggleA11yClass('a11y-high-contrast')">High Contrast</button>
-            <button class="a11y-toggle" data-class="a11y-reduce-motion"  onclick="toggleA11yClass('a11y-reduce-motion')">Less Motion</button>
+            <button class="a11y-toggle" data-class="a11y-bold"         onclick="toggleA11yClass('a11y-bold')">Bold</button>
+            <button class="a11y-toggle" data-class="a11y-wide-spacing" onclick="toggleA11yClass('a11y-wide-spacing')">Wide Spacing</button>
         </div>
         <div class="a11y-row">
             <button class="a11y-toggle" data-class="a11y-dyslexic" onclick="toggleA11yClass('a11y-dyslexic')">Dyslexia Font</button>
+        </div>
+
+        <div class="a11y-section-label">DISPLAY</div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-high-contrast" onclick="toggleA11yClass('a11y-high-contrast')">High Contrast</button>
+            <button class="a11y-toggle" data-class="a11y-dim"           onclick="toggleA11yClass('a11y-dim')">Dim Mode</button>
+        </div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-reduce-motion" onclick="toggleA11yClass('a11y-reduce-motion')">Less Motion</button>
         </div>
 
         <div class="a11y-section-label">VOICE (speak command)</div>

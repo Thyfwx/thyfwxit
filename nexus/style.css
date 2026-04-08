@@ -568,6 +568,23 @@ body.a11y-reduce-motion * {
 body.a11y-reduce-motion .monitor::after { display: none; }
 body.a11y-reduce-motion .screen-glare   { display: none; }
 
+/* Bold text */
+body.a11y-bold .terminal-output p,
+body.a11y-bold #terminal-input,
+body.a11y-bold .prompt { font-weight: 700; }
+
+/* Wide spacing — easier to read long lines */
+body.a11y-wide-spacing .terminal-output p,
+body.a11y-wide-spacing #terminal-input {
+    line-height: 1.9;
+    letter-spacing: 0.04em;
+    word-spacing: 0.12em;
+}
+
+/* Dim mode — reduces harshness of bright CRT colors */
+body.a11y-dim { filter: brightness(0.72); }
+body.a11y-dim .a11y-panel { filter: brightness(1.4); } /* keep panel readable */
+
 /* Dyslexia-friendly font */
 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
 body.a11y-dyslexic,
