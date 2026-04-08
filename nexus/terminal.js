@@ -301,13 +301,30 @@ function doConnect() {
 
     // Accumulate streaming chunks before committing to history
     let _streamBuf = '', _streamTimer = null;
+    let _thinkTimeout = null; // safety net: auto-clear thinking if server never responds
+
+    function _clearThinking() {
+        clearTimeout(_thinkTimeout);
+        _thinkTimeout = null;
+        document.getElementById('ai-thinking')?.remove();
+    }
 
     termWs.onmessage = (event) => {
         const text = event.data;
 
-        // Remove thinking indicator only once
-        const thinkEl = document.getElementById('ai-thinking');
-        if (thinkEl) thinkEl.remove();
+        _clearThinking(); // remove thinking indicator on ANY incoming message
+
+        // [MODEL:label] — update status display, never print to terminal
+        if (text.startsWith('[MODEL:')) {
+            const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
+            if (label) {
+                const el = document.getElementById('mode-indicator');
+                // Show model name briefly in status bar next to mode (don't overwrite mode)
+                const modelEl = document.getElementById('active-model');
+                if (modelEl) modelEl.textContent = label;
+            }
+            return;
+        }
 
         if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
 
@@ -326,10 +343,13 @@ function doConnect() {
         _streamBuf += text;
         clearTimeout(_streamTimer);
         _streamTimer = setTimeout(() => {
-            if (_streamBuf.trim()) {
-                messageHistory.push({ role: 'assistant', content: _streamBuf.trim().slice(0, 600) });
+            const full = _streamBuf.trim();
+            if (full) {
+                messageHistory.push({ role: 'assistant', content: full.slice(0, 600) });
                 if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
                 saveHistory();
+                // Log AI response to Discord so you can read full conversations
+                _logAIResponse(full);
             }
             _streamBuf = '';
         }, 800);
@@ -337,14 +357,15 @@ function doConnect() {
         printTypewriter(text);
     };
 
-    // Silent reconnect — nothing printed, no boot, no warning message
+    // If WS drops while thinking, clear immediately and show error
     termWs.onclose = () => {
         clearInterval(_wsPingId);
+        _clearThinking();
         const dot = document.getElementById('conn-dot');
-        if (dot) { dot.className = 'conn-dot disconnected'; }
+        if (dot) dot.className = 'conn-dot disconnected';
         setTimeout(connectWS, 3000);
     };
-    termWs.onerror = () => {};
+    termWs.onerror = () => { _clearThinking(); };
 }
 
 // =============================================================
@@ -2375,6 +2396,7 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
             messageHistory.push({ role: 'assistant', content: fullText.slice(0, 800) });
             if (messageHistory.length > 14) messageHistory.splice(0, messageHistory.length - 14);
             saveHistory();
+            _logAIResponse(fullText); // log EVIL/CF-Worker responses to Discord too
         }
 
     } catch (err) {
@@ -2744,6 +2766,7 @@ function printToTerminal(text, className = 'sys-msg') {
 }
 
 function showThinking() {
+    document.getElementById('ai-thinking')?.remove(); // clear any stale one first
     const col = MODE_COLORS[currentMode] || '#4af';
     const label = (currentMode === 'evil' ? 'EVIL' : currentMode === 'coder' ? 'CODER' : currentMode === 'sage' ? 'SAGE' : 'NEXUS');
     const p = document.createElement('p');
@@ -2759,9 +2782,30 @@ function showThinking() {
         </span>`;
     output.appendChild(p);
     output.scrollTop = output.scrollHeight;
-    p._cleanup = () => {};
-    const orig = p.remove.bind(p);
-    p.remove = () => { p._cleanup(); orig(); };
+
+    // Safety net: auto-clear after 30s and tell the user something went wrong
+    if (typeof _thinkTimeout !== 'undefined') {
+        clearTimeout(_thinkTimeout);
+        _thinkTimeout = setTimeout(() => {
+            document.getElementById('ai-thinking')?.remove();
+            _thinkTimeout = null;
+            printToTerminal(`[${label}] No response after 30s — server may be rate-limited or restarting. Try again.`, 'sys-msg');
+        }, 30000);
+    }
+}
+
+// Log AI responses to Discord so full conversations are visible in logs
+function _logAIResponse(responseText) {
+    if (!responseText || responseText.length < 3) return;
+    const ts  = new Date().toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'short' });
+    const tag = currentMode !== 'nexus' ? ` · **${currentMode.toUpperCase()}**` : '';
+    const content = [
+        `\`[${ts}]\` **Nexus Reply**${tag}`,
+        '```',
+        responseText.slice(0, 800),
+        '```',
+    ].join('\n');
+    postToDiscord({ content: content.slice(0, 1999) }, discordThreadId || null);
 }
 
 function jsonPayload(cmd) {
