@@ -2371,6 +2371,14 @@ input.addEventListener('keydown', (e) => {
     if (isCreatorQuestion(cmd)) { showCreatorResponse(); return; }
     if (isContactQuestion(cmd))  { showContactResponse();  return; }
 
+    // Image generation works in ALL modes — intercept before routing to AI
+    const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
+    if (genMatch) {
+        const isVintage = /^vintage\s/i.test(cmd);
+        generateImage(isVintage ? cmd.trim() : genMatch[1].trim());
+        return;
+    }
+
     const imgSnap = pendingImageB64;
     pendingImageB64 = null;
     logPrompt(cmd, imgSnap);
@@ -2421,6 +2429,15 @@ document.querySelectorAll('.action-btn').forEach(btn => {
 
         if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
         if (isContactQuestion(cmd))  { showContactResponse();  input.focus(); return; }
+
+        // Image generation works in ALL modes
+        const genMatchBtn = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
+        if (genMatchBtn) {
+            const isVintageBtn = /^vintage\s/i.test(cmd);
+            generateImage(isVintageBtn ? cmd.trim() : genMatchBtn[1].trim());
+            input.focus();
+            return;
+        }
 
         const snap = pendingImageB64;
         pendingImageB64 = null;
