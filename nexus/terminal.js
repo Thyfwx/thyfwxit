@@ -2225,56 +2225,41 @@ const MODE_SYSTEMS = {
     sage:  `You are NEXUS in SAGE mode — thoughtful, philosophical, and reflective. Analyze images with depth and meaning. ${XAVIER_BIO}`,
 };
 
-// ── Direct Gemini call from browser (used when WS server is offline) ──────────
-async function askGemini(cmd, systemPrompt, className = 'ai-msg') {
-    const key = window.GEMINI_KEY;
-    if (!key) {
-        printToTerminal('[SYS] Gemini key not available.', 'sys-msg');
-        return;
-    }
+// ── Gemini via Render HTTP endpoint (used when WS is offline) ─────────────────
+// Key stays on the server — never in the browser.
+const RENDER_HTTP = 'https://nexus-terminalnexus.onrender.com';
 
+async function askGemini(cmd, systemPrompt, className = 'ai-msg') {
     showThinking(cmd);
 
-    // Build contents from history
-    const history = (messageHistory || []).slice(-10);
-    const contents = [];
-    for (const h of history) {
-        const role = h.role === 'assistant' ? 'model' : 'user';
-        if (typeof h.content === 'string' && h.content.trim())
-            contents.push({ role, parts: [{ text: h.content }] });
-    }
-    contents.push({ role: 'user', parts: [{ text: cmd }] });
-
-    const payload = {
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: { maxOutputTokens: 1500, temperature: 0.9 },
-    };
-
-    // Clear thinking indicator helper
     const clearThink = () => {
         clearTimeout(_thinkTimeout); _thinkTimeout = null; _thinkFallbackCmd = null;
         document.getElementById('ai-thinking')?.remove();
     };
 
     try {
-        const resp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
-        );
+        const resp = await fetch(`${RENDER_HTTP}/ai`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prompt:  cmd,
+                history: (messageHistory || []).slice(-10),
+                system:  systemPrompt,
+            }),
+            signal: AbortSignal.timeout(45000), // give Render time to spin up
+        });
         clearThink();
 
         if (!resp.ok) {
-            const err = await resp.text();
-            printToTerminal(`[SYS] Gemini error ${resp.status} — ${JSON.parse(err)?.error?.message || err.slice(0,120)}`, 'sys-msg');
+            const err = await resp.json().catch(() => ({}));
+            printToTerminal(`[SYS] Gemini error — ${err.error || resp.status}`, 'sys-msg');
             return;
         }
 
-        const data  = await resp.json();
-        const text  = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const data = await resp.json();
+        const text = data?.text;
         if (!text) {
-            const reason = data?.candidates?.[0]?.finishReason || 'UNKNOWN';
-            printToTerminal(`[SYS] Gemini returned nothing (${reason}).`, 'sys-msg');
+            printToTerminal('[SYS] Gemini returned no response.', 'sys-msg');
             return;
         }
 
@@ -2286,7 +2271,11 @@ async function askGemini(cmd, systemPrompt, className = 'ai-msg') {
 
     } catch (e) {
         clearThink();
-        printToTerminal(`[SYS] Gemini connection error — ${e.message?.slice(0,80) || 'network failure'}`, 'sys-msg');
+        if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+            printToTerminal('[SYS] Gemini server is waking up — wait ~30s and try again.', 'sys-msg');
+        } else {
+            printToTerminal(`[SYS] Gemini unreachable — ${e.message?.slice(0,80) || 'network error'}`, 'sys-msg');
+        }
     }
 }
 
