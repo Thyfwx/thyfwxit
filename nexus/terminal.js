@@ -2635,11 +2635,10 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
 
-    // Text-to-speech
+    // Text-to-speech — silent: just speak, no terminal output
     if (lc.startsWith('speak ') || lc.startsWith('say ')) {
         const spaceIdx = cmd.indexOf(' ');
         const spokenText = cmd.slice(spaceIdx + 1).trim();
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         if ('speechSynthesis' in window && spokenText) {
             window.speechSynthesis.cancel();
             const utt = new SpeechSynthesisUtterance(spokenText);
@@ -2647,15 +2646,12 @@ input.addEventListener('keydown', (e) => {
             const savedVoice = localStorage.getItem('nexus_tts_voice');
             const voices = window.speechSynthesis.getVoices();
             if (savedVoice && voices.length) {
-                const v = voices.find(v => v.name === savedVoice);
+                const v = voices.find(vx => vx.name === savedVoice);
                 if (v) utt.voice = v;
             } else if (voices.length) {
                 utt.voice = _pickBestVoice(voices);
             }
             window.speechSynthesis.speak(utt);
-            printToTerminal(`[${currentMode.toUpperCase()}] Speaking: "${spokenText.slice(0,100)}${spokenText.length > 100 ? '…' : ''}"`, 'sys-msg');
-        } else {
-            printToTerminal('[SYS] Nothing to speak, or speech synthesis unavailable in this browser.', 'sys-msg');
         }
         return;
     }
@@ -2973,6 +2969,8 @@ function toggleA11yClass(cls) {
     if (cls === 'a11y-xl'    && document.body.classList.contains(cls))  document.body.classList.remove('a11y-large');
     _a11ySave();
     _a11ySyncButtons();
+    // Close panel immediately after selecting a setting
+    document.getElementById('a11y-panel')?.classList.remove('a11y-panel-open');
 }
 
 // ── Voice selection helpers ──────────────────────────────────────────────────
@@ -3031,7 +3029,7 @@ function toggleA11yPanel() {
     el.className = 'a11y-panel a11y-panel-open';
     el.innerHTML = `
         <div class="a11y-panel-header">
-            <span>♿ ACCESSIBILITY</span>
+            <span>[ ACCESSIBILITY ]</span>
             <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">✕</button>
         </div>
 
