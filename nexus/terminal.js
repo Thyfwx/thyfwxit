@@ -1087,36 +1087,43 @@ function launchSnake(snakeMode) {
     bgCanvas.width = 400; bgCanvas.height = 360;
     const bgCtx = bgCanvas.getContext('2d');
     (function buildBg() {
-        if (stealth) {
-            bgCtx.fillStyle = '#000';
-            bgCtx.fillRect(0, 0, 400, 360);
-            return;
-        }
         // Dark base
-        bgCtx.fillStyle = '#02040a';
+        bgCtx.fillStyle = '#050510';
         bgCtx.fillRect(0, 0, 400, 360);
-        // Grid lines
-        bgCtx.strokeStyle = 'rgba(0,255,80,0.055)'; bgCtx.lineWidth = 0.5;
-        for (let x = 0; x <= COLS; x++) { bgCtx.beginPath(); bgCtx.moveTo(x*CELL,0); bgCtx.lineTo(x*CELL,ROWS*CELL); bgCtx.stroke(); }
-        for (let y = 0; y <= ROWS; y++) { bgCtx.beginPath(); bgCtx.moveTo(0,y*CELL); bgCtx.lineTo(COLS*CELL,y*CELL); bgCtx.stroke(); }
-        // Faint circuit traces
-        bgCtx.strokeStyle = 'rgba(0,255,100,0.09)'; bgCtx.lineWidth = 1.5;
+        
+        if (stealth) return; // Stay dark for stealth mode
+
+        // Cool Circuit Grid
+        bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.04)';
+        bgCtx.lineWidth = 1;
+        for (let x = 0; x <= COLS; x++) {
+            bgCtx.beginPath(); bgCtx.moveTo(x * CELL, 0); bgCtx.lineTo(x * CELL, ROWS * CELL); bgCtx.stroke();
+        }
+        for (let y = 0; y <= ROWS; y++) {
+            bgCtx.beginPath(); bgCtx.moveTo(0, y * CELL); bgCtx.lineTo(COLS * CELL, y * CELL); bgCtx.stroke();
+        }
+        
+        // Circuit traces
+        bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.08)';
+        bgCtx.lineWidth = 1.5;
         const traces = [[0,3,4,3,4,8,7,8],[COLS,12,COLS-3,12,COLS-3,7,COLS-6,7],[5,0,5,4,10,4],[8,ROWS,8,ROWS-3,14,ROWS-3,14,ROWS-6]];
         traces.forEach(pts => {
-            bgCtx.beginPath(); bgCtx.moveTo(pts[0]*CELL, pts[1]*CELL);
+            bgCtx.beginPath();
+            bgCtx.moveTo(pts[0]*CELL, pts[1]*CELL);
             for (let i=2;i<pts.length;i+=2) bgCtx.lineTo(pts[i]*CELL, pts[i+1]*CELL);
             bgCtx.stroke();
         });
-        // Glowing nodes at circuit corners
-        bgCtx.shadowBlur = 6; bgCtx.shadowColor = '#0f4';
-        bgCtx.fillStyle = 'rgba(0,255,80,0.35)';
+
+        // Glowing nodes
+        bgCtx.shadowBlur = 6; bgCtx.shadowColor = '#0ff';
+        bgCtx.fillStyle = 'rgba(0, 255, 255, 0.3)';
         [[4,3],[4,8],[7,8],[COLS-3,12],[COLS-3,7],[5,4],[10,4],[8,ROWS-3],[14,ROWS-3],[14,ROWS-6]].forEach(([cx,cy]) => {
             bgCtx.beginPath(); bgCtx.arc(cx*CELL, cy*CELL, 2.5, 0, Math.PI*2); bgCtx.fill();
         });
         bgCtx.shadowBlur = 0;
-        // Endless mode: wrap edge indicators
+
         if (endless) {
-            bgCtx.fillStyle = 'rgba(0,255,100,0.04)';
+            bgCtx.fillStyle = 'rgba(0, 255, 255, 0.02)';
             bgCtx.fillRect(0,0,3,ROWS*CELL); bgCtx.fillRect(COLS*CELL-3,0,3,ROWS*CELL);
             bgCtx.fillRect(0,0,COLS*CELL,3); bgCtx.fillRect(0,ROWS*CELL-3,COLS*CELL,3);
         }
@@ -1591,19 +1598,27 @@ function launchBreakout(difficulty) {
             if (ball.y <= BR) ball.vy = Math.abs(ball.vy);
             if (ball.y + BR >= 270 && ball.y - BR <= 282 && ball.x >= paddle && ball.x <= paddle + d.PW) {
                 ball.vy = -Math.abs(ball.vy);
-                ball.vx = ((ball.x - (paddle + d.PW / 2)) / (d.PW / 2)) * 4.5;
+                const hitPoint = (ball.x - (paddle + d.PW / 2)) / (d.PW / 2);
+                ball.vx = hitPoint * 5.5;
+                SoundManager.playBloop(400, 0.05);
             }
             if (ball.y > 310) {
                 lives--;
+                SoundManager.playBloop(150, 0.1);
                 const livesEl = document.getElementById('brk-lives');
                 if (livesEl) livesEl.textContent = '♥'.repeat(Math.max(0, lives));
-                if (lives <= 0) { dead = true; if (score > hi) localStorage.setItem('breakout_hi', score); }
+                if (lives <= 0) { 
+                    dead = true; 
+                    if (score > hi) localStorage.setItem('breakout_hi', score);
+                    submitScore('breakout', score);
+                }
                 else { ball.x = 200; ball.y = 230; ball.vx = d.startVX; ball.vy = d.startVY; }
             }
             bricks.forEach(b => {
                 if (!b.alive) return;
                 if (ball.x + BR > b.x && ball.x - BR < b.x + BW && ball.y + BR > b.y && ball.y - BR < b.y + BH) {
                     b.alive = false; ball.vy *= -1; score += 10;
+                    SoundManager.playBloop(600 + Math.random() * 200, 0.05);
                     if (d.accel) {
                         ball.vx *= d.accel; ball.vy *= d.accel;
                         const spd = Math.sqrt(ball.vx**2 + ball.vy**2);
@@ -1660,6 +1675,8 @@ function launchBreakout(difficulty) {
             nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
         }
         if (won) {
+            SoundManager.playBloop(900, 0.2);
+            submitScore('breakout', score);
             ctx.fillStyle = 'rgba(0,10,2,0.88)'; ctx.fillRect(0, 0, 400, 300);
             ctx.strokeStyle = '#0f0'; ctx.lineWidth = 2;
             ctx.strokeRect(20, 75, 360, 155);
@@ -2695,12 +2712,21 @@ function setMode(modeKey) {
     if (titleEl)   titleEl.textContent = m.title;
     if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color || 'inherit'; }
 
+    // IMMEDIATE COLOR UPDATE — No refresh needed
+    if (m.color) {
+        document.documentElement.style.setProperty('--accent', m.color);
+        document.documentElement.style.setProperty('--txt-color', m.color);
+    }
+
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === modeKey);
     });
 
     SoundManager.playBloop(300, 0.05);
-    printToTerminal(m.msg, m.msgCls);
+    
+    // Cleaner, less crowded text
+    const cleanMsg = m.msg.includes('.') ? m.msg.split('.')[0] + '.' : m.msg;
+    printToTerminal(cleanMsg, m.msgCls);
 }
 
 // Wire up mode picker buttons
@@ -3164,7 +3190,7 @@ setInterval(updateClientStats, 5000);
 // =============================================================
 const SoundManager = {
     ctx: null,
-    enabled: localStorage.getItem('nexus_sound') === '1',
+    enabled: localStorage.getItem('nexus_sound') !== '0', // Default to ON (1 or null)
     init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
     
     playClick() {
