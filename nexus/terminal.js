@@ -1348,7 +1348,7 @@ function stopSnake() {
 }
 
 // =============================================================
-//  CYBER INVADERS (Hacker Edition)
+//  CYBER INVADERS (Classic Edition)
 // =============================================================
 let invadersRaf;
 let invadersActive = false;
@@ -1363,8 +1363,21 @@ function startInvaders() {
     const ctx = nexusCanvas.getContext('2d');
 
     let playerX = 180, bullets = [], enemies = [], particles = [], boss = null;
+    let shields = []; // Data Firewalls
     let score = 0, wave = 1, gameOver = false, shake = 0;
     let moveDir = 1;
+
+    function initShields() {
+        shields = [];
+        for (let i = 0; i < 4; i++) {
+            const sx = 50 + i * 100;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 4; c++) {
+                    shields.push({ x: sx + c * 10, y: 280 + r * 10, hp: 3 });
+                }
+            }
+        }
+    }
 
     function initEnemies() {
         enemies = [];
@@ -1394,6 +1407,7 @@ function startInvaders() {
     }
 
     if (wave % 5 === 0) spawnBoss(); else initEnemies();
+    initShields();
 
     const movePlayer = (x) => {
         const rect = nexusCanvas.getBoundingClientRect();
@@ -1435,9 +1449,25 @@ function startInvaders() {
 
             // Bullets
             bullets.forEach((b, i) => {
-                b.y -= 7;
+                b.y -= 6; // SLOWER bullets for classic feel
                 ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 3, 12);
+                
+                // Shield collision
+                shields.forEach((s, si) => {
+                    if (s.hp > 0 && b.x > s.x && b.x < s.x + 10 && b.y > s.y && b.y < s.y + 10) {
+                        s.hp--; bullets.splice(i, 1);
+                        SoundManager.playBloop(100, 0.02);
+                    }
+                });
+
                 if (b.y < 0) bullets.splice(i, 1);
+            });
+
+            // Shields
+            shields.forEach(s => {
+                if (s.hp <= 0) return;
+                ctx.fillStyle = `rgba(0, 255, 255, ${s.hp / 3})`;
+                ctx.fillRect(s.x, s.y, 9, 9);
             });
 
             // Particles
@@ -1511,11 +1541,12 @@ function startInvaders() {
                 moveDir *= -1;
                 enemies.forEach(e => e.y += 12);
             }
-            enemies.forEach(e => e.x += moveDir * (1.2 + wave * 0.15));
+            enemies.forEach(e => e.x += moveDir * (0.8 + wave * 0.12)); // SLOWER movement
 
             if (!boss && enemies.length > 0 && enemies.every(e => !e.alive)) {
                 wave++;
                 initEnemies();
+                initShields(); // Restore shields each wave
                 if (wave % 5 === 0) spawnBoss();
                 SoundManager.playBloop(800, 0.1);
             }
@@ -2507,7 +2538,41 @@ function stopAllGames() {
     typeTestActive = false;
     clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
-    nexusCanvas.onmousemove = null;
+}
+
+// =============================================================
+//  GOOGLE AUTHENTICATION
+// =============================================================
+function initGoogleAuth() {
+    if (typeof google === 'undefined') return;
+    google.accounts.id.initialize({
+        client_id: "1011411241124-vsknj98vlvvksnvkjnvkjnvkjnvk.apps.googleusercontent.com", 
+        callback: handleCredentialResponse,
+        auto_select: true
+    });
+    const btn = document.getElementById('google-signin-btn');
+    if (btn) {
+        google.accounts.id.renderButton(btn, { theme: 'outline', size: 'small', type: 'icon', shape: 'circle' });
+    }
+}
+
+async function handleCredentialResponse(response) {
+    console.log("[AUTH] Processing Google Credential...");
+    try {
+        const res = await fetch(`${location.protocol}//${location.host}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            localStorage.setItem('nexus_user_data', JSON.stringify(data));
+            printToTerminal(`[OK] Uplink synchronized: Welcome, ${data.name}.`, 'conn-ok');
+            initGoogleAuth(); 
+        }
+    } catch(e) { console.error("Auth failed:", e); }
+}
+
     nexusCanvas.ontouchmove = null;
     nexusCanvas.onclick = null;
     cpuData = []; cpuHistory = []; memHistory = []; netHistory = [];
@@ -3680,5 +3745,67 @@ function toggleA11yPanel() {
     });
 }
 
-// Restore on load
-_a11yRestore();
+// =============================================================
+//  RESTORE & BOOT
+// =============================================================
+
+// Global variables initialized on load
+let cpuStat, memStat, output, input, guiContainer, guiContent, guiTitle, nexusCanvas;
+
+// Global Boot
+window.onload = async () => {
+    console.log("[NEXUS] System Booting...");
+
+    // Initialize DOM references
+    cpuStat      = document.getElementById('cpu-stat');
+    memStat      = document.getElementById('mem-stat');
+    output       = document.getElementById('terminal-output');
+    input        = document.getElementById('terminal-input');
+    guiContainer = document.getElementById('game-gui-container');
+    guiContent   = document.getElementById('gui-content');
+    guiTitle     = document.getElementById('gui-title');
+    nexusCanvas  = document.getElementById('nexus-canvas');
+
+    if (!input || !output) {
+        console.error("[NEXUS] Critical UI elements missing. Check index.html.");
+        return;
+    }
+
+    // Restore saved mode (UI only)
+    if (currentMode !== 'nexus') {
+        const m = MODES[currentMode];
+        if (m) {
+            const promptLabelEl = document.getElementById('prompt-label');
+            const statusTitleEl = document.getElementById('status-title');
+            const modeIndEl     = document.getElementById('mode-indicator');
+            if (promptLabelEl) promptLabelEl.textContent = m.prompt;
+            if (statusTitleEl) statusTitleEl.textContent = m.title;
+            if (modeIndEl)     modeIndEl.textContent     = m.label;
+            if (m.color) {
+                document.documentElement.style.setProperty('--accent', m.color);
+                document.documentElement.style.setProperty('--txt-color', m.color);
+            }
+            document.querySelectorAll('.mode-btn').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === currentMode);
+            });
+        }
+    }
+
+    // Restore current mode's history
+    const _savedHistory = loadHistory(currentMode);
+    if (_savedHistory.length) {
+        messageHistory = _savedHistory;
+        setTimeout(() => {
+            const col = MODE_COLORS[currentMode] || '#0ff';
+            printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages restored from last session.`, 'sys-msg');
+        }, 2000);
+    }
+
+    _a11yRestore();
+    initGoogleAuth(); 
+    connectWS();
+    connectStats();
+    updateClientStats();
+    setInterval(updateClientStats, 5000);
+    console.log("[NEXUS] Core services established.");
+};
