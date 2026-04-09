@@ -247,43 +247,12 @@ body {
     color: var(--txt-color);
 }
 
-/* Nexus mode active (blue) */
-.mode-btn[data-mode="nexus"].active {
-    background: #4af;
-    border-color: #4af;
-    box-shadow: 0 0 8px #4af;
-    color: #000;
-}
-
+/* Dynamic active states using CSS variables */
 .mode-btn.active {
-    background: var(--txt-color);
+    background: var(--accent);
     color: #000;
-    border-color: var(--txt-color);
-    box-shadow: 0 0 8px var(--txt-color);
-}
-
-/* Evil mode active state */
-.mode-btn[data-mode="evil"].active {
-    background: #ff6600;
-    border-color: #ff6600;
-    box-shadow: 0 0 10px #ff6600;
-    color: #000;
-}
-
-/* Coder mode active */
-.mode-btn[data-mode="coder"].active {
-    background: #0f0;
-    border-color: #0f0;
-    box-shadow: 0 0 8px #0f0;
-    color: #000;
-}
-
-/* Sage mode active */
-.mode-btn[data-mode="sage"].active {
-    background: #a06fff;
-    border-color: #a06fff;
-    box-shadow: 0 0 8px #a06fff;
-    color: #000;
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
 }
 
 /* Sidebar hide when mobile keyboard is open */
@@ -454,10 +423,10 @@ body {
 }
 .a11y-toggle:hover { border-color: var(--txt-color); color: var(--txt-color); }
 .a11y-toggle.on {
-    border-color: #4af;
-    color: #4af;
-    background: rgba(68,170,255,0.08);
-    box-shadow: 0 0 6px rgba(68,170,255,0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,255,0.05);
+    box-shadow: 0 0 8px var(--accent);
 }
 
 .a11y-tip {
