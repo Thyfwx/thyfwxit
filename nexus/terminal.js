@@ -2544,16 +2544,37 @@ function stopAllGames() {
 //  GOOGLE AUTHENTICATION
 // =============================================================
 function initGoogleAuth() {
-    if (typeof google === 'undefined') return;
+    if (typeof google === 'undefined') {
+        console.warn("[AUTH] Google Identity Services not loaded yet. Retrying...");
+        setTimeout(initGoogleAuth, 1000);
+        return;
+    }
+    console.log("[AUTH] Initializing Google Auth...");
     google.accounts.id.initialize({
         client_id: "1011411241124-vsknj98vlvvksnvkjnvkjnvkjnvk.apps.googleusercontent.com", 
         callback: handleCredentialResponse,
-        auto_select: true
+        auto_select: true,
+        cancel_on_tap_outside: false
     });
+    
+    // 1. Render the explicit button
     const btn = document.getElementById('google-signin-btn');
     if (btn) {
-        google.accounts.id.renderButton(btn, { theme: 'outline', size: 'small', type: 'icon', shape: 'circle' });
+        google.accounts.id.renderButton(btn, { 
+            theme: 'outline', 
+            size: 'medium', 
+            text: 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left'
+        });
     }
+
+    // 2. Trigger the "One Tap" prompt automatically
+    google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+            console.log("[AUTH] One Tap not displayed:", notification.getNotDisplayedReason());
+        }
+    });
 }
 
 async function handleCredentialResponse(response) {
