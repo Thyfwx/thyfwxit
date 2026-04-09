@@ -2561,51 +2561,13 @@ function stopAllGames() {
 //  GOOGLE AUTHENTICATION
 // =============================================================
 function initGoogleAuth() {
-    const wallBtn = document.getElementById('google-signin-wall');
-    if (wallBtn && !wallBtn.innerHTML) wallBtn.innerHTML = '<span style="color:#333;font-size:10px;">Establishing Auth Link...</span>';
-
-    if (typeof google === 'undefined' || !google.accounts) {
-        console.log("[AUTH] GSI Library not ready, retrying in 1s...");
-        setTimeout(initGoogleAuth, 1000);
-        return;
-    }
-
-    console.log("[AUTH] GSI Library detected. Initializing...");
-    try {
-        google.accounts.id.initialize({
-            client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com", 
-            callback: handleCredentialResponse,
-            auto_select: true,
-            cancel_on_tap_outside: false,
-            context: 'signin'
-        });
-        
-        if (wallBtn) {
-            wallBtn.innerHTML = ''; // clear loading msg
-            google.accounts.id.renderButton(wallBtn, { 
-                theme: 'filled_blue', 
-                size: 'large', 
-                text: 'continue_with', 
-                shape: 'rectangular',
-                logo_alignment: 'left'
-            });
-        }
-
-        const sideBtn = document.getElementById('google-signin-btn');
-        if (sideBtn) {
-            google.accounts.id.renderButton(sideBtn, { theme: 'outline', size: 'small', type: 'icon', shape: 'circle' });
-        }
-
-        // Trigger prompt
-        google.accounts.id.prompt((notification) => {
-            console.log("[AUTH] Prompt notification:", notification.getMomentType(), notification.getNotDisplayedReason());
-        });
-    } catch (err) {
-        console.error("[AUTH] GSI Initialization failed:", err);
-    }
+    // The button is now rendered automatically via HTML data attributes in index.html
+    // We just need to make sure the callback is available.
+    console.log("[AUTH] System monitoring for Google Identity callbacks...");
 }
 
 async function handleCredentialResponse(response) {
+    console.log("[AUTH] Received Google Credential. Validating with backend...");
     try {
         const res = await fetch(`${API_BASE}/auth/google`, {
             method: 'POST',
@@ -2617,8 +2579,14 @@ async function handleCredentialResponse(response) {
             localStorage.setItem('nexus_user_data', JSON.stringify(data));
             revealTerminal(data.name);
         }
-    } catch(e) { console.error("Auth failed:", e); }
+    } catch(e) { 
+        console.error("Auth failed:", e);
+        printToTerminal("[ERR] Authentication uplink failed. Check connection.", "sys-msg");
+    }
 }
+
+// Expose callback globally for GSI library
+window.handleCredentialResponse = handleCredentialResponse;
 
 function revealTerminal(name) {
     const overlay = document.getElementById('auth-screen');

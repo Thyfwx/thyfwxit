@@ -14,8 +14,25 @@
         <div class="auth-box">
             <div class="auth-header">NEXUS // CORE ACCESS</div>
             <p class="auth-desc">Authorization required. Synchronize your identity to establish an uplink.</p>
-            <div id="google-signin-wall" class="auth-btn-container"></div>
-            <button class="gui-btn" id="manual-auth-btn" onclick="google.accounts.id.prompt()" style="margin:0 auto 15px;">INITIALIZE SIGN-IN</button>
+            
+            <!-- Google GSI HTML API (More robust) -->
+            <div id="g_id_onload"
+                 data-client_id="616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com"
+                 data-context="signin"
+                 data-ux_mode="popup"
+                 data-callback="handleCredentialResponse"
+                 data-auto_select="true"
+                 data-itp_support="true">
+            </div>
+            <div class="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="filled_blue"
+                 data-text="signin_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
+
             <div class="auth-divider"><span>OR</span></div>
             <button class="auth-guest-link" onclick="showTerms()">CONTINUE AS GUEST</button>
             <div class="auth-terms">By entering, you agree to the <a href="#" onclick="showTerms()">Nexus Protocol Terms of Access</a>.</div>
@@ -28,10 +45,12 @@
         <div class="modal-box">
             <h3>NEXUS PROTOCOL // TERMS</h3>
             <div class="modal-body">
-                1. ACCESS: This terminal is a private mainframe. All interactions, command history, and connection metadata are logged for security and system optimization.<br><br>
+                <div style="color:var(--accent); font-size:0.7rem; margin-bottom:10px;">[ ACCESS POLICY ]</div>
+                1. ACCESS: This terminal is a private mainframe. All interactions, command history, and connection metadata are logged for security.<br><br>
                 2. DATA: Google Sign-in synchronizes your score and identity. Guest sessions are local-only but interaction logs still apply.<br><br>
-                3. PRIVACY: Your data is never sold. Logs are used strictly by the operator (Xavier Scott) to improve the Nexus experience.<br><br>
-                4. AI: Do not feed sensitive credentials into the abyss. Conversations are processed via secure neural links.
+                <div style="color:var(--accent); font-size:0.7rem; margin-bottom:10px;">[ DATA & PRIVACY ]</div>
+                3. LOGGING: We log your IP, User-Agent, and every command typed. This data is used strictly by the operator (Xavier Scott) to debug the AI and improve the terminal experience.<br><br>
+                4. SECURITY: Your data is never sold. Sessions are encrypted. Do not feed sensitive credentials into the AI abyss.
             </div>
             <div style="display:flex; gap:10px; justify-content:center;">
                 <button class="gui-btn" onclick="revealTerminal('guest')">I AGREE & ENTER</button>
