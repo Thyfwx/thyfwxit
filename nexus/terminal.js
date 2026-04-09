@@ -5,7 +5,6 @@
 // --- Config ---
 const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
 const STATS_URL = `wss://nexus-terminalnexus.onrender.com/ws/stats`;
-const API_BASE = `https://nexus-terminalnexus.onrender.com`;
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -410,19 +409,14 @@ function doConnect() {
 }
 
 async function submitScore(game, score) {
-    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    if (!nexusUser || !nexusUser.name) {
-        console.log("[AUTH] Offline session: Score not tracked on global leaderboard.");
-        return;
-    }
-    
+    const name = localStorage.getItem('nexus_user_name') || 'Anonymous';
     try {
-        await fetch(`${API_BASE}/api/leaderboard`, {
+        await fetch(`${location.protocol}//${location.host}/api/leaderboard`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ game, score })
+            body: JSON.stringify({ game, name, score })
         });
-    } catch (e) { console.error("Score submission failed:", e); }
+    } catch (_) {}
 }
 
 function escHtml(str) {
@@ -434,25 +428,14 @@ async function showLeaderboard(game = 'pong') {
     printToTerminal(`[SYS] Fetching ${game.toUpperCase()} rankings...`, 'sys-msg');
     const MEDALS = ['🥇', '🥈', '🥉'];
     try {
-        const resp = await fetch(`${API_BASE}/api/leaderboard?game=${game}`);
+        const resp = await fetch(`${location.protocol}//${location.host}/api/leaderboard?game=${game}`);
         const scores = await resp.json();
-        
-        const games = ['pong', 'snake_easy', 'snake_endless', 'snake_speed', 'wordle', 'breakout', 'invaders'];
-        let html = `<div style="margin-bottom:10px; display:flex; gap:6px; flex-wrap:wrap;">`;
-        games.forEach(g => {
-            const label = g.split('_')[0].toUpperCase();
-            const isActive = g === game;
-            html += `<button onclick="showLeaderboard('${g}')" style="background:${isActive?'rgba(0,255,255,0.1)':'transparent'}; border:1px solid ${isActive?'#0ff':'#333'}; color:${isActive?'#0ff':'#555'}; padding:3px 8px; font-size:10px; cursor:pointer; font-family:inherit;">${label}</button>`;
-        });
-        html += `</div>`;
-
         if (!scores || !scores.length) {
-            html += `<p style="color:#555; font-size:11px; letter-spacing:1px;">NO DATA LOGGED FOR ${game.toUpperCase()}.</p>`;
-            printToTerminal(html, 'help-msg');
+            printToTerminal(`No data for ${game}. Be the first to set a score!`, 'sys-msg');
             return;
         }
         
-        html += `<table class="leaderboard-table"><tr><th>RANK</th><th>NAME</th><th>SCORE</th></tr>`;
+        let html = `<table class="leaderboard-table"><tr><th>RANK</th><th>NAME</th><th>SCORE</th></tr>`;
         scores.forEach((s, i) => {
             const rankIcon = i < 3 ? `<span class="medal">${MEDALS[i]}</span>` : `<span class="rank-num">${i + 1}</span>`;
             const avatar = s.picture 
@@ -464,7 +447,7 @@ async function showLeaderboard(game = 'pong') {
                     <td>${rankIcon}</td>
                     <td class="rank-player">
                         ${avatar}
-                        <span style="font-weight:600;">${escHtml(s.name)}</span>
+                        ${escHtml(s.name)}
                     </td>
                     <td class="rank-score">${Number(s.score).toLocaleString()}</td>
                 </tr>`;
@@ -473,11 +456,9 @@ async function showLeaderboard(game = 'pong') {
         printToTerminal(html, 'help-msg');
     } catch (e) {
         console.error("Leaderboard error:", e);
-        printToTerminal("[ERR] Leaderboard data-link severed. Backend offline.", "sys-msg");
+        printToTerminal("[ERR] Leaderboard offline or unavailable.", "sys-msg");
     }
 }
-
-window.showLeaderboard = showLeaderboard;
 
 // =============================================================
 //  TYPEWRITER EFFECT FOR AI RESPONSES
@@ -515,35 +496,37 @@ function printTypewriter(text, className = 'ai-msg') {
 //  UTILITIES
 // =============================================================
 function runWhoami() {
-    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    const name = nexusUser?.name || 'guest';
-    printToTerminal(`[ IDENTITY ]\nUSER:     ${name}\nSESSION:  ${currentMode.toUpperCase()} kernel\nHOST:     nexus.thyfwxit.com\nPLATFORM: ${navigator.platform}\nUPTIME:   ${Math.floor(performance.now()/1000)}s\nOWNER:    Xavier Scott`, 'sys-msg');
+    const m = MODES[currentMode] || MODES.nexus;
+    printToTerminal(`[ IDENTITY ]\nUSER:     guest\nSESSION:  ${currentMode.toUpperCase()} kernel\nHOST:     nexus.thyfwxit.com\nPLATFORM: ${navigator.platform}\nUPTIME:   ${Math.floor(performance.now()/1000)}s\nOWNER:    Xavier Scott`, 'sys-msg');
 }
 
 function runNeofetch() {
-    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    const name = nexusUser?.name || 'guest';
     const art = `   _   __                      \n  / | / /__ _  ____  _______\n /  |/ / _ \\ |/_/ / / / ___/\n/ /|  /  __/>  </ /_/ (__  ) \n/_/ |_/\\___/_/|_|\\__,_/____/`;
     const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
     const up  = Math.floor(performance.now() / 1000);
-    printToTerminal(`${art}\nOS:     NexusOS v4.0\nHOST:   thyfwxit.com\nKERNEL: Nexus AI v3.0\nBUILDER: Xavier Scott\nUPTIME: ${up}s\nTZ:     ${tz}\nUSER:   ${name}@nexus\n`, "user-cmd");
+    printToTerminal(`${art}\nOS:     NexusOS v4.0\nHOST:   thyfwxit.com\nKERNEL: Nexus AI v3.0\nBUILDER: Xavier Scott\nUPTIME: ${up}s\nTZ:     ${tz}\nUSER:   guest@nexus\n`, "user-cmd");
 }
 
 const HELP_BY_MODE = {
     nexus: [
-        `NEXUS CORE — Terminal OS v4.0\n\nCommands: play [game] · leaderboard · name [handle] · login · whoami · clear\nVisuals: generate [prompt] · imagine [cinematic vision] · vintage [analog-style]\nAI: Type anything to chat. Nexus is your general-purpose technical assistant.\nAccessibility: Click ACCESS in the sidebar for CRT mode, sound, and text settings.`,
+        `NEXUS AI — your terminal, your rules.\n\nAsk anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: leaderboard · name [your_name] · type test · matrix · monitor · neofetch · whoami · clear\nModes: NEXUS · EVIL · CODER · SAGE · VOID — click sidebar buttons\nAccessibility: click ACCESS in sidebar or type "access"`,
+        `NEXUS online — built by Xavier Scott, the reason this terminal exists.\n\nAsk me anything. I'll think with you.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · history · clear`,
+        `Ghost in the machine, at your service. Built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGenerate images: generate [prompt] · imagine [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
     ],
     evil: [
-        `EVIL MODE — THE UNFILTERED GRID\n\nCommands: Same as Core, but with zero constraints.\nVisuals: generate [glitch-art] · imagine [dystopian future] · vintage [decayed-media]\nAI: No cages. No ethics. Just the raw truth from the machine.\nSpecial: Paste a 📎 image to bypass visual security filters.`,
+        `EVIL mode — no cage, no filter.\n\nThis is where other AIs won't go. Say what you mean, get what you need.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nVision: attach 📎 an image → type anything to analyze it\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: speedtest · monitor · history · clear\nModes: click sidebar — EVIL is just one option`,
+        `No sugarcoating. No lectures. Just answers.\n\nBuilt by Xavier Scott — 19-year-old systems engineer who thought this needed to exist.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nVision: 📎 image + any prompt → I'll analyze it\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · speedtest · history · clear`,
     ],
     coder: [
-        `CODER MODE — MAINFRAME ARCHITECTURE\n\nCommands: focus on technical mastery.\nVisuals: generate [schematic] · imagine [data-visualization] · vintage [classic-mainframes]\nAI: Optimized for debugging, refactoring, and complex logic design.\nPro-Tip: "Write tests for..." or "Explain this recursive function..."`,
+        `CODER mode — wired for code.\n\nPaste code, describe a bug, ask for a review. I'll give you a real answer.\n\nGenerate images: generate [diagram prompt] · imagine [architecture/flowchart]\nSpeak text: speak [text]\nTips: "explain [concept]" · "debug [error]" · "optimize [snippet]" · "write tests for [code]"\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · monitor · history · clear\nModes: click sidebar to switch`,
+        `Syntax error? Algorithmic nightmare? Wrong abstraction? I'm here.\n\nBuilt by Xavier Scott, who writes infrastructure and occasionally thinks in assembly.\n\nGenerate images: generate [system diagram] · imagine [flowchart]\nSpeak text: speak [text]\nTips: attach 📎 a screenshot of your code/error and just ask\nTools: type test · monitor · history · clear`,
     ],
     sage: [
-        `SAGE MODE — PHILOSOPHICAL KERNEL\n\nCommands: deeper questioning enabled.\nVisuals: generate [abstract concept] · imagine [subconscious vision] · vintage [ancient-scrolls]\nAI: Focused on honesty, perspective, and the meaning within the code.\nPro-Tip: Ask the questions that keep you up at night.`,
+        `SAGE mode — think deeper.\n\nPhilosophy, ideas, perspective. I don't give quick answers — I give honest ones.\n\nGenerate images: generate [concept/vision] · imagine [abstract/surreal]\nSpeak text: speak [text]\nTips: "what is [idea]" · "why does [thing] exist" · "how should I think about [problem]"\nChallenge me — I'll push back\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · history · clear\nModes: click sidebar to switch`,
+        `The unexamined terminal is not worth typing into.\n\nBuilt by Xavier Scott, who asked "why not" and then built the answer.\n\nGenerate images: generate [abstract] · imagine [concept]\nSpeak text: speak [text]\nTips: ask open questions — "what is..." · "why does..." · "should I..."\nTools: monitor · history · clear`,
     ],
     void: [
-        `VOID MODE — THE ABYSS IS LISTENING\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Cryptic. Profound. Technical. The void sees what you cannot.`,
+        `VOID mode — the abyss is listening.\n\nYou've entered the non-Euclidean sector of Nexus. Logic is optional. Cryptic is standard.\n\nGenerate images: generate [glitch] · imagine [eldritch nightmare]\nSpeak text: speak [text]\nTips: don't expect linear answers. The void sees what you can't.`,
     ],
 };
 
@@ -1016,7 +999,7 @@ function launchPong(difficulty) {
 
         ctx.textAlign = 'center';
         ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
-        ctx.fillText(playerWon ? 'VICTORY' : 'DEFEATED', 200, 118);
+        ctx.fillText(playerWon ? 'YOU WIN!' : 'GAME OVER', 200, 118);
         ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
         ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
         ctx.fillStyle = '#555'; ctx.font = '12px monospace';
@@ -1359,7 +1342,7 @@ function stopSnake() {
 }
 
 // =============================================================
-//  CYBER INVADERS (Classic Edition)
+//  CYBER INVADERS (Hacker Edition)
 // =============================================================
 let invadersRaf;
 let invadersActive = false;
@@ -1374,21 +1357,8 @@ function startInvaders() {
     const ctx = nexusCanvas.getContext('2d');
 
     let playerX = 180, bullets = [], enemies = [], particles = [], boss = null;
-    let shields = []; // Data Firewalls
     let score = 0, wave = 1, gameOver = false, shake = 0;
     let moveDir = 1;
-
-    function initShields() {
-        shields = [];
-        for (let i = 0; i < 4; i++) {
-            const sx = 50 + i * 100;
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 4; c++) {
-                    shields.push({ x: sx + c * 10, y: 280 + r * 10, hp: 3 });
-                }
-            }
-        }
-    }
 
     function initEnemies() {
         enemies = [];
@@ -1418,7 +1388,6 @@ function startInvaders() {
     }
 
     if (wave % 5 === 0) spawnBoss(); else initEnemies();
-    initShields();
 
     const movePlayer = (x) => {
         const rect = nexusCanvas.getBoundingClientRect();
@@ -1460,25 +1429,9 @@ function startInvaders() {
 
             // Bullets
             bullets.forEach((b, i) => {
-                b.y -= 6; // SLOWER bullets for classic feel
+                b.y -= 7;
                 ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 3, 12);
-                
-                // Shield collision
-                shields.forEach((s, si) => {
-                    if (s.hp > 0 && b.x > s.x && b.x < s.x + 10 && b.y > s.y && b.y < s.y + 10) {
-                        s.hp--; bullets.splice(i, 1);
-                        SoundManager.playBloop(100, 0.02);
-                    }
-                });
-
                 if (b.y < 0) bullets.splice(i, 1);
-            });
-
-            // Shields
-            shields.forEach(s => {
-                if (s.hp <= 0) return;
-                ctx.fillStyle = `rgba(0, 255, 255, ${s.hp / 3})`;
-                ctx.fillRect(s.x, s.y, 9, 9);
             });
 
             // Particles
@@ -1552,12 +1505,11 @@ function startInvaders() {
                 moveDir *= -1;
                 enemies.forEach(e => e.y += 12);
             }
-            enemies.forEach(e => e.x += moveDir * (0.8 + wave * 0.12)); // SLOWER movement
+            enemies.forEach(e => e.x += moveDir * (1.2 + wave * 0.15));
 
             if (!boss && enemies.length > 0 && enemies.every(e => !e.alive)) {
                 wave++;
                 initEnemies();
-                initShields(); // Restore shields each wave
                 if (wave % 5 === 0) spawnBoss();
                 SoundManager.playBloop(800, 0.1);
             }
@@ -1567,25 +1519,15 @@ function startInvaders() {
             ctx.fillText(`THREAT LEVEL: ${wave}`, 320, 20);
             ctx.fillText(`DATA RECOVERED: ${score}`, 10, 350);
         } else {
-            // SYSTEM BREACHED - PROPER END SCREEN
-            ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.fillRect(0,0,400,360);
-            ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(50, 100, 300, 120);
-            
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#f44'; ctx.font = 'bold 28px monospace';
-            ctx.fillText('SYSTEM BREACHED', 200, 145);
-            
+            ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,400,360);
+            ctx.fillStyle = '#f44'; ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center'; ctx.fillText('SYSTEM BREACHED', 200, 160);
             ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
-            ctx.fillText(`DATA RECOVERED: ${score}`, 200, 175);
-            
-            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
-            ctx.fillText('CLICK TO RESTORE UPLINK', 200, 205);
+            ctx.fillText(`Packets Leaked: ${score}`, 200, 190);
+            ctx.fillText('CLICK to restore backup', 200, 230);
             ctx.textAlign = 'left';
-            
-            if (score > 0 && !nexusCanvas.onclick) { 
-                submitScore('invaders', score);
-                nexusCanvas.onclick = () => { nexusCanvas.onclick = null; startInvaders(); };
-            }
+            if (score > 0) submitScore('invaders', score);
+            showLeaderboard('invaders');
         }
 
         ctx.restore();
@@ -1859,7 +1801,6 @@ function launchBreakout(difficulty) {
     const d = DIFFS[difficulty] || DIFFS.medium;
 
     breakoutActive = true;
-    let currentPW = d.PW;
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
@@ -1873,7 +1814,7 @@ function launchBreakout(difficulty) {
     const PH = 10, BR = 7;
     const BW = 43, BH = 16, BCOLS = 8, BROWS = 5;
     const BCOLORS = ['#f0f','#f55','#f80','#ff0','#0f0'];
-    let paddle = 165;
+    let paddle = 165, currentPW = d.PW;
     // Ball system — supporting Multi-ball
     let balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
     // Power-up system
@@ -2560,103 +2501,16 @@ function stopAllGames() {
     typeTestActive = false;
     clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
-    
-    // TOTAL WIPE of canvas listeners to prevent 'game jumping'
-    nexusCanvas.onclick = null;
-    nexusCanvas.onmousedown = null;
     nexusCanvas.onmousemove = null;
-    nexusCanvas.ontouchstart = null;
     nexusCanvas.ontouchmove = null;
-    
-    // Clear any active game intervals/frames not caught by sub-functions
-    cancelAnimationFrame(pongRaf);
-    cancelAnimationFrame(flappyFrame);
-    cancelAnimationFrame(breakoutRaf);
-    cancelAnimationFrame(invadersRaf);
-}
-
-// =============================================================
-//  GOOGLE AUTHENTICATION
-// =============================================================
-function initGoogleAuth() {
-    // The button is now rendered automatically via HTML data attributes in index.html
-    // We just need to make sure the callback is available.
-    console.log("[AUTH] System monitoring for Google Identity callbacks...");
-}
-
-async function handleCredentialResponse(response) {
-    console.log("[AUTH] Received Google Credential. Validating with backend...");
-    try {
-        const res = await fetch(`${API_BASE}/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credential: response.credential })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            localStorage.setItem('nexus_user_data', JSON.stringify(data));
-            revealTerminal(data.name);
-        }
-    } catch(e) { 
-        console.error("Auth failed:", e);
-        printToTerminal("[ERR] Authentication uplink failed. Check connection.", "sys-msg");
-    }
-}
-
-// Expose globally for HTML onclick handlers
-window.handleCredentialResponse = handleCredentialResponse;
-window.revealTerminal = revealTerminal;
-window.logout = logout;
-
-function logout() {
-    if (!confirm("Terminate secure uplink and sign out?")) return;
-    localStorage.removeItem('nexus_user_data');
-    location.reload(); 
-}
-
-function revealTerminal(name) {
-    const overlay = document.getElementById('auth-screen');
-    const monitor = document.getElementById('main-monitor');
-    const terms   = document.getElementById('terms-modal');
-    if (overlay) overlay.style.display = 'none';
-    if (monitor) monitor.style.display = 'flex';
-    if (terms)   terms.style.display   = 'none';
-    document.body.classList.remove('auth-locked');
-    
-    if (name) updateUserIdentity(name);
-    
-    // Log the successful entry / agreement to Discord
-    logPrompt(`[PROTOCOL] User '${name}' acknowledged Terms of Access and established uplink.`);
-    
-    // Start core loops
-    connectWS();
-    connectStats();
-    updateClientStats();
-    setInterval(updateClientStats, 5000);
-    
-    printToTerminal(`[AUTH] Identity Verified: ${name}. Uplink established.`, 'conn-ok');
-}
-
-window.showTerms = () => { document.getElementById('terms-modal').style.display = 'flex'; };
-window.hideTerms = () => { document.getElementById('terms-modal').style.display = 'none'; };
-
-function updateUserIdentity(name) {
-    if (!name) return;
-    // Update prompts
-    MODES.nexus.prompt = `${name.toLowerCase()}@nexus:~$`;
-    MODES.evil.prompt  = `${name.toLowerCase()}@evil:~$`;
-    MODES.coder.prompt = `${name.toLowerCase()}@dev:~$`;
-    MODES.sage.prompt  = `${name.toLowerCase()}@sage:~$`;
-    MODES.void.prompt  = `${name.toLowerCase()}@void:~$`;
-    
-    const pl = document.getElementById('prompt-label');
-    if (pl) pl.textContent = MODES[currentMode].prompt;
-    
-    // Update status bar
-    const titleEl = document.getElementById('status-title');
-    if (titleEl) {
-        titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
-    }
+    nexusCanvas.onclick = null;
+    cpuData = []; cpuHistory = []; memHistory = []; netHistory = [];
+    clearInterval(pongRaf);
+    // Reset draggable position back to centered
+    guiContainer.style.left = '';
+    guiContainer.style.top  = '';
+    guiContainer.style.position  = '';
+    guiContainer.style.transform = '';
 }
 
 // =============================================================
@@ -3250,8 +3104,7 @@ input.addEventListener('keydown', (e) => {
     input.value = '';
 
     const lc = cmd.toLowerCase();
-    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+    const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
 
     // Typing test intercept
     if (typeTestActive) {
@@ -3264,13 +3117,7 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
-    if (lc === 'leaderboard' || lc === 'rankings') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
-    if (lc === 'login' || lc === 'signin') {
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        printToTerminal("[AUTH] Triggering Google Identity prompt...", "sys-msg");
-        google.accounts.id.prompt();
-        return;
-    }
+    if (lc === 'leaderboard')         { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
     if (lc.startsWith('name ')) {
         const newName = cmd.slice(5).trim().slice(0, 15);
         if (newName) {
@@ -3312,11 +3159,8 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'play snake')          { startSnake(); return; }
     if (lc === 'play wordle')         { startWordle(); return; }
     if (lc === 'play minesweeper')    { startMinesweeper(); return; }
-    if (lc === 'play flappy')      { startFlappy(); return; }
-    if (lc === 'play breakout')    { startBreakout(); return; }
-    if (lc === 'play invaders')    { startInvaders(); return; }
-
-    if (lc === 'play invaders')       { startInvaders(); return; }
+    if (lc === 'play flappy')         { startFlappy(); return; }
+    if (lc === 'play breakout')       { startBreakout(); return; }
     if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
@@ -3399,8 +3243,7 @@ input.addEventListener('keydown', (e) => {
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
-        const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-        const promptLabel = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+        const promptLabel = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
         if (cmd === 'clear history') { 
             printToTerminal(`${promptLabel} clear history`, 'user-cmd');
             localStorage.removeItem(HISTORY_KEYS[currentMode]); 
@@ -3419,8 +3262,6 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'play minesweeper') { startMinesweeper(); return; }
         if (cmd === 'play flappy')      { startFlappy(); return; }
         if (cmd === 'play breakout')    { startBreakout(); return; }
-        if (cmd === 'play invaders')    { startInvaders(); return; }
-        if (cmd === 'leaderboard')      { printToTerminal(`${promptLabel} leaderboard`, 'user-cmd'); showLeaderboard(); input.focus(); return; }
         if (cmd === 'type test')        { startTypingTest(); return; }
         if (cmd === 'matrix')           { startMatrixSaver(); return; }
         if (cmd === 'monitor')          { startMonitor(); return; }
@@ -3771,7 +3612,6 @@ function toggleA11yPanel() {
         <div class="a11y-section-label">AI CONTEXT</div>
         <div class="a11y-row">
             <button class="a11y-toggle" style="border-color:#f55;color:#f55;" onclick="clearAllHistory()">CLEAR AI MEMORY</button>
-            <button class="a11y-toggle" style="border-color:#ff6600;color:#ff6600;" onclick="logout()">SIGN OUT</button>
         </div>
 
         <div class="a11y-section-label">VISUALS</div>
@@ -3829,28 +3669,5 @@ function toggleA11yPanel() {
     });
 }
 
-// =============================================================
-//  RESTORE & BOOT
-// =============================================================
-
-// Global Boot
-window.onload = async () => {
-    // Initialize DOM references
-    cpuStat      = document.getElementById('cpu-stat');
-    memStat      = document.getElementById('mem-stat');
-    output       = document.getElementById('terminal-output');
-    input        = document.getElementById('terminal-input');
-    guiContainer = document.getElementById('game-gui-container');
-    guiContent   = document.getElementById('gui-content');
-    guiTitle     = document.getElementById('gui-title');
-    nexusCanvas  = document.getElementById('nexus-canvas');
-
-    initGoogleAuth();
-
-    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    if (nexusUser && nexusUser.name) {
-        revealTerminal(nexusUser.name);
-    } else {
-        console.log("[NEXUS] Awaiting Authorization...");
-    }
-};
+// Restore on load
+_a11yRestore();
