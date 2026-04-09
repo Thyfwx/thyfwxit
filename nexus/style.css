@@ -746,6 +746,49 @@ body.a11y-dyslexic .mode-btn {
     display: flex; align-items: center; justify-content: center;
     background-image: radial-gradient(circle at center, #0a0a20 0%, #050510 100%);
 }
+
+/* --- Identity Card --- */
+.identity-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(0,255,255,0.1);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+.id-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    color: #555;
+    margin-bottom: 4px;
+}
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: #333;
+    border-radius: 50%;
+}
+.identity-card.connected .status-dot {
+    background: #0f0;
+    box-shadow: 0 0 8px #0f0;
+    animation: status-pulse 2s infinite;
+}
+.identity-card.connected #id-status-text { color: #0f0; }
+.id-name {
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+@keyframes status-pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
 .auth-box {
     background: rgba(10, 10, 30, 0.8); border: 2px solid var(--accent);
     padding: 40px; width: 100%; max-width: 400px; text-align: center;

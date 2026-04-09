@@ -3612,6 +3612,7 @@ function toggleA11yPanel() {
         <div class="a11y-section-label">AI CONTEXT</div>
         <div class="a11y-row">
             <button class="a11y-toggle" style="border-color:#f55;color:#f55;" onclick="clearAllHistory()">CLEAR AI MEMORY</button>
+            <button class="a11y-toggle" style="border-color:#ff6600;color:#ff6600;" onclick="logout()">SIGN OUT</button>
         </div>
 
         <div class="a11y-section-label">VISUALS</div>
@@ -3669,6 +3670,75 @@ function toggleA11yPanel() {
     });
 }
 
+async function handleCredentialResponse(response) {
+    console.log("[AUTH] Received Google Credential. Validating with backend...");
+    try {
+        const res = await fetch(`${API_BASE}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            localStorage.setItem('nexus_user_data', JSON.stringify(data));
+            revealTerminal(data.name);
+        }
+    } catch(e) { 
+        console.error("Auth failed:", e);
+        printToTerminal("[ERR] Authentication uplink failed. Check connection.", "sys-msg");
+    }
+}
+
+function updateUserIdentity(name) {
+    if (!name) return;
+    const isGuest = name === 'guest';
+    
+    // Update Identity Card
+    const card = document.getElementById('user-id-card');
+    const stText = document.getElementById('id-status-text');
+    const nmText = document.getElementById('id-name-text');
+    
+    if (card) {
+        card.classList.toggle('connected', !isGuest);
+        if (stText) stText.textContent = isGuest ? 'ANONYMOUS' : 'UPLINK ESTABLISHED';
+        if (nmText) nmText.textContent = isGuest ? 'GUEST SESSION' : name.toUpperCase();
+    }
+
+    // Update prompts
+    MODES.nexus.prompt = `${name.toLowerCase()}@nexus:~$`;
+    MODES.evil.prompt  = `${name.toLowerCase()}@evil:~$`;
+    MODES.coder.prompt = `${name.toLowerCase()}@dev:~$`;
+    MODES.sage.prompt  = `${name.toLowerCase()}@sage:~$`;
+    MODES.void.prompt  = `${name.toLowerCase()}@void:~$`;
+    
+    const pl = document.getElementById('prompt-label');
+    if (pl) pl.textContent = MODES[currentMode].prompt;
+    
+    const titleEl = document.getElementById('status-title');
+    if (titleEl) titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
+}
+
+// ── Unique AI Voices per Mode ──────────────────────────────────
+const MODE_VOICES = {
+    nexus: { pitch: 1.0, rate: 0.95 },
+    evil:  { pitch: 0.6, rate: 0.85 }, // Deep and slow
+    coder: { pitch: 1.2, rate: 1.10 }, // Fast and robotic
+    sage:  { pitch: 0.9, rate: 0.80 }, // Calm and melodic
+    void:  { pitch: 0.4, rate: 0.70 }, // Distorted / Low
+};
+
+function speakAI(text) {
+    if (!SoundManager.enabled || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    const settings = MODE_VOICES[currentMode] || MODE_VOICES.nexus;
+    utt.pitch = settings.pitch;
+    utt.rate  = settings.rate;
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length) utt.voice = _pickBestVoice(voices);
+    window.speechSynthesis.speak(utt);
+}
+
 function revealTerminal(name) {
     const overlay = document.getElementById('auth-screen');
     const monitor = document.getElementById('main-monitor');
@@ -3690,6 +3760,7 @@ function revealTerminal(name) {
     setInterval(updateClientStats, 5000);
 }
 
+window.handleCredentialResponse = handleCredentialResponse;
 window.revealTerminal = revealTerminal;
 window.showTerms = () => { document.getElementById('terms-modal').style.display = 'flex'; };
 window.hideTerms = () => { document.getElementById('terms-modal').style.display = 'none'; };
