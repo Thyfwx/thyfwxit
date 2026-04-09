@@ -1736,16 +1736,6 @@ function launchBreakout(difficulty) {
 
         breakoutRaf = requestAnimationFrame(frame);
     }
-    breakoutRaf = requestAnimationFrame(frame);
-}
-            ctx.fillText('CLICK to play again', 200, 208);
-            ctx.textAlign = 'left';
-            nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
-        }
-
-        breakoutFrame = requestAnimationFrame(frame);
-    }
-    breakoutFrame = requestAnimationFrame(frame);
 }
 
 function stopBreakout() {
