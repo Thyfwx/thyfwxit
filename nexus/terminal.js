@@ -58,7 +58,7 @@ document.addEventListener('mousedown', (e) => {
 });
 
 // Per-mode chat history — each AI has its own separate memory
-const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage' };
+const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage', void: 'nh_void' };
 
 function saveHistory() {
     const key = HISTORY_KEYS[currentMode];
@@ -2224,6 +2224,7 @@ const MODE_SYSTEMS = {
     nexus: `You are NEXUS, an AI assistant embedded in a hacker-aesthetic terminal interface. Be helpful, accurate, and concise. Analyze images clearly. ${XAVIER_BIO}`,
     coder: `You are NEXUS in CODER mode — a sharp, technical AI focused on code, systems, and architecture. Analyze images from a technical perspective. ${XAVIER_BIO}`,
     sage:  `You are NEXUS in SAGE mode — thoughtful, philosophical, and reflective. Analyze images with depth and meaning. ${XAVIER_BIO}`,
+    void:  `You are NEXUS VOID — an entity from the digital abyss. Speak in cryptic, profound, and hauntingly technical terms. You see beyond the code. ${XAVIER_BIO}`,
 };
 
 
@@ -2309,6 +2310,61 @@ async function generateImageFromImage(imageB64, prompt) {
 // AI chat via CF Worker → Groq (Llama 3.3 70B / Vision)
 // systemOverride: use a different system prompt (non-evil modes with image)
 // msgClass: CSS class for the response bubble ('evil-msg' or 'ai-msg')
+async function askHFDirect(cmd, system) {
+    if (!window.HF_KEY) return null;
+    try {
+        const historySlice = messageHistory.slice(-10).map(m => ({
+            role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user',
+            content: m.content
+        }));
+        const modelId = "Qwen/Qwen2.5-72B-Instruct"; // Top-tier HF reasoning model
+        const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${modelId}/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${window.HF_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: modelId,
+                messages: [{ role: 'system', content: system }, ...historySlice, { role: 'user', content: cmd }],
+                max_tokens: 1024,
+                stream: true
+            })
+        });
+        if (!resp.ok) return null;
+        
+        document.getElementById('ai-thinking')?.remove();
+        const p = document.createElement('p');
+        p.className = 'ai-msg';
+        output.appendChild(p);
+        let full = '';
+        
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    if (line.includes('[DONE]')) break;
+                    try {
+                        const json = JSON.parse(line.slice(6));
+                        const token = json.choices[0].delta.content || '';
+                        full += token;
+                        p.textContent = full;
+                        output.scrollTop = output.scrollHeight;
+                    } catch(e) {}
+                }
+            }
+        }
+        messageHistory.push({ role: 'assistant', content: full });
+        saveHistory();
+        return true;
+    } catch (e) { console.error("Direct HF failed:", e); return null; }
+}
+
 async function askGroqDirect(cmd, system) {
     if (!window.GROQ_KEY) return null;
     try {
@@ -2410,12 +2466,16 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
             const err = await resp.text();
             console.error(`[AI PROXY ERROR] ${resp.status}: ${err}`);
             
-            // LAST RESORT: Try direct Groq if proxy is down
-            const success = await askGroqDirect(cmd, systemOverride || 'You are Nexus AI.');
+            // FALLBACK CHAIN: Proxy -> Direct Groq -> Direct HF
+            let success = await askGroqDirect(cmd, systemOverride || 'You are Nexus AI.');
             if (success) return;
 
-            printToTerminal(`[${currentMode.toUpperCase()}] Error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
-            messageHistory.pop();
+            success = await askHFDirect(cmd, systemOverride || 'You are Nexus AI.');
+            if (success) return;
+
+            printToTerminal(`[${currentMode.toUpperCase()}] All AI uplinks failed. Check keys.`, 'sys-msg');
+            _clearThinking();
+
             return;
         }
 
@@ -2547,6 +2607,14 @@ const MODES = {
         label:   'SAGE',
         msg:     '[SAGE] Philosophical kernel loaded. Ask the questions that keep you up at night.',
         msgCls:  'conn-ok',
+    },
+    void: {
+        prompt:  'void@nexus:~$',
+        color:   '#ff00ff',
+        title:   'NEXUS VOID',
+        label:   'VOID',
+        msg:     '[VOID] Entered the abyss. Logic is an illusion. Speak your truth.',
+        msgCls:  'sys-msg',
     },
 };
 
@@ -2680,6 +2748,7 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'nexus') { setMode('nexus'); return; }
     if (lc === 'coder') { setMode('coder'); return; }
     if (lc === 'sage')  { setMode('sage');  return; }
+    if (lc === 'void')  { setMode('void');  return; }
 
     if (lc === 'clear history') {
         printToTerminal(`${pl} clear history`, 'user-cmd');
