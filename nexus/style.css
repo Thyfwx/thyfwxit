@@ -326,13 +326,68 @@ body {
     letter-spacing: 1px;
 }
 
-.auth-footer {
-    color: #333;
-    font-size: 0.6rem;
-    margin-top: 25px;
-    letter-spacing: 2px;
-    text-transform: uppercase;
+.auth-btn-container {
+    min-height: 44px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
 }
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: #333;
+    font-size: 0.65rem;
+    margin: 15px 0;
+}
+.auth-divider::before, .auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #1a1a30;
+}
+.auth-divider span { padding: 0 10px; }
+
+.auth-guest-link {
+    background: transparent;
+    border: none;
+    color: #555;
+    font-family: inherit;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s;
+}
+.auth-guest-link:hover { color: var(--accent); }
+
+.auth-terms {
+    margin-top: 20px;
+    font-size: 0.6rem;
+    color: #333;
+}
+.auth-terms a { color: #444; text-decoration: underline; }
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 11000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.modal-box {
+    background: #050510;
+    border: 1px solid var(--accent);
+    padding: 30px;
+    max-width: 500px;
+    box-shadow: 0 0 30px rgba(0,255,255,0.1);
+}
+.modal-box h3 { color: var(--accent); margin-top: 0; letter-spacing: 2px; font-size: 1rem; }
+.modal-body { color: #888; font-size: 0.8rem; line-height: 1.6; margin: 20px 0; text-align: left; }
 
 /* Hide terminal while locked */
 body.auth-locked .monitor { display: none !important; }

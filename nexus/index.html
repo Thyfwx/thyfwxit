@@ -14,8 +14,25 @@
         <div class="auth-box">
             <div class="auth-header">NEXUS // CORE ACCESS</div>
             <p class="auth-desc">Authorization required. Synchronize your identity to establish an uplink.</p>
-            <div id="google-signin-wall"></div>
+            <div id="google-signin-wall" class="auth-btn-container"></div>
+            <div class="auth-divider"><span>OR</span></div>
+            <button class="auth-guest-link" onclick="revealTerminal('guest')">CONTINUE AS GUEST</button>
+            <div class="auth-terms">By entering, you agree to the <a href="#" onclick="showTerms()">Nexus Protocol Terms of Access</a>.</div>
             <div class="auth-footer">Security Level: Grade A // 256-bit Encrypted</div>
+        </div>
+    </div>
+
+    <!-- Terms Modal -->
+    <div id="terms-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-box">
+            <h3>NEXUS PROTOCOL // TERMS</h3>
+            <div class="modal-body">
+                1. ACCESS: This terminal is a private mainframe. Unauthorized breach attempts are logged.<br><br>
+                2. DATA: Google Sign-in synchronizes your score and identity. Guest sessions are local-only and not tracked on global rankings.<br><br>
+                3. AI: Interactions with Nexus AI are processed via secure neural links. Do not feed sensitive credentials into the abyss.<br><br>
+                4. LIABILITY: The operator (Xavier Scott) is not responsible for any digital vertigo or philosophical crises caused by VOID mode.
+            </div>
+            <button class="gui-btn" onclick="hideTerms()">ACKNOWLEDGE</button>
         </div>
     </div>
 

@@ -2620,6 +2620,9 @@ function revealTerminal(name) {
     printToTerminal(`[AUTH] Identity Verified: ${name}. Uplink established.`, 'conn-ok');
 }
 
+window.showTerms = () => { document.getElementById('terms-modal').style.display = 'flex'; };
+window.hideTerms = () => { document.getElementById('terms-modal').style.display = 'none'; };
+
 function updateUserIdentity(name) {
     if (!name) return;
     // Update prompts
