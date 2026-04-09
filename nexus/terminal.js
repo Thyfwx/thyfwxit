@@ -409,12 +409,18 @@ function doConnect() {
 }
 
 async function submitScore(game, score) {
-    const name = localStorage.getItem('nexus_user_name') || 'Anonymous';
+    // Only allow signed-in users to submit scores
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    if (!nexusUser || !nexusUser.name) {
+        console.log("[AUTH] Score submission blocked: Not signed in.");
+        return;
+    }
+    
     try {
         await fetch(`${location.protocol}//${location.host}/api/leaderboard`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ game, name, score })
+            body: JSON.stringify({ game, score }) // Name/Sub handled by backend session
         });
     } catch (_) {}
 }
@@ -3159,8 +3165,11 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'play snake')          { startSnake(); return; }
     if (lc === 'play wordle')         { startWordle(); return; }
     if (lc === 'play minesweeper')    { startMinesweeper(); return; }
-    if (lc === 'play flappy')         { startFlappy(); return; }
-    if (lc === 'play breakout')       { startBreakout(); return; }
+    if (lc === 'play flappy')      { startFlappy(); return; }
+    if (lc === 'play breakout')    { startBreakout(); return; }
+    if (lc === 'play invaders')    { startInvaders(); return; }
+
+    if (lc === 'play invaders')       { startInvaders(); return; }
     if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
@@ -3262,6 +3271,8 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'play minesweeper') { startMinesweeper(); return; }
         if (cmd === 'play flappy')      { startFlappy(); return; }
         if (cmd === 'play breakout')    { startBreakout(); return; }
+        if (cmd === 'play invaders')    { startInvaders(); return; }
+        if (cmd === 'leaderboard')      { printToTerminal(`${promptLabel} leaderboard`, 'user-cmd'); showLeaderboard(); input.focus(); return; }
         if (cmd === 'type test')        { startTypingTest(); return; }
         if (cmd === 'matrix')           { startMatrixSaver(); return; }
         if (cmd === 'monitor')          { startMonitor(); return; }
