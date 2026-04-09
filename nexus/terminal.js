@@ -3554,8 +3554,12 @@ if (_savedHistory.length) {
 }
 
 // Global Boot
-_a11yRestore();
-connectWS();
-connectStats();
-updateClientStats();
-setInterval(updateClientStats, 5000);
+window.onload = async () => {
+    console.log("[NEXUS] System Booting...");
+    _a11yRestore();
+    connectWS();
+    connectStats();
+    updateClientStats();
+    setInterval(updateClientStats, 5000);
+    console.log("[NEXUS] Core services established.");
+};
