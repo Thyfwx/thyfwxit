@@ -8,8 +8,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body>
-    <div class="monitor">
+<body class="auth-locked">
+    <!-- Login Wall Overlay -->
+    <div id="auth-screen" class="auth-overlay">
+        <div class="auth-box">
+            <div class="auth-header">NEXUS // CORE ACCESS</div>
+            <p class="auth-desc">Authorization required. Synchronize your identity to establish an uplink.</p>
+            <div id="google-signin-wall"></div>
+            <div class="auth-footer">Security Level: Grade A // 256-bit Encrypted</div>
+        </div>
+    </div>
+
+    <div class="monitor" style="display:none;" id="main-monitor">
         <div class="screen-glare"></div>
         <div class="glass-panel">
             <header class="status-bar">

@@ -2562,40 +2562,32 @@ function stopAllGames() {
 // =============================================================
 function initGoogleAuth() {
     if (typeof google === 'undefined') {
-        console.warn("[AUTH] Google Identity Services not loaded yet. Retrying...");
         setTimeout(initGoogleAuth, 1000);
         return;
     }
-    console.log("[AUTH] Initializing Google Auth...");
     google.accounts.id.initialize({
         client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com", 
         callback: handleCredentialResponse,
-        auto_select: true,
-        cancel_on_tap_outside: false
+        auto_select: true
     });
     
-    // 1. Render the explicit button
-    const btn = document.getElementById('google-signin-btn');
-    if (btn) {
-        google.accounts.id.renderButton(btn, { 
-            theme: 'outline', 
-            size: 'medium', 
-            text: 'signin_with',
-            shape: 'rectangular',
-            logo_alignment: 'left'
-        });
+    // Render on the Login Wall
+    const wallBtn = document.getElementById('google-signin-wall');
+    if (wallBtn) {
+        google.accounts.id.renderButton(wallBtn, { theme: 'filled_blue', size: 'large', text: 'signin_with', shape: 'rectangular' });
     }
 
-    // 2. Trigger the "One Tap" prompt automatically
-    google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-            console.log("[AUTH] One Tap not displayed:", notification.getNotDisplayedReason());
-        }
-    });
+    // Also keep the sidebar button for easy re-sync
+    const sideBtn = document.getElementById('google-signin-btn');
+    if (sideBtn) {
+        google.accounts.id.renderButton(sideBtn, { theme: 'outline', size: 'small', type: 'icon', shape: 'circle' });
+    }
+
+    // Trigger One Tap
+    google.accounts.id.prompt();
 }
 
 async function handleCredentialResponse(response) {
-    printToTerminal("[AUTH] Validating credentials...", "sys-msg");
     try {
         const res = await fetch(`${API_BASE}/auth/google`, {
             method: 'POST',
@@ -2605,13 +2597,27 @@ async function handleCredentialResponse(response) {
         const data = await res.json();
         if (data.ok) {
             localStorage.setItem('nexus_user_data', JSON.stringify(data));
-            printToTerminal(`[OK] Uplink synchronized: Welcome, ${data.name}.`, 'conn-ok');
-            
-            // REMOVE GUEST: Update UI instantly
-            updateUserIdentity(data.name);
-            initGoogleAuth(); 
+            revealTerminal(data.name);
         }
     } catch(e) { console.error("Auth failed:", e); }
+}
+
+function revealTerminal(name) {
+    const overlay = document.getElementById('auth-screen');
+    const monitor = document.getElementById('main-monitor');
+    if (overlay) overlay.style.display = 'none';
+    if (monitor) monitor.style.display = 'flex';
+    document.body.classList.remove('auth-locked');
+    
+    if (name) updateUserIdentity(name);
+    
+    // Start core loops now that we are in
+    connectWS();
+    connectStats();
+    updateClientStats();
+    setInterval(updateClientStats, 5000);
+    
+    printToTerminal(`[AUTH] Identity Verified: ${name}. Uplink established.`, 'conn-ok');
 }
 
 function updateUserIdentity(name) {
@@ -3808,8 +3814,6 @@ function toggleA11yPanel() {
 
 // Global Boot
 window.onload = async () => {
-    console.log("[NEXUS] System Booting...");
-
     // Initialize DOM references
     cpuStat      = document.getElementById('cpu-stat');
     memStat      = document.getElementById('mem-stat');
@@ -3820,50 +3824,12 @@ window.onload = async () => {
     guiTitle     = document.getElementById('gui-title');
     nexusCanvas  = document.getElementById('nexus-canvas');
 
-    if (!input || !output) {
-        console.error("[NEXUS] Critical UI elements missing. Check index.html.");
-        return;
-    }
+    initGoogleAuth();
 
-    // Restore saved mode (UI only)
-    if (currentMode !== 'nexus') {
-        const m = MODES[currentMode];
-        if (m) {
-            const promptLabelEl = document.getElementById('prompt-label');
-            const statusTitleEl = document.getElementById('status-title');
-            const modeIndEl     = document.getElementById('mode-indicator');
-            if (promptLabelEl) promptLabelEl.textContent = m.prompt;
-            if (statusTitleEl) statusTitleEl.textContent = m.title;
-            if (modeIndEl)     modeIndEl.textContent     = m.label;
-            if (m.color) {
-                document.documentElement.style.setProperty('--accent', m.color);
-                document.documentElement.style.setProperty('--txt-color', m.color);
-            }
-            document.querySelectorAll('.mode-btn').forEach(b => {
-                b.classList.toggle('active', b.dataset.mode === currentMode);
-            });
-        }
-    }
-
-    // Restore current mode's history
-    const _savedHistory = loadHistory(currentMode);
-    if (_savedHistory.length) {
-        messageHistory = _savedHistory;
-        setTimeout(() => {
-            const col = MODE_COLORS[currentMode] || '#0ff';
-            printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages restored from last session.`, 'sys-msg');
-        }, 2000);
-    }
-
-    // Restore Identity
     const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    if (nexusUser && nexusUser.name) updateUserIdentity(nexusUser.name);
-
-    _a11yRestore();
-    initGoogleAuth(); 
-    connectWS();
-    connectStats();
-    updateClientStats();
-    setInterval(updateClientStats, 5000);
-    console.log("[NEXUS] Core services established.");
+    if (nexusUser && nexusUser.name) {
+        revealTerminal(nexusUser.name);
+    } else {
+        console.log("[NEXUS] Awaiting Authorization...");
+    }
 };
