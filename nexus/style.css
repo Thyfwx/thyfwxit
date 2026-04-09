@@ -735,13 +735,89 @@ body.a11y-dyslexic .mode-btn {
     outline: none;
 }
 
-canvas#nexus-canvas {
-    background: #050510;
-    border: 2px solid #333;
+/* ============================================================
+   COOL AS HELL: CRT & AI OVERLOAD EFFECTS
+   ============================================================ */
+
+/* --- CRT Core --- */
+.crt-mode .monitor::before {
+    content: " ";
     display: block;
-    margin: 0 auto;
-    max-width: 100%;
-    /* Own GPU layer — isolates rAF game loop from layout/input handling */
-    will-change: transform;
-    transform: translateZ(0);
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 255, 0, 0.03));
+    z-index: 20;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
 }
+
+.crt-mode .monitor::after {
+    opacity: 0.15;
+    animation: crt-flicker 0.15s infinite;
+}
+
+@keyframes crt-flicker {
+    0%   { opacity: 0.12; }
+    50%  { opacity: 0.15; }
+    100% { opacity: 0.13; }
+}
+
+/* --- AI Overload: EVIL (Glitch) --- */
+body.mode-evil .terminal-output p:nth-child(even) {
+    animation: evil-glitch 4s infinite linear alternate-reverse;
+}
+
+@keyframes evil-glitch {
+    0%   { transform: translate(0); text-shadow: none; }
+    2%   { transform: translate(2px, -1px); text-shadow: 2px 0 #f00, -2px 0 #0ff; }
+    4%   { transform: translate(-1px, 1px); text-shadow: -2px 0 #f00, 2px 0 #0ff; }
+    5%   { transform: translate(0); text-shadow: none; }
+    100% { transform: translate(0); }
+}
+
+/* --- AI Overload: VOID (Abyss Drift) --- */
+body.mode-void .monitor {
+    animation: void-pulse 10s infinite ease-in-out;
+}
+
+body.mode-void .terminal-output p {
+    animation: void-drift 8s infinite ease-in-out;
+    filter: blur(0.3px);
+}
+
+@keyframes void-pulse {
+    0%, 100% { filter: brightness(1) contrast(1); }
+    50%       { filter: brightness(0.8) contrast(1.2); }
+}
+
+@keyframes void-drift {
+    0%, 100% { transform: translateX(0); opacity: 1; }
+    50%       { transform: translateX(3px); opacity: 0.8; }
+}
+
+/* --- Global Leaderboard --- */
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #0ff;
+}
+
+.leaderboard-table th {
+    text-align: left;
+    border-bottom: 1px solid #0ff;
+    padding: 5px;
+    color: #f0f;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+}
+
+.leaderboard-table td {
+    padding: 8px 5px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.1);
+}
+
+.leaderboard-table tr:nth-child(1) td { color: #fff; text-shadow: 0 0 10px #fff; }
+.leaderboard-table tr:nth-child(2) td { color: #ffd700; }
+.leaderboard-table tr:nth-child(3) td { color: #c0c0c0; }

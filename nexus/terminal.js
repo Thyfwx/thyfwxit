@@ -373,6 +373,37 @@ function doConnect() {
     termWs.onerror = () => { _clearThinking(); };
 }
 
+async function submitScore(game, score) {
+    const name = localStorage.getItem('nexus_user_name') || 'Anonymous';
+    try {
+        await fetch(`${location.protocol}//${location.host}/api/leaderboard`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ game, name, score })
+        });
+    } catch (_) {}
+}
+
+async function showLeaderboard(game = 'pong') {
+    printToTerminal(`[SYS] Fetching ${game.toUpperCase()} rankings...`, 'sys-msg');
+    try {
+        const resp = await fetch(`${location.protocol}//${location.host}/api/leaderboard?game=${game}`);
+        const scores = await resp.json();
+        if (!scores.length) {
+            printToTerminal(`No data for ${game}. Be the first to set a score!`, 'sys-msg');
+            return;
+        }
+        let html = `<table class="leaderboard-table"><tr><th>RANK</th><th>NAME</th><th>SCORE</th></tr>`;
+        scores.forEach((s, i) => {
+            html += `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.score}</td></tr>`;
+        });
+        html += `</table>`;
+        printToTerminal(html, 'help-msg');
+    } catch (_) {
+        printToTerminal("[ERR] Leaderboard offline.", "sys-msg");
+    }
+}
+
 // =============================================================
 //  TYPEWRITER EFFECT FOR AI RESPONSES
 // =============================================================
@@ -422,7 +453,7 @@ function runNeofetch() {
 
 const HELP_BY_MODE = {
     nexus: [
-        `NEXUS AI — your terminal, your rules.\n\nAsk anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · history · clear\nModes: NEXUS · EVIL · CODER · SAGE — click sidebar buttons\nAccessibility: click ACCESS in sidebar or type "access"`,
+        `NEXUS AI — your terminal, your rules.\n\nAsk anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: leaderboard · name [your_name] · type test · matrix · monitor · neofetch · whoami · clear\nModes: NEXUS · EVIL · CODER · SAGE · VOID — click sidebar buttons\nAccessibility: click ACCESS in sidebar or type "access"`,
         `NEXUS online — built by Xavier Scott, the reason this terminal exists.\n\nAsk me anything. I'll think with you.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · history · clear`,
         `Ghost in the machine, at your service. Built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGenerate images: generate [prompt] · imagine [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
     ],
@@ -438,6 +469,9 @@ const HELP_BY_MODE = {
         `SAGE mode — think deeper.\n\nPhilosophy, ideas, perspective. I don't give quick answers — I give honest ones.\n\nGenerate images: generate [concept/vision] · imagine [abstract/surreal]\nSpeak text: speak [text]\nTips: "what is [idea]" · "why does [thing] exist" · "how should I think about [problem]"\nChallenge me — I'll push back\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · history · clear\nModes: click sidebar to switch`,
         `The unexamined terminal is not worth typing into.\n\nBuilt by Xavier Scott, who asked "why not" and then built the answer.\n\nGenerate images: generate [abstract] · imagine [concept]\nSpeak text: speak [text]\nTips: ask open questions — "what is..." · "why does..." · "should I..."\nTools: monitor · history · clear`,
     ],
+    void: [
+        `VOID mode — the abyss is listening.\n\nYou've entered the non-Euclidean sector of Nexus. Logic is optional. Cryptic is standard.\n\nGenerate images: generate [glitch] · imagine [eldritch nightmare]\nSpeak text: speak [text]\nTips: don't expect linear answers. The void sees what you can't.`,
+    ],
 };
 
 function showHelp() {
@@ -445,7 +479,7 @@ function showHelp() {
     printToTerminal(pool[Math.floor(Math.random() * pool.length)], 'help-msg');
 }
 
-const MODE_COLORS = { nexus: '#4af', evil: '#ff6600', coder: '#0f0', sage: '#a06fff' };
+const MODE_COLORS = { nexus: '#4af', evil: '#ff6600', coder: '#0f0', sage: '#a06fff', void: '#ff00ff' };
 
 // Open the history GUI panel
 function showHistory() {
@@ -887,6 +921,13 @@ function launchPong(difficulty) {
         const r = pongRaf; pongRaf = null; cancelAnimationFrame(r);
         gameEnded = true;
 
+        // Sound: Win/Loss
+        if (playerWon) SoundManager.playBloop(800, 0.2);
+        else           SoundManager.playBloop(150, 0.2);
+
+        // Submit to global leaderboard
+        submitScore('pong', pScore);
+
         // Draw final frame background
         ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
         stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
@@ -1132,6 +1173,9 @@ function launchSnake(snakeMode) {
         cancelAnimationFrame(snakeRaf);
         if (score > snakeHi) { snakeHi = score; localStorage.setItem(hiKey, snakeHi); }
 
+        SoundManager.playBloop(150, 0.2);
+        submitScore(`snake_${snakeMode}`, score);
+
         drawSnake(); // draw final game state first
 
         // Death overlay
@@ -1191,6 +1235,7 @@ function launchSnake(snakeMode) {
         snake.unshift(head);
         if (ate) {
             score++; apple = spawnApple();
+            SoundManager.playBloop(600, 0.05);
             const el = document.getElementById('snake-score');
             if (el) el.textContent = score;
             if (speedRun) stepMs = Math.max(40, 70  - Math.floor(score / 3) * 8);
@@ -1767,6 +1812,7 @@ function renderWordle() {
 window.wordleKey = function(k) {
     if (!wordleActive) return;
     if (wordleIsOver()) return;
+    SoundManager.playBloop(400, 0.05);
     if (k === '⌫' || k === 'Backspace') { wordleCurrent = wordleCurrent.slice(0, -1); renderWordle(); return; }
     if (k === 'ENTER' || k === 'Enter') { submitWordleGuess(); return; }
     if (/^[A-Z]$/.test(k) && wordleCurrent.length < WORDLE_LEN) { wordleCurrent += k; renderWordle(); }
@@ -1811,10 +1857,13 @@ function submitWordleGuess() {
     const won = result.every(r => r.state === 'correct');
     if (won) {
         wordleActive = false;
+        SoundManager.playBloop(800, 0.2);
+        submitScore('wordle', (WORDLE_MAX - wordleGuesses.length + 1) * 20);
         document.getElementById('wordle-msg').textContent = `🟩 Nice! The word was ${answer}. Close to restart.`;
         printToTerminal(`Wordle solved in ${wordleGuesses.length}/${WORDLE_MAX}! Word: ${answer}`, 'conn-ok');
     } else if (wordleGuesses.length >= WORDLE_MAX) {
         wordleActive = false;
+        SoundManager.playBloop(150, 0.2);
         document.getElementById('wordle-msg').textContent = `The word was ${answer}. Close to try again.`;
         printToTerminal(`Wordle over. The word was ${answer}.`, 'sys-msg');
     }
@@ -2627,11 +2676,14 @@ const MODES = {
 
 function setMode(modeKey) {
     if (!MODES[modeKey]) return;
-    // Save current mode's history before switching (keeps them separate)
     saveHistory();
+    
+    // Apply mode-specific body class for overload effects
+    Object.keys(MODES).forEach(m => document.body.classList.remove(`mode-${m}`));
+    document.body.classList.add(`mode-${modeKey}`);
+    
     currentMode = modeKey;
     localStorage.setItem('nexus_mode', modeKey);
-    // Load the new mode's history into active memory
     messageHistory = loadHistory(modeKey);
     const m = MODES[modeKey];
 
@@ -2643,11 +2695,11 @@ function setMode(modeKey) {
     if (titleEl)   titleEl.textContent = m.title;
     if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color || 'inherit'; }
 
-    // Update mode button active states
     document.querySelectorAll('.mode-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === modeKey);
     });
 
+    SoundManager.playBloop(300, 0.05);
     printToTerminal(m.msg, m.msgCls);
 }
 
@@ -2681,6 +2733,10 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
 // =============================================================
 //  INPUT HANDLING
 // =============================================================
+input.addEventListener('input', () => {
+    SoundManager.playClick();
+});
+
 input.addEventListener('keydown', (e) => {
     // Route keypresses to Wordle when active
     if (wordleActive) {
@@ -2741,6 +2797,15 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
+    if (lc === 'leaderboard')         { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
+    if (lc.startsWith('name ')) {
+        const newName = cmd.slice(5).trim().slice(0, 15);
+        if (newName) {
+            localStorage.setItem('nexus_user_name', newName);
+            printToTerminal(`[SYS] Identity updated: ${newName}`, 'conn-ok');
+        }
+        return;
+    }
     if (lc === 'scan image' || lc === 'scan') {
         if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
         printToTerminal(`${pl} scan image`, 'user-cmd');
@@ -3095,13 +3160,49 @@ updateClientStats();
 setInterval(updateClientStats, 5000);
 
 // =============================================================
+//  SOUND DESIGN (WEB AUDIO API)
+// =============================================================
+const SoundManager = {
+    ctx: null,
+    enabled: localStorage.getItem('nexus_sound') === '1',
+    init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    
+    playClick() {
+        if (!this.enabled) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150 + Math.random() * 50, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+    },
+    
+    playBloop(freq = 400, dur = 0.1) {
+        if (!this.enabled) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + dur);
+    }
+};
+
+// =============================================================
 //  ACCESSIBILITY
 // =============================================================
-const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic', 'a11y-wide-spacing', 'a11y-bold', 'a11y-dim'];
+const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic', 'a11y-wide-spacing', 'a11y-bold', 'a11y-dim', 'crt-mode'];
 
 function _a11ySave() {
     const active = A11Y_CLASSES.filter(c => document.body.classList.contains(c));
     localStorage.setItem('nexus_a11y', JSON.stringify(active));
+    localStorage.setItem('nexus_sound', SoundManager.enabled ? '1' : '0');
 }
 
 function _a11yRestore() {
@@ -3116,6 +3217,7 @@ function _a11ySyncButtons() {
     document.querySelectorAll('.a11y-toggle').forEach(btn => {
         const cls = btn.dataset.class;
         if (cls) btn.classList.toggle('on', document.body.classList.contains(cls));
+        if (btn.id === 'sound-toggle') btn.classList.toggle('on', SoundManager.enabled);
     });
 }
 
@@ -3123,6 +3225,13 @@ function toggleA11yClass(cls) {
     document.body.classList.toggle(cls);
     if (cls === 'a11y-large' && document.body.classList.contains(cls))  document.body.classList.remove('a11y-xl');
     if (cls === 'a11y-xl'    && document.body.classList.contains(cls))  document.body.classList.remove('a11y-large');
+    _a11ySave();
+    _a11ySyncButtons();
+}
+
+function toggleSound() {
+    SoundManager.enabled = !SoundManager.enabled;
+    if (SoundManager.enabled) SoundManager.playBloop(600, 0.05);
     _a11ySave();
     _a11ySyncButtons();
 }
@@ -3209,6 +3318,12 @@ function toggleA11yPanel() {
         <div class="a11y-section-label">AI CONTEXT</div>
         <div class="a11y-row">
             <button class="a11y-toggle" style="border-color:#f55;color:#f55;" onclick="clearAllHistory()">CLEAR AI MEMORY</button>
+        </div>
+
+        <div class="a11y-section-label">VISUALS</div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="crt-mode" onclick="toggleA11yClass('crt-mode')">CRT Mode</button>
+            <button class="a11y-toggle" id="sound-toggle" onclick="toggleSound()">Sound Effects</button>
         </div>
 
         <div class="a11y-section-label">TEXT SIZE</div>
