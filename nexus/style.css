@@ -842,9 +842,15 @@ body.mode-void .terminal-output p {
     vertical-align: middle;
 }
 
-.rank-player {
+#google-signin-btn {
+    min-height: 40px;
     display: flex;
+    justify-content: center;
     align-items: center;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 4px;
+    overflow: hidden;
 }
 
 .leaderboard-table tr:nth-child(1) td { color: #fff; text-shadow: 0 0 10px #fff; }
