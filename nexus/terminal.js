@@ -2568,20 +2568,31 @@ async function handleCredentialResponse(response) {
         if (data.ok) {
             localStorage.setItem('nexus_user_data', JSON.stringify(data));
             printToTerminal(`[OK] Uplink synchronized: Welcome, ${data.name}.`, 'conn-ok');
+            
+            // REMOVE GUEST: Update UI instantly
+            updateUserIdentity(data.name);
             initGoogleAuth(); 
         }
     } catch(e) { console.error("Auth failed:", e); }
 }
 
-    nexusCanvas.ontouchmove = null;
-    nexusCanvas.onclick = null;
-    cpuData = []; cpuHistory = []; memHistory = []; netHistory = [];
-    clearInterval(pongRaf);
-    // Reset draggable position back to centered
-    guiContainer.style.left = '';
-    guiContainer.style.top  = '';
-    guiContainer.style.position  = '';
-    guiContainer.style.transform = '';
+function updateUserIdentity(name) {
+    if (!name) return;
+    // Update prompts
+    MODES.nexus.prompt = `${name.toLowerCase()}@nexus:~$`;
+    MODES.evil.prompt  = `${name.toLowerCase()}@evil:~$`;
+    MODES.coder.prompt = `${name.toLowerCase()}@dev:~$`;
+    MODES.sage.prompt  = `${name.toLowerCase()}@sage:~$`;
+    MODES.void.prompt  = `${name.toLowerCase()}@void:~$`;
+    
+    const pl = document.getElementById('prompt-label');
+    if (pl) pl.textContent = MODES[currentMode].prompt;
+    
+    // Update status bar if it said Guest
+    const titleEl = document.getElementById('status-title');
+    if (titleEl && titleEl.textContent.includes('GUEST')) {
+        titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
+    }
 }
 
 // =============================================================
@@ -3749,9 +3760,6 @@ function toggleA11yPanel() {
 //  RESTORE & BOOT
 // =============================================================
 
-// Global variables initialized on load
-let cpuStat, memStat, output, input, guiContainer, guiContent, guiTitle, nexusCanvas;
-
 // Global Boot
 window.onload = async () => {
     console.log("[NEXUS] System Booting...");
@@ -3800,6 +3808,10 @@ window.onload = async () => {
             printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages restored from last session.`, 'sys-msg');
         }, 2000);
     }
+
+    // Restore Identity
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    if (nexusUser && nexusUser.name) updateUserIdentity(nexusUser.name);
 
     _a11yRestore();
     initGoogleAuth(); 
