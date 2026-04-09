@@ -304,8 +304,55 @@ function doConnect() {
         }, 10000);
     };
 
-    // Accumulate streaming chunks before committing to history
-    let _streamBuf = '', _streamTimer = null;
+    termWs.onmessage = (event) => {
+        const text = event.data;
+        console.log(`[WS] Message received: ${text.slice(0, 50)}...`);
+
+        _clearThinking();
+
+        if (text.startsWith('[MODEL:')) {
+            const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
+            if (label) {
+                const modelEl = document.getElementById('active-model');
+                if (modelEl) modelEl.textContent = label;
+            }
+            return;
+        }
+
+        if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
+
+        if (/^\w+@nexus/.test(text.trim())) return;
+        if (text.includes('__ping__')) return;
+
+        const full = text.trim();
+        if (full) {
+            printTypewriter(full);
+            messageHistory.push({ role: 'assistant', content: full.slice(0, 1000) });
+            if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
+            saveHistory();
+        } else {
+            console.warn("[AI] Received empty response from server.");
+            printToTerminal("[SYSTEM] AI returned an empty response.", "sys-msg");
+        }
+    };
+
+    // If WS drops while thinking, clear immediately and show error
+    termWs.onclose = () => {
+        clearInterval(_wsPingId);
+        _clearThinking();
+        const dot = document.getElementById('conn-dot');
+        if (dot) dot.className = 'conn-dot disconnected';
+        setTimeout(connectWS, 3000);
+    };
+    termWs.onerror = () => { _clearThinking(); };
+}
+
+function _clearThinking() {
+    clearTimeout(_thinkFallbackCmd);
+    _thinkFallbackCmd = null;
+    _thinkTimeout = null;
+    document.getElementById('ai-thinking')?.remove();
+}
 
 function showThinking(cmd) {
     if (_thinkTimeout) return;
@@ -327,57 +374,6 @@ function showThinking(cmd) {
     output.scrollTop = output.scrollHeight;
     
     _thinkTimeout = true; // flag it
-}
-
-function _clearThinking() {
-    clearTimeout(_thinkFallbackCmd);
-    _thinkFallbackCmd = null;
-    _thinkTimeout = null;
-    document.getElementById('ai-thinking')?.remove();
-}
-
-termWs.onmessage = (event) => {
-    const text = event.data;
-    console.log(`[WS] Message received: ${text.slice(0, 50)}...`);
-
-    _clearThinking();
-
-    if (text.startsWith('[MODEL:')) {
-        const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
-        if (label) {
-            const modelEl = document.getElementById('active-model');
-            if (modelEl) modelEl.textContent = label;
-        }
-        return;
-    }
-
-    if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
-
-    if (/^\w+@nexus/.test(text.trim())) return;
-    if (text.includes('__ping__')) return;
-
-    const full = text.trim();
-    if (full) {
-        printTypewriter(full);
-        messageHistory.push({ role: 'assistant', content: full.slice(0, 1000) });
-        if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
-        saveHistory();
-    } else {
-        console.warn("[AI] Received empty response from server.");
-        // If we get an empty string, tell the user so they know the server at least replied
-        printToTerminal("[SYSTEM] AI returned an empty response. This usually means a safety block or API error.", "sys-msg");
-    }
-};
-
-    // If WS drops while thinking, clear immediately and show error
-    termWs.onclose = () => {
-        clearInterval(_wsPingId);
-        _clearThinking();
-        const dot = document.getElementById('conn-dot');
-        if (dot) dot.className = 'conn-dot disconnected';
-        setTimeout(connectWS, 3000);
-    };
-    termWs.onerror = () => { _clearThinking(); };
 }
 
 // =============================================================
