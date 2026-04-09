@@ -1022,7 +1022,7 @@ function launchPong(difficulty) {
 
         ctx.textAlign = 'center';
         ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
-        ctx.fillText(playerWon ? 'YOU WIN!' : 'GAME OVER', 200, 118);
+        ctx.fillText(playerWon ? 'VICTORY' : 'DEFEATED', 200, 118);
         ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
         ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
         ctx.fillStyle = '#555'; ctx.font = '12px monospace';
@@ -1573,15 +1573,25 @@ function startInvaders() {
             ctx.fillText(`THREAT LEVEL: ${wave}`, 320, 20);
             ctx.fillText(`DATA RECOVERED: ${score}`, 10, 350);
         } else {
-            ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,400,360);
-            ctx.fillStyle = '#f44'; ctx.font = 'bold 32px monospace';
-            ctx.textAlign = 'center'; ctx.fillText('SYSTEM BREACHED', 200, 160);
+            // SYSTEM BREACHED - PROPER END SCREEN
+            ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.fillRect(0,0,400,360);
+            ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(50, 100, 300, 120);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f44'; ctx.font = 'bold 28px monospace';
+            ctx.fillText('SYSTEM BREACHED', 200, 145);
+            
             ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
-            ctx.fillText(`Packets Leaked: ${score}`, 200, 190);
-            ctx.fillText('CLICK to restore backup', 200, 230);
+            ctx.fillText(`DATA RECOVERED: ${score}`, 200, 175);
+            
+            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
+            ctx.fillText('CLICK TO RESTORE UPLINK', 200, 205);
             ctx.textAlign = 'left';
-            if (score > 0) submitScore('invaders', score);
-            showLeaderboard('invaders');
+            
+            if (score > 0 && !nexusCanvas.onclick) { 
+                submitScore('invaders', score);
+                nexusCanvas.onclick = () => { nexusCanvas.onclick = null; startInvaders(); };
+            }
         }
 
         ctx.restore();
@@ -1855,6 +1865,7 @@ function launchBreakout(difficulty) {
     const d = DIFFS[difficulty] || DIFFS.medium;
 
     breakoutActive = true;
+    let currentPW = d.PW;
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
@@ -2555,6 +2566,11 @@ function stopAllGames() {
     typeTestActive = false;
     clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
+    
+    // Clear any persistent canvas handlers
+    nexusCanvas.onclick = null;
+    nexusCanvas.onmousedown = null;
+    nexusCanvas.onmousemove = null;
 }
 
 // =============================================================
