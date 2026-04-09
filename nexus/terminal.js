@@ -2623,13 +2623,18 @@ async function handleCredentialResponse(response) {
 function revealTerminal(name) {
     const overlay = document.getElementById('auth-screen');
     const monitor = document.getElementById('main-monitor');
+    const terms   = document.getElementById('terms-modal');
     if (overlay) overlay.style.display = 'none';
     if (monitor) monitor.style.display = 'flex';
+    if (terms)   terms.style.display   = 'none';
     document.body.classList.remove('auth-locked');
     
     if (name) updateUserIdentity(name);
     
-    // Start core loops now that we are in
+    // Log the successful entry / agreement to Discord
+    logPrompt(`[PROTOCOL] User '${name}' acknowledged Terms of Access and established uplink.`);
+    
+    // Start core loops
     connectWS();
     connectStats();
     updateClientStats();
