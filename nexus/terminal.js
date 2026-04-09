@@ -419,23 +419,44 @@ async function submitScore(game, score) {
     } catch (_) {}
 }
 
+function escHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
 async function showLeaderboard(game = 'pong') {
     printToTerminal(`[SYS] Fetching ${game.toUpperCase()} rankings...`, 'sys-msg');
+    const MEDALS = ['🥇', '🥈', '🥉'];
     try {
         const resp = await fetch(`${location.protocol}//${location.host}/api/leaderboard?game=${game}`);
         const scores = await resp.json();
-        if (!scores.length) {
+        if (!scores || !scores.length) {
             printToTerminal(`No data for ${game}. Be the first to set a score!`, 'sys-msg');
             return;
         }
+        
         let html = `<table class="leaderboard-table"><tr><th>RANK</th><th>NAME</th><th>SCORE</th></tr>`;
         scores.forEach((s, i) => {
-            html += `<tr><td>${i+1}</td><td>${s.name}</td><td>${s.score}</td></tr>`;
+            const rankIcon = i < 3 ? `<span class="medal">${MEDALS[i]}</span>` : `<span class="rank-num">${i + 1}</span>`;
+            const avatar = s.picture 
+                ? `<img src="${escHtml(s.picture)}" class="rank-avatar" onerror="this.style.display='none'">`
+                : `<span class="rank-avatar-init">${escHtml((s.name || '?')[0])}</span>`;
+
+            html += `
+                <tr class="rank-row">
+                    <td>${rankIcon}</td>
+                    <td class="rank-player">
+                        ${avatar}
+                        ${escHtml(s.name)}
+                    </td>
+                    <td class="rank-score">${Number(s.score).toLocaleString()}</td>
+                </tr>`;
         });
         html += `</table>`;
         printToTerminal(html, 'help-msg');
-    } catch (_) {
-        printToTerminal("[ERR] Leaderboard offline.", "sys-msg");
+    } catch (e) {
+        console.error("Leaderboard error:", e);
+        printToTerminal("[ERR] Leaderboard offline or unavailable.", "sys-msg");
     }
 }
 
@@ -1319,6 +1340,203 @@ function stopSnake() {
     if (_snakeTS)  { nexusCanvas.removeEventListener('touchstart', _snakeTS); _snakeTS = null; }
     if (_snakeTE)  { nexusCanvas.removeEventListener('touchend',   _snakeTE); _snakeTE = null; }
 }
+
+// =============================================================
+//  CYBER INVADERS (Hacker Edition)
+// =============================================================
+let invadersRaf;
+let invadersActive = false;
+
+function startInvaders() {
+    stopAllGames();
+    invadersActive = true;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'CYBER INVADERS // MAINFRAME DEFENSE';
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 360;
+    const ctx = nexusCanvas.getContext('2d');
+
+    let playerX = 180, bullets = [], enemies = [], particles = [], boss = null;
+    let score = 0, wave = 1, gameOver = false, shake = 0;
+    let moveDir = 1;
+
+    function initEnemies() {
+        enemies = [];
+        const rows = Math.min(6, 3 + Math.floor(wave / 2));
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < 8; c++) {
+                enemies.push({ x: 40 + c * 40, y: 60 + r * 30, alive: true, type: r, hp: 1 });
+            }
+        }
+    }
+
+    function spawnBoss() {
+        boss = { x: 150, y: -50, targetY: 60, hp: 50 + (wave * 10), maxHp: 50 + (wave * 10), moveDir: 1 };
+        SoundManager.playBloop(100, 0.3);
+    }
+
+    function createExplosion(x, y, color) {
+        for (let i = 0; i < 8; i++) {
+            particles.push({
+                x, y, 
+                vx: (Math.random() - 0.5) * 6, 
+                vy: (Math.random() - 0.5) * 6, 
+                life: 1.0, 
+                color
+            });
+        }
+    }
+
+    if (wave % 5 === 0) spawnBoss(); else initEnemies();
+
+    const movePlayer = (x) => {
+        const rect = nexusCanvas.getBoundingClientRect();
+        playerX = ((x - rect.left) / rect.width) * 400 - 20;
+        playerX = Math.max(0, Math.min(360, playerX));
+    };
+    nexusCanvas.onmousemove = (e) => movePlayer(e.clientX);
+    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); movePlayer(e.touches[0].clientX); };
+    nexusCanvas.onclick = () => {
+        if (gameOver) { startInvaders(); return; }
+        if (bullets.length < 4) {
+            bullets.push({ x: playerX + 18, y: 330 });
+            SoundManager.playBloop(600, 0.03);
+        }
+    };
+
+    function tick(ts) {
+        if (!invadersActive) return;
+        
+        ctx.save();
+        if (shake > 0) {
+            ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+            shake *= 0.9;
+        }
+
+        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 360);
+        
+        // Scanlines background
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.03)';
+        for (let i = 0; i < 360; i += 4) ctx.fillRect(0, i, 400, 1);
+
+        if (!gameOver) {
+            // Player
+            ctx.fillStyle = '#0ff';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#0ff';
+            ctx.fillRect(playerX, 330, 40, 10);
+            ctx.fillRect(playerX + 15, 320, 10, 10);
+            ctx.shadowBlur = 0;
+
+            // Bullets
+            bullets.forEach((b, i) => {
+                b.y -= 7;
+                ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 3, 12);
+                if (b.y < 0) bullets.splice(i, 1);
+            });
+
+            // Particles
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+                ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
+                ctx.fillRect(p.x, p.y, 3, 3);
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Boss Logic
+            if (boss) {
+                if (boss.y < boss.targetY) boss.y += 1;
+                boss.x += boss.moveDir * 2;
+                if (boss.x > 300 || boss.x < 20) boss.moveDir *= -1;
+
+                // Boss health bar
+                ctx.fillStyle = '#333'; ctx.fillRect(100, 10, 200, 6);
+                ctx.fillStyle = '#f0f'; ctx.fillRect(100, 10, (boss.hp / boss.maxHp) * 200, 6);
+                
+                // Draw Boss
+                ctx.fillStyle = '#f0f'; ctx.font = 'bold 24px monospace';
+                ctx.fillText('[ FIREWALL ]', boss.x, boss.y);
+
+                // Bullet collision with Boss
+                bullets.forEach((b, bi) => {
+                    if (b.x > boss.x && b.x < boss.x + 120 && b.y > boss.y - 20 && b.y < boss.y) {
+                        boss.hp--; bullets.splice(bi, 1);
+                        createExplosion(b.x, b.y, '#f0f');
+                        shake = 4;
+                        SoundManager.playBloop(150, 0.02);
+                    }
+                });
+
+                if (boss.hp <= 0) {
+                    score += 500;
+                    createExplosion(boss.x + 60, boss.y, '#fff');
+                    boss = null;
+                    wave++;
+                    SoundManager.playBloop(800, 0.2);
+                    if (wave % 5 !== 0) initEnemies(); else spawnBoss();
+                }
+            }
+
+            // Regular Enemies
+            let edge = false;
+            enemies.forEach(e => {
+                if (!e.alive) return;
+                ctx.fillStyle = e.type % 2 === 0 ? '#f0f' : '#0f0';
+                ctx.font = 'bold 16px monospace';
+                const sprite = e.type % 2 === 0 ? '⚇' : '⚉';
+                ctx.fillText(sprite, e.x, e.y);
+                
+                if (e.x > 370 || e.x < 10) edge = true;
+
+                // Collision
+                bullets.forEach((b, bi) => {
+                    if (b.x > e.x - 5 && b.x < e.x + 20 && b.y > e.y - 15 && b.y < e.y) {
+                        e.alive = false; bullets.splice(bi, 1);
+                        score += 10 * wave;
+                        createExplosion(e.x, e.y, ctx.fillStyle);
+                        SoundManager.playBloop(200, 0.03);
+                    }
+                });
+
+                if (e.y > 315) gameOver = true;
+            });
+
+            if (edge) {
+                moveDir *= -1;
+                enemies.forEach(e => e.y += 12);
+            }
+            enemies.forEach(e => e.x += moveDir * (1.2 + wave * 0.15));
+
+            if (!boss && enemies.length > 0 && enemies.every(e => !e.alive)) {
+                wave++;
+                initEnemies();
+                if (wave % 5 === 0) spawnBoss();
+                SoundManager.playBloop(800, 0.1);
+            }
+
+            ctx.fillStyle = '#0ff'; ctx.font = '10px monospace';
+            ctx.fillText(`MAINFRAME SECURITY: ${Math.max(0, 100 - wave)}%`, 10, 20);
+            ctx.fillText(`THREAT LEVEL: ${wave}`, 320, 20);
+            ctx.fillText(`DATA RECOVERED: ${score}`, 10, 350);
+        } else {
+            ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,400,360);
+            ctx.fillStyle = '#f44'; ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center'; ctx.fillText('SYSTEM BREACHED', 200, 160);
+            ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
+            ctx.fillText(`Packets Leaked: ${score}`, 200, 190);
+            ctx.fillText('CLICK to restore backup', 200, 230);
+            ctx.textAlign = 'left';
+            if (score > 0) submitScore('invaders', score);
+            showLeaderboard('invaders');
+        }
+
+        ctx.restore();
+        invadersRaf = requestAnimationFrame(tick);
+    }
+    invadersRaf = requestAnimationFrame(tick);
+}
+
+function stopInvaders() { cancelAnimationFrame(invadersRaf); invadersActive = false; }
 
 // =============================================================
 //  FLAPPY BIRD
@@ -2277,6 +2495,7 @@ function stopAllGames() {
     stopMatrixSaver();
     stopFlappy();
     stopBreakout();
+    stopInvaders();
     mineActive = false;
     breachActive = false;
     typeTestActive = false;

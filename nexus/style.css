@@ -818,6 +818,35 @@ body.mode-void .terminal-output p {
     border-bottom: 1px solid rgba(0, 255, 255, 0.1);
 }
 
+.rank-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid rgba(0,255,255,0.3);
+}
+
+.rank-avatar-init {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(0,255,255,0.15);
+    border: 1px solid rgba(0,255,255,0.3);
+    font-size: 11px;
+    color: #0ff;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.rank-player {
+    display: flex;
+    align-items: center;
+}
+
 .leaderboard-table tr:nth-child(1) td { color: #fff; text-shadow: 0 0 10px #fff; }
 .leaderboard-table tr:nth-child(2) td { color: #ffd700; }
 .leaderboard-table tr:nth-child(3) td { color: #c0c0c0; }
