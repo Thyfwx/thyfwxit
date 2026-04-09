@@ -3669,5 +3669,63 @@ function toggleA11yPanel() {
     });
 }
 
-// Restore on load
-_a11yRestore();
+function revealTerminal(name) {
+    const overlay = document.getElementById('auth-screen');
+    const monitor = document.getElementById('main-monitor');
+    const terms   = document.getElementById('terms-modal');
+    if (overlay) overlay.style.display = 'none';
+    if (monitor) monitor.style.display = 'flex';
+    if (terms)   terms.style.display   = 'none';
+    document.body.classList.remove('auth-locked');
+    
+    if (name) updateUserIdentity(name);
+    
+    // Log agreement
+    logPrompt(`[PROTOCOL] User '${name}' established uplink.`);
+    
+    // Core start
+    connectWS();
+    connectStats();
+    updateClientStats();
+    setInterval(updateClientStats, 5000);
+}
+
+window.revealTerminal = revealTerminal;
+window.showTerms = () => { document.getElementById('terms-modal').style.display = 'flex'; };
+window.hideTerms = () => { document.getElementById('terms-modal').style.display = 'none'; };
+window.logout = () => { localStorage.removeItem('nexus_user_data'); location.reload(); };
+
+// =============================================================
+//  BOOT
+// =============================================================
+window.onload = async () => {
+    // Initialize DOM references
+    cpuStat      = document.getElementById('cpu-stat');
+    memStat      = document.getElementById('mem-stat');
+    output       = document.getElementById('terminal-output');
+    input        = document.getElementById('terminal-input');
+    guiContainer = document.getElementById('game-gui-container');
+    guiContent   = document.getElementById('gui-content');
+    guiTitle     = document.getElementById('gui-title');
+    nexusCanvas  = document.getElementById('nexus-canvas');
+
+    if (!input || !output) return;
+
+    // GSI Init
+    if (typeof google !== 'undefined') {
+        google.accounts.id.initialize({
+            client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com",
+            callback: handleCredentialResponse
+        });
+        google.accounts.id.prompt();
+    }
+
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    if (nexusUser && nexusUser.name) {
+        revealTerminal(nexusUser.name);
+    } else {
+        console.log("[NEXUS] Awaiting Authorization...");
+    }
+    
+    _a11yRestore();
+};
