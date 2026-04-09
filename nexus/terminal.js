@@ -3,7 +3,8 @@
 // =============================================================
 
 // --- Config ---
-const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal`;
+const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
+const STATS_URL = `wss://nexus-terminalnexus.onrender.com/ws/stats`;
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -2936,7 +2937,22 @@ function jsonPayload(cmd) {
     return JSON.stringify(payload);
 }
 
+let statsWs;
+function connectStats() {
+    if (statsWs) { statsWs.onclose = null; statsWs.close(); }
+    statsWs = new WebSocket(STATS_URL);
+    statsWs.onmessage = (e) => {
+        try {
+            const d = JSON.parse(e.data);
+            if (cpuStat) cpuStat.textContent = d.cpu.toFixed(1) + '%';
+            if (memStat) memStat.textContent = d.mem.toFixed(1) + '%';
+        } catch (_) {}
+    };
+    statsWs.onclose = () => setTimeout(connectStats, 5000);
+}
+
 function updateClientStats() {
+    if (statsWs && statsWs.readyState === WebSocket.OPEN) return;
     cpuStat.textContent = (navigator.hardwareConcurrency || '--') + ' Cores';
     memStat.textContent  = (navigator.deviceMemory || '--') + ' GB';
 }
@@ -3030,6 +3046,7 @@ if (_savedHistory.length) {
 }
 
 connectWS();
+connectStats();
 updateClientStats();
 setInterval(updateClientStats, 5000);
 
@@ -3152,6 +3169,11 @@ function toggleA11yPanel() {
         <div class="a11y-panel-header">
             <span>[ ACCESSIBILITY ]</span>
             <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">✕</button>
+        </div>
+
+        <div class="a11y-section-label">AI CONTEXT</div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" style="border-color:#f55;color:#f55;" onclick="clearAllHistory()">CLEAR AI MEMORY</button>
         </div>
 
         <div class="a11y-section-label">TEXT SIZE</div>
