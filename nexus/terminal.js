@@ -2732,14 +2732,21 @@ input.addEventListener('keydown', (e) => {
         return;
     }
 
-    printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-
-    if (isCreatorQuestion(cmd)) { showCreatorResponse(); return; }
-    if (isContactQuestion(cmd))  { showContactResponse();  return; }
+    if (isCreatorQuestion(cmd)) { 
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        showCreatorResponse(); 
+        return; 
+    }
+    if (isContactQuestion(cmd))  { 
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        showContactResponse();  
+        return; 
+    }
 
     // Image generation works in ALL modes — intercept before routing to AI
     const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
     if (genMatch) {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         const isVintage = /^vintage\s/i.test(cmd);
         generateImage(isVintage ? cmd.trim() : genMatch[1].trim());
         return;
@@ -2749,6 +2756,7 @@ input.addEventListener('keydown', (e) => {
 
     // img2img: transform attached image with a new prompt
     if (imgSnap && (lc.startsWith('transform ') || lc.startsWith('restyle ') || lc.startsWith('remix '))) {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         const transformPrompt = cmd.slice(cmd.indexOf(' ') + 1).trim();
         pendingImageB64 = null;
         generateImageFromImage(imgSnap, transformPrompt);
