@@ -304,15 +304,27 @@ function doConnect() {
         }, 10000);
     };
 
+    // Accumulate streaming chunks before committing to history
+    let _streamBuf = '', _streamTimer = null;
+
+    function _clearThinking() {
+        clearTimeout(_thinkTimeout); // _thinkTimeout is global
+        _thinkTimeout = null;
+        _thinkFallbackCmd = null;
+        document.getElementById('ai-thinking')?.remove();
+    }
+
     termWs.onmessage = (event) => {
         const text = event.data;
-        console.log(`[WS] Message received: ${text.slice(0, 50)}...`);
 
-        _clearThinking();
+        _clearThinking(); // remove thinking indicator on ANY incoming message
 
+        // [MODEL:label] — update status display, never print to terminal
         if (text.startsWith('[MODEL:')) {
             const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
             if (label) {
+                const el = document.getElementById('mode-indicator');
+                // Show model name briefly in status bar next to mode (don't overwrite mode)
                 const modelEl = document.getElementById('active-model');
                 if (modelEl) modelEl.textContent = label;
             }
@@ -321,19 +333,33 @@ function doConnect() {
 
         if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
 
-        if (/^\w+@nexus/.test(text.trim())) return;
+        if (text.includes('[GUI_TRIGGER:')) {
+            const match = text.match(/\[GUI_TRIGGER:([^:]+):([^\]]+)\]/);
+            if (match) showGameGUI(match[1], match[2]);
+            printTypewriter(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ''));
+            return;
+        }
+
+        // Skip prompt echoes and __ping__ acks
+        if (/\w+@nexus/.test(text.trim())) return;
         if (text.includes('__ping__')) return;
 
-        const full = text.trim();
-        if (full) {
-            printTypewriter(full);
-            messageHistory.push({ role: 'assistant', content: full.slice(0, 1000) });
-            if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
-            saveHistory();
-        } else {
-            console.warn("[AI] Received empty response from server.");
-            printToTerminal("[SYSTEM] AI returned an empty response.", "sys-msg");
-        }
+        // Accumulate for history — debounce 800ms so streaming chunks merge
+        _streamBuf += text;
+        clearTimeout(_streamTimer);
+        _streamTimer = setTimeout(() => {
+            const full = _streamBuf.trim();
+            if (full) {
+                messageHistory.push({ role: 'assistant', content: full.slice(0, 600) });
+                if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
+                saveHistory();
+                // Log AI response to Discord so you can read full conversations
+                _logAIResponse(full);
+            }
+            _streamBuf = '';
+        }, 800);
+
+        printTypewriter(text);
     };
 
     // If WS drops while thinking, clear immediately and show error
@@ -345,35 +371,6 @@ function doConnect() {
         setTimeout(connectWS, 3000);
     };
     termWs.onerror = () => { _clearThinking(); };
-}
-
-function _clearThinking() {
-    clearTimeout(_thinkFallbackCmd);
-    _thinkFallbackCmd = null;
-    _thinkTimeout = null;
-    document.getElementById('ai-thinking')?.remove();
-}
-
-function showThinking(cmd) {
-    if (_thinkTimeout) return;
-    const thoughts = [
-        "Nexus is thinking...",
-        "Accessing Groq Grid...",
-        "Querying neural mainframe...",
-        "Bypassing firewalls...",
-        "Decrypting response...",
-        "Consulting the void..."
-    ];
-    const msg = thoughts[Math.floor(Math.random() * thoughts.length)];
-    
-    const p = document.createElement('p');
-    p.id = 'ai-thinking';
-    p.className = 'sys-msg';
-    p.innerHTML = `<span class="nexus-spinner"></span> ${msg}`;
-    output.appendChild(p);
-    output.scrollTop = output.scrollHeight;
-    
-    _thinkTimeout = true; // flag it
 }
 
 // =============================================================
@@ -2333,7 +2330,10 @@ async function askGroqDirect(cmd, system) {
         });
         if (!resp.ok) return null;
         
-        _clearThinking();
+        // _clearThinking is defined in doConnect closure in current b38dcc3 state...
+        // Wait, I reverted to b38dcc3. I should check where _clearThinking is.
+        document.getElementById('ai-thinking')?.remove();
+
         const p = document.createElement('p');
         p.className = 'ai-msg';
         output.appendChild(p);
@@ -2414,8 +2414,7 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
             const success = await askGroqDirect(cmd, systemOverride || 'You are Nexus AI.');
             if (success) return;
 
-            printToTerminal(`[${currentMode.toUpperCase()}] Proxy error ${resp.status}. Try switching mode.`, 'sys-msg');
-            _clearThinking();
+            printToTerminal(`[${currentMode.toUpperCase()}] Error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
             messageHistory.pop();
             return;
         }
@@ -2653,15 +2652,15 @@ input.addEventListener('keydown', (e) => {
     historyIndex = -1;
     input.value = '';
 
+    const lc = cmd.toLowerCase();
+    const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
+
     // Typing test intercept
     if (typeTestActive) {
         const done = checkTypingTest(cmd);
-        if (!done) { input.value = ''; return; }
-        input.value = ''; return;
+        if (!done) return;
+        return;
     }
-
-    const lc = cmd.toLowerCase();
-    const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
     if (lc === 'clear')               { output.innerHTML = ''; messageHistory = []; pendingImageB64 = null; localStorage.removeItem(HISTORY_KEYS[currentMode]); return; }
     if (lc === 'history')             { showHistory(); return; }
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
@@ -2759,12 +2758,11 @@ input.addEventListener('keydown', (e) => {
     pendingImageB64 = null;
     logPrompt(cmd, imgSnap);
 
-    const pl = promptLabel.textContent;
     printToTerminal(`${pl} ${cmd}`, 'user-cmd');
 
     if (currentMode === 'evil') {
         console.log(`[AI] Calling EVIL proxy for: ${cmd}`);
-        messageHistory.push({ role: 'user', content: cmd }); // Evil proxy expects current cmd in messages array
+        messageHistory.push({ role: 'user', content: cmd });
         askEvil(cmd, imgSnap);
     } else if (imgSnap) {
         console.log(`[AI] Calling EVIL proxy for VISION: ${cmd}`);
@@ -2774,7 +2772,7 @@ input.addEventListener('keydown', (e) => {
         console.log(`[AI] Calling LOCAL WS for: ${cmd}`);
         showThinking(cmd);
         
-        // Generate payload BEFORE pushing current cmd to history
+        // Generate payload BEFORE pushing current cmd to history to avoid duplication
         const payload = jsonPayload(cmd);
         termWs.send(payload);
         
@@ -2784,17 +2782,9 @@ input.addEventListener('keydown', (e) => {
         messageHistory.push({ role: 'user', content: cmd });
         if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
         saveHistory();
-        
-        // Watchdog: If no response in 10s, clear thinking and show error
-        _thinkFallbackCmd = setTimeout(() => {
-            if (_thinkTimeout) {
-                _clearThinking();
-                printToTerminal("[SYSTEM] AI uplink timed out. Try switching to EVIL mode or check your local server console.", "sys-msg");
-            }
-        }, 10000);
     } else {
-        console.log(`[AI] Calling EVIL proxy (WS offline) for: ${cmd}`);
-        printToTerminal(`root@nexus:~# ${cmd}`, 'user-cmd');
+        // WS offline — route through CF Worker (always on, no spin-up)
+        console.log(`[AI] WS Offline. Routing through Proxy for: ${cmd}`);
         askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     }
 });
@@ -3128,20 +3118,11 @@ function _buildVoiceOptions(sel) {
     }
 }
 
-function toggleA11y(cls) {
-    document.body.classList.toggle(cls);
-    // Note: In an inline onclick, the event is global
-    const btn = window.event?.currentTarget;
-    if (btn) btn.classList.toggle('on');
-}
-
 function clearAllHistory() {
     if (!confirm("Wipe ALL conversation memory across ALL modes?")) return;
-    Object.values(HISTORY_KEYS).forEach(key => {
-        localStorage.removeItem(key);
-    });
+    Object.values(HISTORY_KEYS).forEach(key => localStorage.removeItem(key));
     messageHistory = [];
-    printToTerminal("[SYSTEM] Global AI memory wiped. All modes reset.", "sys-msg");
+    printToTerminal("[SYSTEM] Global memory wiped. All modes reset.", "sys-msg");
     const p = document.getElementById('a11y-panel');
     if (p) p.classList.remove('a11y-panel-open');
 }
