@@ -2551,7 +2551,7 @@ function initGoogleAuth() {
     }
     console.log("[AUTH] Initializing Google Auth...");
     google.accounts.id.initialize({
-        client_id: "1011411241124-vsknj98vlvvksnvkjnvkjnvkjnvk.apps.googleusercontent.com", 
+        client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com", 
         callback: handleCredentialResponse,
         auto_select: true,
         cancel_on_tap_outside: false
