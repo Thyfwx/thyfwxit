@@ -2604,6 +2604,12 @@ async function handleCredentialResponse(response) {
 // Expose callback globally for GSI library
 window.handleCredentialResponse = handleCredentialResponse;
 
+function logout() {
+    if (!confirm("Terminate secure uplink and sign out?")) return;
+    localStorage.removeItem('nexus_user_data');
+    location.reload(); 
+}
+
 function revealTerminal(name) {
     const overlay = document.getElementById('auth-screen');
     const monitor = document.getElementById('main-monitor');
@@ -2642,9 +2648,9 @@ function updateUserIdentity(name) {
     const pl = document.getElementById('prompt-label');
     if (pl) pl.textContent = MODES[currentMode].prompt;
     
-    // Update status bar if it said Guest
+    // Update status bar
     const titleEl = document.getElementById('status-title');
-    if (titleEl && titleEl.textContent.includes('GUEST')) {
+    if (titleEl) {
         titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
     }
 }
@@ -3761,6 +3767,7 @@ function toggleA11yPanel() {
         <div class="a11y-section-label">AI CONTEXT</div>
         <div class="a11y-row">
             <button class="a11y-toggle" style="border-color:#f55;color:#f55;" onclick="clearAllHistory()">CLEAR AI MEMORY</button>
+            <button class="a11y-toggle" style="border-color:#ff6600;color:#ff6600;" onclick="logout()">SIGN OUT</button>
         </div>
 
         <div class="a11y-section-label">VISUALS</div>
