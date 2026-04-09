@@ -3782,14 +3782,21 @@ window.onload = async () => {
 
     if (!input || !output) return;
 
-    // GSI Init
-    if (typeof google !== 'undefined') {
+    // GSI Init with Retry
+    const initGSI = () => {
+        if (typeof google === 'undefined' || !google.accounts) {
+            console.log("[AUTH] GSI not ready, retrying...");
+            setTimeout(initGSI, 1000);
+            return;
+        }
+        console.log("[AUTH] Initializing GSI...");
         google.accounts.id.initialize({
             client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com",
             callback: handleCredentialResponse
         });
         google.accounts.id.prompt();
-    }
+    };
+    initGSI();
 
     const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
     if (nexusUser && nexusUser.name) {
