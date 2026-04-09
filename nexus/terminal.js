@@ -2760,33 +2760,12 @@ input.addEventListener('keydown', (e) => {
 
     printToTerminal(`${pl} ${cmd}`, 'user-cmd');
 
-    if (currentMode === 'evil') {
-        console.log(`[AI] Calling EVIL proxy for: ${cmd}`);
-        messageHistory.push({ role: 'user', content: cmd });
-        askEvil(cmd, imgSnap);
-    } else if (imgSnap) {
-        console.log(`[AI] Calling EVIL proxy for VISION: ${cmd}`);
-        messageHistory.push({ role: 'user', content: cmd });
-        askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-    } else if (termWs && termWs.readyState === WebSocket.OPEN) {
-        console.log(`[AI] Calling LOCAL WS for: ${cmd}`);
-        showThinking(cmd);
-        
-        // Generate payload BEFORE pushing current cmd to history to avoid duplication
-        const payload = jsonPayload(cmd);
-        termWs.send(payload);
-        
-        _wsSendTime = Date.now();
-        
-        // Now push for persistence/next turn
-        messageHistory.push({ role: 'user', content: cmd });
-        if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
-        saveHistory();
-    } else {
-        // WS offline — route through CF Worker (always on, no spin-up)
-        console.log(`[AI] WS Offline. Routing through Proxy for: ${cmd}`);
-        askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-    }
+    // All modes now use the 'Perfect' Proxy logic from Evil mode for maximum reliability
+    const system = MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus;
+    const msgCls = (currentMode === 'evil' ? 'evil-msg' : 'ai-msg');
+    
+    console.log(`[AI] Dispatching ${currentMode.toUpperCase()} via High-Reliability Proxy...`);
+    askEvil(cmd, imgSnap, (currentMode === 'evil' ? null : system), msgCls);
 });
 
 // =============================================================
@@ -2835,19 +2814,13 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         const snap = pendingImageB64;
         pendingImageB64 = null;
         logPrompt(cmd, snap);
-        if (currentMode === 'evil') {
-            askEvil(cmd, snap);
-        } else if (snap) {
-            askEvil(cmd, snap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-        } else if (termWs && termWs.readyState === WebSocket.OPEN) {
-            showThinking(cmd);
-            termWs.send(jsonPayload(cmd));
-            _wsSendTime = Date.now();
-            messageHistory.push({ role: 'user', content: cmd });
-        } else {
-            // WS offline — route through CF Worker (always on)
-            askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-        }
+
+        const system = MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus;
+        const msgCls = (currentMode === 'evil' ? 'evil-msg' : 'ai-msg');
+        
+        console.log(`[AI] Dispatching ${currentMode.toUpperCase()} (via button) through Proxy...`);
+        askEvil(cmd, snap, (currentMode === 'evil' ? null : system), msgCls);
+        
         input.focus();
     });
 });
@@ -2915,7 +2888,8 @@ function _logAIResponse(responseText) {
 }
 
 function jsonPayload(cmd) {
-    const payload = { command: cmd, history: messageHistory.slice(-5), mode: currentMode, context: XAVIER_BIO };
+    const history = (messageHistory || []).slice(-10);
+    const payload = { command: cmd, history: history, mode: currentMode, context: XAVIER_BIO };
     if (pendingImageB64) {
         payload.image = pendingImageB64;
         pendingImageB64 = null; // consume — sent once
