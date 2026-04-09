@@ -2204,11 +2204,18 @@ document.getElementById('gui-close').addEventListener('click', () => {
     function onEnd() { dragging = false; header.style.cursor = 'grab'; }
 
     header.style.cursor = 'grab';
-    header.addEventListener('mousedown',  e => { e.preventDefault(); onStart(e.clientX, e.clientY); });
+    header.addEventListener('mousedown',  e => { 
+        if (e.target.id === 'gui-close') return;
+        e.preventDefault(); 
+        onStart(e.clientX, e.clientY); 
+    });
     document.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
     document.addEventListener('mouseup',   onEnd);
 
-    header.addEventListener('touchstart', e => { onStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    header.addEventListener('touchstart', e => { 
+        if (e.target.id === 'gui-close') return;
+        onStart(e.touches[0].clientX, e.touches[0].clientY); 
+    }, { passive: true });
     document.addEventListener('touchmove', e => { if (dragging) { e.preventDefault(); onMove(e.touches[0].clientX, e.touches[0].clientY); } }, { passive: false });
     document.addEventListener('touchend',  onEnd);
 })();
