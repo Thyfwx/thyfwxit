@@ -3,7 +3,7 @@
 // =============================================================
 
 // --- Config ---
-const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
+const WS_URL = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.host}/ws/terminal`;
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -306,60 +306,67 @@ function doConnect() {
     // Accumulate streaming chunks before committing to history
     let _streamBuf = '', _streamTimer = null;
 
-    function _clearThinking() {
-        clearTimeout(_thinkTimeout); // _thinkTimeout is global
-        _thinkTimeout = null;
-        _thinkFallbackCmd = null;
-        document.getElementById('ai-thinking')?.remove();
+function showThinking(cmd) {
+    if (_thinkTimeout) return;
+    const thoughts = [
+        "Nexus is thinking...",
+        "Accessing Groq Grid...",
+        "Querying neural mainframe...",
+        "Bypassing firewalls...",
+        "Decrypting response...",
+        "Consulting the void..."
+    ];
+    const msg = thoughts[Math.floor(Math.random() * thoughts.length)];
+    
+    const p = document.createElement('p');
+    p.id = 'ai-thinking';
+    p.className = 'sys-msg';
+    p.innerHTML = `<span class="nexus-spinner"></span> ${msg}`;
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+    
+    _thinkTimeout = true; // flag it
+}
+
+function _clearThinking() {
+    clearTimeout(_thinkFallbackCmd);
+    _thinkFallbackCmd = null;
+    _thinkTimeout = null;
+    document.getElementById('ai-thinking')?.remove();
+}
+
+termWs.onmessage = (event) => {
+    const text = event.data;
+    console.log(`[WS] Message received: ${text.slice(0, 50)}...`);
+
+    _clearThinking();
+
+    if (text.startsWith('[MODEL:')) {
+        const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
+        if (label) {
+            const modelEl = document.getElementById('active-model');
+            if (modelEl) modelEl.textContent = label;
+        }
+        return;
     }
 
-    termWs.onmessage = (event) => {
-        const text = event.data;
+    if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
 
-        _clearThinking(); // remove thinking indicator on ANY incoming message
+    if (/^\w+@nexus/.test(text.trim())) return;
+    if (text.includes('__ping__')) return;
 
-        // [MODEL:label] — update status display, never print to terminal
-        if (text.startsWith('[MODEL:')) {
-            const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
-            if (label) {
-                const el = document.getElementById('mode-indicator');
-                // Show model name briefly in status bar next to mode (don't overwrite mode)
-                const modelEl = document.getElementById('active-model');
-                if (modelEl) modelEl.textContent = label;
-            }
-            return;
-        }
-
-        if (text.includes('[TRIGGER:')) { handleAITriggers(text); return; }
-
-        if (text.includes('[GUI_TRIGGER:')) {
-            const match = text.match(/\[GUI_TRIGGER:([^:]+):([^\]]+)\]/);
-            if (match) showGameGUI(match[1], match[2]);
-            printTypewriter(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ''));
-            return;
-        }
-
-        // Skip prompt echoes and __ping__ acks
-        if (/\w+@nexus/.test(text.trim())) return;
-        if (text.includes('__ping__')) return;
-
-        // Accumulate for history — debounce 800ms so streaming chunks merge
-        _streamBuf += text;
-        clearTimeout(_streamTimer);
-        _streamTimer = setTimeout(() => {
-            const full = _streamBuf.trim();
-            if (full) {
-                messageHistory.push({ role: 'assistant', content: full.slice(0, 600) });
-                if (messageHistory.length > 10) messageHistory.splice(0, messageHistory.length - 10);
-                saveHistory();
-                // Log AI response to Discord so you can read full conversations
-                _logAIResponse(full);
-            }
-            _streamBuf = '';
-        }, 800);
-
-        printTypewriter(text);
-    };
+    const full = text.trim();
+    if (full) {
+        printTypewriter(full);
+        messageHistory.push({ role: 'assistant', content: full.slice(0, 1000) });
+        if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
+        saveHistory();
+    } else {
+        console.warn("[AI] Received empty response from server.");
+        // If we get an empty string, tell the user so they know the server at least replied
+        printToTerminal("[SYSTEM] AI returned an empty response. This usually means a safety block or API error.", "sys-msg");
+    }
+};
 
     // If WS drops while thinking, clear immediately and show error
     termWs.onclose = () => {
@@ -2308,6 +2315,59 @@ async function generateImageFromImage(imageB64, prompt) {
 // AI chat via CF Worker → Groq (Llama 3.3 70B / Vision)
 // systemOverride: use a different system prompt (non-evil modes with image)
 // msgClass: CSS class for the response bubble ('evil-msg' or 'ai-msg')
+async function askGroqDirect(cmd, system) {
+    if (!window.GROQ_KEY) return null;
+    try {
+        const historySlice = messageHistory.slice(-10).map(m => ({
+            role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user',
+            content: m.content
+        }));
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${window.GROQ_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'system', content: system }, ...historySlice, { role: 'user', content: cmd }],
+                stream: true
+            })
+        });
+        if (!resp.ok) return null;
+        
+        _clearThinking();
+        const p = document.createElement('p');
+        p.className = 'ai-msg';
+        output.appendChild(p);
+        let full = '';
+        
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    if (line.includes('[DONE]')) break;
+                    try {
+                        const json = JSON.parse(line.slice(6));
+                        const token = json.choices[0].delta.content || '';
+                        full += token;
+                        p.textContent = full;
+                        output.scrollTop = output.scrollHeight;
+                    } catch(e) {}
+                }
+            }
+        }
+        messageHistory.push({ role: 'assistant', content: full });
+        saveHistory();
+        return true;
+    } catch (e) { console.error("Direct Groq failed:", e); return null; }
+}
+
 async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = 'evil-msg') {
     // Only intercept image generation in EVIL mode (not when called as vision fallback)
     if (!systemOverride) {
@@ -2324,15 +2384,21 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
     messageHistory.push({ role: 'user', content: cmd });
 
     // For evil mode: don't send system prompt in browser JS — worker injects it server-side
-    // For non-evil vision: send systemOverride as first message so worker uses it directly
-    const historySlice = messageHistory.slice(-12).slice(0, -1).map(m => ({ role: m.role, content: m.content }));
+    // Strict role mapping for the proxy/worker to prevent 400 Bad Request
+    const historySlice = messageHistory.slice(-12).slice(0, -1).map(m => ({ 
+        role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user', 
+        content: m.content 
+    }));
+    
     const messages = systemOverride
         ? [{ role: 'system', content: systemOverride }, ...historySlice, { role: 'user', content: cmd }]
         : [...historySlice, { role: 'user', content: cmd }];
 
+    console.log(`[AI] Dispatching ${currentMode.toUpperCase()} request to proxy. Hist length: ${historySlice.length}`);
+
     try {
         const body = { messages };
-        if (!systemOverride) body.useEvilSystem = true; // worker injects EVIL_SYSTEM server-side
+        if (!systemOverride) body.useEvilSystem = true;
         if (imageB64) body.imageB64 = imageB64;
 
         const resp = await fetch(`${EVIL_PROXY}/evil/chat`, {
@@ -2345,7 +2411,14 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
 
         if (!resp.ok) {
             const err = await resp.text();
-            printToTerminal(`[${currentMode.toUpperCase()}] Error ${resp.status}: ${err.slice(0, 200)}`, 'sys-msg');
+            console.error(`[AI PROXY ERROR] ${resp.status}: ${err}`);
+            
+            // LAST RESORT: Try direct Groq if proxy is down
+            const success = await askGroqDirect(cmd, systemOverride || 'You are Nexus AI.');
+            if (success) return;
+
+            printToTerminal(`[${currentMode.toUpperCase()}] Proxy error ${resp.status}. Try switching mode.`, 'sys-msg');
+            _clearThinking();
             messageHistory.pop();
             return;
         }
@@ -2689,19 +2762,42 @@ input.addEventListener('keydown', (e) => {
     pendingImageB64 = null;
     logPrompt(cmd, imgSnap);
 
+    const pl = promptLabel.textContent;
+    printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+
     if (currentMode === 'evil') {
+        console.log(`[AI] Calling EVIL proxy for: ${cmd}`);
+        messageHistory.push({ role: 'user', content: cmd }); // Evil proxy expects current cmd in messages array
         askEvil(cmd, imgSnap);
     } else if (imgSnap) {
-        // Route image analysis through vision model for any mode
+        console.log(`[AI] Calling EVIL proxy for VISION: ${cmd}`);
+        messageHistory.push({ role: 'user', content: cmd });
         askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     } else if (termWs && termWs.readyState === WebSocket.OPEN) {
+        console.log(`[AI] Calling LOCAL WS for: ${cmd}`);
         showThinking(cmd);
-        termWs.send(jsonPayload(cmd));
+        
+        // Generate payload BEFORE pushing current cmd to history
+        const payload = jsonPayload(cmd);
+        termWs.send(payload);
+        
         _wsSendTime = Date.now();
+        
+        // Now push for persistence/next turn
         messageHistory.push({ role: 'user', content: cmd });
+        if (messageHistory.length > 20) messageHistory.splice(0, messageHistory.length - 20);
+        saveHistory();
+        
+        // Watchdog: If no response in 10s, clear thinking and show error
+        _thinkFallbackCmd = setTimeout(() => {
+            if (_thinkTimeout) {
+                _clearThinking();
+                printToTerminal("[SYSTEM] AI uplink timed out. Try switching to EVIL mode or check your local server console.", "sys-msg");
+            }
+        }, 10000);
     } else {
-        // WS offline — route through CF Worker (always on, no spin-up)
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        console.log(`[AI] Calling EVIL proxy (WS offline) for: ${cmd}`);
+        printToTerminal(`root@nexus:~# ${cmd}`, 'user-cmd');
         askEvil(cmd, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
     }
 });
@@ -3017,6 +3113,24 @@ function _buildVoiceOptions(sel) {
         const best = _pickBestVoice(list.length ? list : voices);
         if (best) sel.value = best.name;
     }
+}
+
+function toggleA11y(cls) {
+    document.body.classList.toggle(cls);
+    // Note: In an inline onclick, the event is global
+    const btn = window.event?.currentTarget;
+    if (btn) btn.classList.toggle('on');
+}
+
+function clearAllHistory() {
+    if (!confirm("Wipe ALL conversation memory across ALL modes?")) return;
+    Object.values(HISTORY_KEYS).forEach(key => {
+        localStorage.removeItem(key);
+    });
+    messageHistory = [];
+    printToTerminal("[SYSTEM] Global AI memory wiped. All modes reset.", "sys-msg");
+    const p = document.getElementById('a11y-panel');
+    if (p) p.classList.remove('a11y-panel-open');
 }
 
 function toggleA11yPanel() {

@@ -55,7 +55,12 @@
                 <button class="action-btn" data-cmd="clear">Clear</button>
 
                 <button class="a11y-open-btn" onclick="toggleA11yPanel()" title="Accessibility settings">
-                    <span class="a11y-badge">A</span>
+                    <span class="a11y-badge">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="5" r="1"/>
+                            <path d="m9 20 3-6 3 6M6 8l6 2 6-2M12 10v4"/>
+                        </svg>
+                    </span>
                     <span class="a11y-label">ACCESSIBILITY</span>
                 </button>
             </aside>
@@ -69,6 +74,23 @@
                     <div id="gui-content"></div>
                     <canvas id="nexus-canvas" width="400" height="400" style="display:none;"></canvas>
                 </div>
+            </div>
+
+            <div id="a11y-panel" class="a11y-panel">
+                <div class="a11y-panel-header">
+                    <span>ACCESSIBILITY</span>
+                    <button class="a11y-close" onclick="toggleA11yPanel()">✕</button>
+                </div>
+                <div class="a11y-section-label">AI Memory</div>
+                <div class="a11y-row">
+                    <button class="a11y-toggle" onclick="clearAllHistory()" style="border-color:#f55; color:#f55;">CLEAR ALL HISTORY</button>
+                </div>
+                <div class="a11y-section-label">Visuals</div>
+                <div class="a11y-row">
+                    <button class="a11y-toggle" onclick="toggleA11y('a11y-large')">Large Text</button>
+                    <button class="a11y-toggle" onclick="toggleA11y('a11y-reduce-motion')">Reduce Motion</button>
+                </div>
+                <div class="a11y-tip">Restart AI if context hangs</div>
             </div>
         </div>
     </div>
