@@ -492,7 +492,7 @@ function showHistory() {
 
 // Render a mode's history tab — exposed globally for onclick attrs
 window.renderHistoryTab = function(mode) {
-    const allModes = ['nexus', 'evil', 'coder', 'sage', 'void'];
+    const allModes = ['nexus', 'evil', 'coder', 'sage'];
 
     const tabs = allModes.map(m => {
         const count = loadHistory(m).length;
@@ -2252,7 +2252,6 @@ function stopAllGames() {
     stopMatrixSaver();
     stopFlappy();
     stopBreakout();
-    stopInvaders();
     mineActive = false;
     breachActive = false;
     typeTestActive = false;
@@ -2917,124 +2916,7 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'play wordle')         { startWordle(); return; }
     if (lc === 'play minesweeper')    { startMinesweeper(); return; }
     if (lc === 'play flappy')         { startFlappy(); return; }
-    if (lc === 'play invaders')         { startInvaders(); return; }
     if (lc === 'play breakout')       { startBreakout(); return; }
-...
-// =============================================================
-//  CYBER INVADERS
-// =============================================================
-let invadersRaf;
-let invadersActive = false;
-
-function startInvaders() {
-    stopAllGames();
-    invadersActive = true;
-    guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'CYBER INVADERS';
-    nexusCanvas.style.display = 'block';
-    nexusCanvas.width = 400; nexusCanvas.height = 360;
-    const ctx = nexusCanvas.getContext('2d');
-
-    let playerX = 180, bullets = [], enemies = [], enemyBullets = [];
-    let score = 0, wave = 1, gameOver = false;
-    let moveDir = 1, moveTimer = 0;
-
-    function initEnemies() {
-        enemies = [];
-        for (let r = 0; r < 4; r++) {
-            for (let c = 0; c < 8; c++) {
-                enemies.push({ x: 40 + c * 40, y: 50 + r * 30, alive: true, type: r });
-            }
-        }
-    }
-    initEnemies();
-
-    const movePlayer = (x) => {
-        const rect = nexusCanvas.getBoundingClientRect();
-        playerX = ((x - rect.left) / rect.width) * 400 - 20;
-        playerX = Math.max(0, Math.min(360, playerX));
-    };
-    nexusCanvas.onmousemove = (e) => movePlayer(e.clientX);
-    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); movePlayer(e.touches[0].clientX); };
-    nexusCanvas.onclick = () => {
-        if (gameOver) { startInvaders(); return; }
-        if (bullets.length < 3) {
-            bullets.push({ x: playerX + 18, y: 330 });
-            SoundManager.playBloop(500, 0.05);
-        }
-    };
-
-    function tick(ts) {
-        if (!invadersActive) return;
-        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 360);
-
-        if (!gameOver) {
-            // Player
-            ctx.fillStyle = '#0ff';
-            ctx.fillRect(playerX, 330, 40, 10);
-            ctx.fillRect(playerX + 15, 320, 10, 10);
-
-            // Bullets
-            bullets.forEach((b, i) => {
-                b.y -= 5;
-                ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 4, 10);
-                if (b.y < 0) bullets.splice(i, 1);
-            });
-
-            // Enemies
-            let edge = false;
-            enemies.forEach(e => {
-                if (!e.alive) return;
-                ctx.fillStyle = e.type % 2 === 0 ? '#f0f' : '#0f0';
-                ctx.font = '16px monospace';
-                ctx.fillText(e.type % 2 === 0 ? '{ }' : '< >', e.x, e.y);
-                
-                if (e.x > 370 || e.x < 10) edge = true;
-
-                // Collision
-                bullets.forEach((b, bi) => {
-                    if (b.x > e.x && b.x < e.x + 25 && b.y > e.y - 15 && b.y < e.y) {
-                        e.alive = false; bullets.splice(bi, 1);
-                        score += 10;
-                        SoundManager.playBloop(200, 0.05);
-                    }
-                });
-
-                if (e.y > 310) gameOver = true;
-            });
-
-            if (edge) {
-                moveDir *= -1;
-                enemies.forEach(e => e.y += 10);
-            }
-            enemies.forEach(e => e.x += moveDir * (1 + wave * 0.2));
-
-            if (enemies.every(e => !e.alive)) {
-                wave++;
-                initEnemies();
-                SoundManager.playBloop(800, 0.1);
-            }
-
-            ctx.fillStyle = '#0ff'; ctx.font = '12px monospace';
-            ctx.fillText(`SCORE: ${score}`, 10, 20);
-            ctx.fillText(`WAVE: ${wave}`, 340, 20);
-        } else {
-            ctx.fillStyle = 'rgba(255,0,0,0.2)'; ctx.fillRect(0,0,400,360);
-            ctx.fillStyle = '#f44'; ctx.font = 'bold 30px monospace';
-            ctx.textAlign = 'center'; ctx.fillText('SYSTEM BREACHED', 200, 180);
-            ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
-            ctx.fillText(`Final Score: ${score}`, 200, 210);
-            ctx.fillText('CLICK to reboot', 200, 240);
-            ctx.textAlign = 'left';
-            if (score > 0) submitScore('invaders', score);
-        }
-
-        invadersRaf = requestAnimationFrame(tick);
-    }
-    invadersRaf = requestAnimationFrame(tick);
-}
-
-function stopInvaders() { cancelAnimationFrame(invadersRaf); invadersActive = false; }
     if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
@@ -3389,6 +3271,41 @@ const SoundManager = {
 };
 
 // =============================================================
+//  SOUND DESIGN (WEB AUDIO API)
+// =============================================================
+const SoundManager = {
+    ctx: null,
+    enabled: localStorage.getItem('nexus_sound') !== '0', // Default to ON
+    init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    
+    playClick() {
+        if (!this.enabled) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(150 + Math.random() * 50, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+    },
+    
+    playBloop(freq = 400, dur = 0.1) {
+        if (!this.enabled) return;
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + dur);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + dur);
+    }
+};
+
+// =============================================================
 //  ACCESSIBILITY
 // =============================================================
 const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic', 'a11y-wide-spacing', 'a11y-bold', 'a11y-dim', 'crt-mode'];
@@ -3399,12 +3316,20 @@ function _a11ySave() {
     localStorage.setItem('nexus_sound', SoundManager.enabled ? '1' : '0');
 }
 
-function _a11yRestore() {
-    try {
-        const saved = JSON.parse(localStorage.getItem('nexus_a11y') || '[]');
-        saved.forEach(c => document.body.classList.add(c));
-        _a11ySyncButtons();
-    } catch (_) {}
+function toggleSound() {
+    SoundManager.enabled = !SoundManager.enabled;
+    if (SoundManager.enabled) SoundManager.playBloop(600, 0.05);
+    _a11ySave();
+    _a11ySyncButtons();
+}
+
+function clearAllHistory() {
+    if (!confirm("Wipe ALL conversation memory across ALL modes?")) return;
+    Object.values(HISTORY_KEYS).forEach(key => localStorage.removeItem(key));
+    messageHistory = [];
+    printToTerminal("[SYSTEM] Global memory wiped. All modes reset.", "sys-msg");
+    const p = document.getElementById('a11y-panel');
+    if (p) p.classList.remove('a11y-panel-open');
 }
 
 function _a11ySyncButtons() {
