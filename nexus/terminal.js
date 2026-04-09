@@ -2561,30 +2561,48 @@ function stopAllGames() {
 //  GOOGLE AUTHENTICATION
 // =============================================================
 function initGoogleAuth() {
-    if (typeof google === 'undefined') {
+    const wallBtn = document.getElementById('google-signin-wall');
+    if (wallBtn && !wallBtn.innerHTML) wallBtn.innerHTML = '<span style="color:#333;font-size:10px;">Establishing Auth Link...</span>';
+
+    if (typeof google === 'undefined' || !google.accounts) {
+        console.log("[AUTH] GSI Library not ready, retrying in 1s...");
         setTimeout(initGoogleAuth, 1000);
         return;
     }
-    google.accounts.id.initialize({
-        client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com", 
-        callback: handleCredentialResponse,
-        auto_select: true
-    });
-    
-    // Render on the Login Wall
-    const wallBtn = document.getElementById('google-signin-wall');
-    if (wallBtn) {
-        google.accounts.id.renderButton(wallBtn, { theme: 'filled_blue', size: 'large', text: 'signin_with', shape: 'rectangular' });
-    }
 
-    // Also keep the sidebar button for easy re-sync
-    const sideBtn = document.getElementById('google-signin-btn');
-    if (sideBtn) {
-        google.accounts.id.renderButton(sideBtn, { theme: 'outline', size: 'small', type: 'icon', shape: 'circle' });
-    }
+    console.log("[AUTH] GSI Library detected. Initializing...");
+    try {
+        google.accounts.id.initialize({
+            client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com", 
+            callback: handleCredentialResponse,
+            auto_select: true,
+            cancel_on_tap_outside: false,
+            context: 'signin'
+        });
+        
+        if (wallBtn) {
+            wallBtn.innerHTML = ''; // clear loading msg
+            google.accounts.id.renderButton(wallBtn, { 
+                theme: 'filled_blue', 
+                size: 'large', 
+                text: 'continue_with', 
+                shape: 'rectangular',
+                logo_alignment: 'left'
+            });
+        }
 
-    // Trigger One Tap
-    google.accounts.id.prompt();
+        const sideBtn = document.getElementById('google-signin-btn');
+        if (sideBtn) {
+            google.accounts.id.renderButton(sideBtn, { theme: 'outline', size: 'small', type: 'icon', shape: 'circle' });
+        }
+
+        // Trigger prompt
+        google.accounts.id.prompt((notification) => {
+            console.log("[AUTH] Prompt notification:", notification.getMomentType(), notification.getNotDisplayedReason());
+        });
+    } catch (err) {
+        console.error("[AUTH] GSI Initialization failed:", err);
+    }
 }
 
 async function handleCredentialResponse(response) {
