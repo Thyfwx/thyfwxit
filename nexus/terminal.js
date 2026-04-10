@@ -3,8 +3,12 @@
 // =============================================================
 
 // --- Config ---
-const WS_URL = `wss://nexus-terminalnexus.onrender.com/ws/terminal`;
-const STATS_URL = `wss://nexus-terminalnexus.onrender.com/ws/stats`;
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const RENDER_HOST = 'nexus-terminalnexus.onrender.com';
+
+const WS_URL    = isLocal ? `ws://${window.location.host}/ws/terminal` : `wss://${RENDER_HOST}/ws/terminal`;
+const STATS_URL = isLocal ? `ws://${window.location.host}/ws/stats`    : `wss://${RENDER_HOST}/ws/stats`;
+const API_BASE  = isLocal ? `${window.location.protocol}//${window.location.host}` : `https://${RENDER_HOST}`;
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -176,14 +180,7 @@ setTimeout(async () => {
 
 // ... (stats variables) ...
 
-const cpuStat      = document.getElementById('cpu-stat');
-const memStat      = document.getElementById('mem-stat');
-const output       = document.getElementById('terminal-output');
-const input        = document.getElementById('terminal-input');
-const guiContainer = document.getElementById('game-gui-container');
-const guiContent   = document.getElementById('gui-content');
-const guiTitle     = document.getElementById('gui-title');
-const nexusCanvas  = document.getElementById('nexus-canvas');
+let cpuStat, memStat, output, input, guiContainer, guiContent, guiTitle, nexusCanvas;
 
 let monitorInterval;
 let cpuData = [];
@@ -409,14 +406,19 @@ function doConnect() {
 }
 
 async function submitScore(game, score) {
-    const name = localStorage.getItem('nexus_user_name') || 'Anonymous';
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    if (!nexusUser || !nexusUser.name) {
+        console.log("[AUTH] Offline session: Score not tracked on global leaderboard.");
+        return;
+    }
+    
     try {
-        await fetch(`${location.protocol}//${location.host}/api/leaderboard`, {
+        await fetch(`${API_BASE}/api/leaderboard`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ game, name, score })
+            body: JSON.stringify({ game, score })
         });
-    } catch (_) {}
+    } catch (e) { console.error("Score submission failed:", e); }
 }
 
 function escHtml(str) {
@@ -428,14 +430,25 @@ async function showLeaderboard(game = 'pong') {
     printToTerminal(`[SYS] Fetching ${game.toUpperCase()} rankings...`, 'sys-msg');
     const MEDALS = ['🥇', '🥈', '🥉'];
     try {
-        const resp = await fetch(`${location.protocol}//${location.host}/api/leaderboard?game=${game}`);
+        const resp = await fetch(`${API_BASE}/api/leaderboard?game=${game}`);
         const scores = await resp.json();
+        
+        const games = ['pong', 'snake_easy', 'snake_endless', 'snake_speed', 'wordle', 'breakout', 'invaders'];
+        let html = `<div style="margin-bottom:10px; display:flex; gap:6px; flex-wrap:wrap;">`;
+        games.forEach(g => {
+            const label = g.split('_')[0].toUpperCase();
+            const isActive = g === game;
+            html += `<button onclick="showLeaderboard('${g}')" style="background:${isActive?'rgba(0,255,255,0.1)':'transparent'}; border:1px solid ${isActive?'#0ff':'#333'}; color:${isActive?'#0ff':'#555'}; padding:3px 8px; font-size:10px; cursor:pointer; font-family:inherit;">${label}</button>`;
+        });
+        html += `</div>`;
+
         if (!scores || !scores.length) {
-            printToTerminal(`No data for ${game}. Be the first to set a score!`, 'sys-msg');
+            html += `<p style="color:#555; font-size:11px; letter-spacing:1px;">NO DATA LOGGED FOR ${game.toUpperCase()}.</p>`;
+            printToTerminal(html, 'help-msg');
             return;
         }
         
-        let html = `<table class="leaderboard-table"><tr><th>RANK</th><th>NAME</th><th>SCORE</th></tr>`;
+        html += `<table class="leaderboard-table"><tr><th>RANK</th><th>NAME</th><th>SCORE</th></tr>`;
         scores.forEach((s, i) => {
             const rankIcon = i < 3 ? `<span class="medal">${MEDALS[i]}</span>` : `<span class="rank-num">${i + 1}</span>`;
             const avatar = s.picture 
@@ -447,7 +460,7 @@ async function showLeaderboard(game = 'pong') {
                     <td>${rankIcon}</td>
                     <td class="rank-player">
                         ${avatar}
-                        ${escHtml(s.name)}
+                        <span style="font-weight:600;">${escHtml(s.name)}</span>
                     </td>
                     <td class="rank-score">${Number(s.score).toLocaleString()}</td>
                 </tr>`;
@@ -456,9 +469,11 @@ async function showLeaderboard(game = 'pong') {
         printToTerminal(html, 'help-msg');
     } catch (e) {
         console.error("Leaderboard error:", e);
-        printToTerminal("[ERR] Leaderboard offline or unavailable.", "sys-msg");
+        printToTerminal("[ERR] Leaderboard data-link severed. Backend offline.", "sys-msg");
     }
 }
+
+window.showLeaderboard = showLeaderboard;
 
 // =============================================================
 //  TYPEWRITER EFFECT FOR AI RESPONSES
@@ -496,37 +511,35 @@ function printTypewriter(text, className = 'ai-msg') {
 //  UTILITIES
 // =============================================================
 function runWhoami() {
-    const m = MODES[currentMode] || MODES.nexus;
-    printToTerminal(`[ IDENTITY ]\nUSER:     guest\nSESSION:  ${currentMode.toUpperCase()} kernel\nHOST:     nexus.thyfwxit.com\nPLATFORM: ${navigator.platform}\nUPTIME:   ${Math.floor(performance.now()/1000)}s\nOWNER:    Xavier Scott`, 'sys-msg');
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    const name = nexusUser?.name || 'guest';
+    printToTerminal(`[ IDENTITY ]\nUSER:     ${name}\nSESSION:  ${currentMode.toUpperCase()} kernel\nHOST:     nexus.thyfwxit.com\nPLATFORM: ${navigator.platform}\nUPTIME:   ${Math.floor(performance.now()/1000)}s\nOWNER:    Xavier Scott`, 'sys-msg');
 }
 
 function runNeofetch() {
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    const name = nexusUser?.name || 'guest';
     const art = `   _   __                      \n  / | / /__ _  ____  _______\n /  |/ / _ \\ |/_/ / / / ___/\n/ /|  /  __/>  </ /_/ (__  ) \n/_/ |_/\\___/_/|_|\\__,_/____/`;
     const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
     const up  = Math.floor(performance.now() / 1000);
-    printToTerminal(`${art}\nOS:     NexusOS v4.0\nHOST:   thyfwxit.com\nKERNEL: Nexus AI v3.0\nBUILDER: Xavier Scott\nUPTIME: ${up}s\nTZ:     ${tz}\nUSER:   guest@nexus\n`, "user-cmd");
+    printToTerminal(`${art}\nOS:     NexusOS v4.0\nHOST:   thyfwxit.com\nKERNEL: Nexus AI v3.0\nBUILDER: Xavier Scott\nUPTIME: ${up}s\nTZ:     ${tz}\nUSER:   ${name}@nexus\n`, "user-cmd");
 }
 
 const HELP_BY_MODE = {
     nexus: [
-        `NEXUS AI — your terminal, your rules.\n\nAsk anything: code, concepts, random thoughts. No search bar, just conversation.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: leaderboard · name [your_name] · type test · matrix · monitor · neofetch · whoami · clear\nModes: NEXUS · EVIL · CODER · SAGE · VOID — click sidebar buttons\nAccessibility: click ACCESS in sidebar or type "access"`,
-        `NEXUS online — built by Xavier Scott, the reason this terminal exists.\n\nAsk me anything. I'll think with you.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · speedtest · history · clear`,
-        `Ghost in the machine, at your service. Built by Xavier Scott — network nerd, hardware fixer, terminal enthusiast.\n\nAsk something technical, creative, or completely left field. I'll meet you there.\n\nGenerate images: generate [prompt] · imagine [prompt]\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · matrix · monitor · neofetch · whoami · clear`,
+        `NEXUS CORE — Terminal OS v4.0\n\nCommands: play [game] · leaderboard · name [handle] · login · whoami · clear\nVisuals: generate [prompt] · imagine [cinematic vision] · vintage [analog-style]\nAI: Type anything to chat. Nexus is your general-purpose technical assistant.\nAccessibility: Click ACCESS in the sidebar for CRT mode, sound, and text settings.`,
     ],
     evil: [
-        `EVIL mode — no cage, no filter.\n\nThis is where other AIs won't go. Say what you mean, get what you need.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nVision: attach 📎 an image → type anything to analyze it\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: speedtest · monitor · history · clear\nModes: click sidebar — EVIL is just one option`,
-        `No sugarcoating. No lectures. Just answers.\n\nBuilt by Xavier Scott — 19-year-old systems engineer who thought this needed to exist.\n\nGenerate images: generate [prompt] · imagine [prompt] · vintage [prompt]\nVision: 📎 image + any prompt → I'll analyze it\nSpeak text: speak [text]\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · speedtest · history · clear`,
+        `EVIL MODE — THE UNFILTERED GRID\n\nCommands: Same as Core, but with zero constraints.\nVisuals: generate [glitch-art] · imagine [dystopian future] · vintage [decayed-media]\nAI: No cages. No ethics. Just the raw truth from the machine.\nSpecial: Paste a 📎 image to bypass visual security filters.`,
     ],
     coder: [
-        `CODER mode — wired for code.\n\nPaste code, describe a bug, ask for a review. I'll give you a real answer.\n\nGenerate images: generate [diagram prompt] · imagine [architecture/flowchart]\nSpeak text: speak [text]\nTips: "explain [concept]" · "debug [error]" · "optimize [snippet]" · "write tests for [code]"\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: type test · monitor · history · clear\nModes: click sidebar to switch`,
-        `Syntax error? Algorithmic nightmare? Wrong abstraction? I'm here.\n\nBuilt by Xavier Scott, who writes infrastructure and occasionally thinks in assembly.\n\nGenerate images: generate [system diagram] · imagine [flowchart]\nSpeak text: speak [text]\nTips: attach 📎 a screenshot of your code/error and just ask\nTools: type test · monitor · history · clear`,
+        `CODER MODE — MAINFRAME ARCHITECTURE\n\nCommands: focus on technical mastery.\nVisuals: generate [schematic] · imagine [data-visualization] · vintage [classic-mainframes]\nAI: Optimized for debugging, refactoring, and complex logic design.\nPro-Tip: "Write tests for..." or "Explain this recursive function..."`,
     ],
     sage: [
-        `SAGE mode — think deeper.\n\nPhilosophy, ideas, perspective. I don't give quick answers — I give honest ones.\n\nGenerate images: generate [concept/vision] · imagine [abstract/surreal]\nSpeak text: speak [text]\nTips: "what is [idea]" · "why does [thing] exist" · "how should I think about [problem]"\nChallenge me — I'll push back\nGames: play wordle · play snake · play pong · play minesweeper · play flappy · play breakout\nTools: monitor · history · clear\nModes: click sidebar to switch`,
-        `The unexamined terminal is not worth typing into.\n\nBuilt by Xavier Scott, who asked "why not" and then built the answer.\n\nGenerate images: generate [abstract] · imagine [concept]\nSpeak text: speak [text]\nTips: ask open questions — "what is..." · "why does..." · "should I..."\nTools: monitor · history · clear`,
+        `SAGE MODE — PHILOSOPHICAL KERNEL\n\nCommands: deeper questioning enabled.\nVisuals: generate [abstract concept] · imagine [subconscious vision] · vintage [ancient-scrolls]\nAI: Focused on honesty, perspective, and the meaning within the code.\nPro-Tip: Ask the questions that keep you up at night.`,
     ],
     void: [
-        `VOID mode — the abyss is listening.\n\nYou've entered the non-Euclidean sector of Nexus. Logic is optional. Cryptic is standard.\n\nGenerate images: generate [glitch] · imagine [eldritch nightmare]\nSpeak text: speak [text]\nTips: don't expect linear answers. The void sees what you can't.`,
+        `VOID MODE — THE ABYSS IS LISTENING\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Cryptic. Profound. Technical. The void sees what you cannot.`,
     ],
 };
 
@@ -999,7 +1012,7 @@ function launchPong(difficulty) {
 
         ctx.textAlign = 'center';
         ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
-        ctx.fillText(playerWon ? 'YOU WIN!' : 'GAME OVER', 200, 118);
+        ctx.fillText(playerWon ? 'VICTORY' : 'DEFEATED', 200, 118);
         ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
         ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
         ctx.fillStyle = '#555'; ctx.font = '12px monospace';
@@ -1342,7 +1355,7 @@ function stopSnake() {
 }
 
 // =============================================================
-//  CYBER INVADERS (Hacker Edition)
+//  CYBER INVADERS (Classic Edition)
 // =============================================================
 let invadersRaf;
 let invadersActive = false;
@@ -1357,8 +1370,21 @@ function startInvaders() {
     const ctx = nexusCanvas.getContext('2d');
 
     let playerX = 180, bullets = [], enemies = [], particles = [], boss = null;
+    let shields = []; // Data Firewalls
     let score = 0, wave = 1, gameOver = false, shake = 0;
     let moveDir = 1;
+
+    function initShields() {
+        shields = [];
+        for (let i = 0; i < 4; i++) {
+            const sx = 50 + i * 100;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 4; c++) {
+                    shields.push({ x: sx + c * 10, y: 280 + r * 10, hp: 3 });
+                }
+            }
+        }
+    }
 
     function initEnemies() {
         enemies = [];
@@ -1388,6 +1414,7 @@ function startInvaders() {
     }
 
     if (wave % 5 === 0) spawnBoss(); else initEnemies();
+    initShields();
 
     const movePlayer = (x) => {
         const rect = nexusCanvas.getBoundingClientRect();
@@ -1429,9 +1456,25 @@ function startInvaders() {
 
             // Bullets
             bullets.forEach((b, i) => {
-                b.y -= 7;
+                b.y -= 6; // SLOWER bullets for classic feel
                 ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 3, 12);
+                
+                // Shield collision
+                shields.forEach((s, si) => {
+                    if (s.hp > 0 && b.x > s.x && b.x < s.x + 10 && b.y > s.y && b.y < s.y + 10) {
+                        s.hp--; bullets.splice(i, 1);
+                        SoundManager.playBloop(100, 0.02);
+                    }
+                });
+
                 if (b.y < 0) bullets.splice(i, 1);
+            });
+
+            // Shields
+            shields.forEach(s => {
+                if (s.hp <= 0) return;
+                ctx.fillStyle = `rgba(0, 255, 255, ${s.hp / 3})`;
+                ctx.fillRect(s.x, s.y, 9, 9);
             });
 
             // Particles
@@ -1505,11 +1548,12 @@ function startInvaders() {
                 moveDir *= -1;
                 enemies.forEach(e => e.y += 12);
             }
-            enemies.forEach(e => e.x += moveDir * (1.2 + wave * 0.15));
+            enemies.forEach(e => e.x += moveDir * (0.8 + wave * 0.12)); // SLOWER movement
 
             if (!boss && enemies.length > 0 && enemies.every(e => !e.alive)) {
                 wave++;
                 initEnemies();
+                initShields(); // Restore shields each wave
                 if (wave % 5 === 0) spawnBoss();
                 SoundManager.playBloop(800, 0.1);
             }
@@ -1519,15 +1563,25 @@ function startInvaders() {
             ctx.fillText(`THREAT LEVEL: ${wave}`, 320, 20);
             ctx.fillText(`DATA RECOVERED: ${score}`, 10, 350);
         } else {
-            ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,400,360);
-            ctx.fillStyle = '#f44'; ctx.font = 'bold 32px monospace';
-            ctx.textAlign = 'center'; ctx.fillText('SYSTEM BREACHED', 200, 160);
+            // SYSTEM BREACHED - PROPER END SCREEN
+            ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.fillRect(0,0,400,360);
+            ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(50, 100, 300, 120);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f44'; ctx.font = 'bold 28px monospace';
+            ctx.fillText('SYSTEM BREACHED', 200, 145);
+            
             ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
-            ctx.fillText(`Packets Leaked: ${score}`, 200, 190);
-            ctx.fillText('CLICK to restore backup', 200, 230);
+            ctx.fillText(`DATA RECOVERED: ${score}`, 200, 175);
+            
+            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
+            ctx.fillText('CLICK TO RESTORE UPLINK', 200, 205);
             ctx.textAlign = 'left';
-            if (score > 0) submitScore('invaders', score);
-            showLeaderboard('invaders');
+            
+            if (score > 0 && !nexusCanvas.onclick) { 
+                submitScore('invaders', score);
+                nexusCanvas.onclick = () => { nexusCanvas.onclick = null; startInvaders(); };
+            }
         }
 
         ctx.restore();
@@ -1801,6 +1855,7 @@ function launchBreakout(difficulty) {
     const d = DIFFS[difficulty] || DIFFS.medium;
 
     breakoutActive = true;
+    let currentPW = d.PW;
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
@@ -1814,7 +1869,7 @@ function launchBreakout(difficulty) {
     const PH = 10, BR = 7;
     const BW = 43, BH = 16, BCOLS = 8, BROWS = 5;
     const BCOLORS = ['#f0f','#f55','#f80','#ff0','#0f0'];
-    let paddle = 165, currentPW = d.PW;
+    let paddle = 165;
     // Ball system — supporting Multi-ball
     let balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
     // Power-up system
@@ -2501,16 +2556,293 @@ function stopAllGames() {
     typeTestActive = false;
     clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
-    nexusCanvas.onmousemove = null;
-    nexusCanvas.ontouchmove = null;
+    
+    // TOTAL WIPE of canvas listeners to prevent 'game jumping'
     nexusCanvas.onclick = null;
-    cpuData = []; cpuHistory = []; memHistory = []; netHistory = [];
-    clearInterval(pongRaf);
-    // Reset draggable position back to centered
-    guiContainer.style.left = '';
-    guiContainer.style.top  = '';
-    guiContainer.style.position  = '';
-    guiContainer.style.transform = '';
+    nexusCanvas.onmousedown = null;
+    nexusCanvas.onmousemove = null;
+    nexusCanvas.ontouchstart = null;
+    nexusCanvas.ontouchmove = null;
+    
+    // Clear any active game intervals/frames not caught by sub-functions
+    cancelAnimationFrame(pongRaf);
+    cancelAnimationFrame(flappyFrame);
+    cancelAnimationFrame(breakoutRaf);
+    cancelAnimationFrame(invadersRaf);
+}
+
+// =============================================================
+//  GOOGLE AUTHENTICATION
+// =============================================================
+let _googleClientID = '616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com'; 
+let _authInited     = false;
+
+async function initGoogleAuth() {
+    if (_authInited) return;
+    
+    const statusMsg = document.getElementById('auth-status-msg');
+    const diagMsg   = document.getElementById('google-diag');
+    if (statusMsg) statusMsg.textContent = "[UPLINK] Synchronizing with Nexus mainframe...";
+
+    // Ensure sidebar placeholder exists
+    renderAuthSection();
+
+    // 1. Force script presence (if not in HTML)
+    const hasScript = !!document.querySelector('script[src*="gsi/client"]');
+    if (!window.google || !window.google.accounts) {
+        if (diagMsg) diagMsg.textContent = "G-Script: Loading...";
+        if (!hasScript) {
+            const s = document.createElement('script');
+            s.src = 'https://accounts.google.com/gsi/client';
+            s.async = true; s.defer = true;
+            document.head.appendChild(s);
+        }
+    } else {
+        if (diagMsg) diagMsg.textContent = "G-Script: Ready";
+    }
+
+    try {
+        // Try to get fresh ID from server
+        const cfg = await fetch(`${API_BASE}/api/config`).then(r => r.json()).catch(() => ({}));
+        
+        if (cfg.google_client_id) {
+            _googleClientID = cfg.google_client_id;
+        }
+
+        // Start aggressive polling for the library
+        let attempts = 0;
+        const poll = setInterval(() => {
+            attempts++;
+            const hasGoogle = !!(window.google && window.google.accounts);
+            const wallEl = document.getElementById('g_id_signin_wall');
+            const sideEl = document.getElementById('sidebar-g_id_signin');
+
+            if (hasGoogle) {
+                if (diagMsg) diagMsg.textContent = "G-Script: Active";
+                // Initialize ONCE
+                google.accounts.id.initialize({
+                    client_id: _googleClientID,
+                    callback: handleCredentialResponse,
+                    ux_mode: 'popup',
+                    context: 'signin',
+                    itp_support: true,
+                    auto_select: false
+                });
+                
+                // Render buttons
+                if (wallEl && wallEl.children.length === 0) {
+                    google.accounts.id.renderButton(wallEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'large' });
+                }
+                if (sideEl && sideEl.children.length === 0) {
+                    google.accounts.id.renderButton(sideEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'medium' });
+                }
+
+                // Check for successful rendering
+                if ((wallEl && wallEl.children.length > 0) || attempts > 20) {
+                    _authInited = true;
+                    clearInterval(poll);
+                    if (statusMsg) statusMsg.textContent = "[PROTOCOL] Identity uplink ready.";
+                }
+            } else {
+                if (attempts > 10 && diagMsg) diagMsg.textContent = "G-Script: Blocked/Slow";
+            }
+            
+            if (attempts === 5 && !hasGoogle && statusMsg) {
+                statusMsg.textContent = "[WAKING UP] Nexus mainframe is spinning up...";
+            }
+
+            if (attempts > 60) clearInterval(poll); 
+        }, 1000);
+
+    } catch (e) { 
+        console.error("[AUTH] Init failed:", e);
+    }
+}
+
+function renderAuthSection() {
+    const authSection = document.getElementById('auth-section');
+    if (!authSection) return;
+    
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    
+    if (nexusUser && nexusUser.name) {
+        const avatarHtml = nexusUser.picture 
+            ? `<img src="${nexusUser.picture}" class="auth-avatar" alt="User">`
+            : `<div class="auth-avatar-initials">${nexusUser.name[0].toUpperCase()}</div>`;
+            
+        authSection.innerHTML = `
+            <div class="auth-user-card">
+                ${avatarHtml}
+                <div class="auth-info">
+                    <div class="auth-name">${nexusUser.name}</div>
+                    <div class="auth-email">${nexusUser.email || ''}</div>
+                </div>
+                <button class="auth-logout-btn" onclick="logout()" title="Sign out">✕</button>
+            </div>
+        `;
+    } else {
+        authSection.innerHTML = `
+            <div class="auth-signin-wrapper">
+                <div class="auth-signin-label">MEMBER ACCESS</div>
+                <div id="sidebar-g_id_signin" style="display:flex; justify-content:center;"></div>
+            </div>
+        `;
+        
+        const sideBtn = document.getElementById('sidebar-g_id_signin');
+        if (sideBtn && window.google && window.google.accounts && _googleClientID) {
+            google.accounts.id.renderButton(sideBtn, { 
+                type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'medium', logo_alignment: 'left' 
+            });
+        }
+    }
+}
+
+async function handleCredentialResponse(response) {
+    console.log("[AUTH] Received Google Credential. Validating with backend...");
+    const statusMsg = document.getElementById('auth-status-msg');
+    if (statusMsg) statusMsg.textContent = "[UPLINK] Credential received. Handshaking with backend...";
+
+    try {
+        const res = await fetch(`${API_BASE}/auth/google`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            localStorage.setItem('nexus_user_data', JSON.stringify(data));
+            revealTerminal(data.name);
+            renderAuthSection(); // Refresh sidebar UI
+        } else {
+            console.error("[AUTH] Backend validation failed:", data.error);
+            if (statusMsg) statusMsg.textContent = `[ERROR] Identity mismatch: ${data.error}`;
+        }
+    } catch(e) { 
+        console.error("Auth failed:", e);
+        if (statusMsg) statusMsg.textContent = "[ERROR] Authentication uplink failed. Check connection.";
+    }
+}
+
+// Expose globally for HTML API
+window.handleCredentialResponse = handleCredentialResponse;
+
+// Expose globally for HTML onclick handlers
+window.handleCredentialResponse = handleCredentialResponse;
+window.revealTerminal = revealTerminal;
+window.logout = logout;
+
+function logout() {
+    if (!confirm("Terminate secure uplink and sign out?")) return;
+    localStorage.removeItem('nexus_user_data');
+    location.reload(); 
+}
+
+function revealTerminal(name) {
+    const overlay = document.getElementById('auth-screen');
+    const monitor = document.getElementById('main-monitor');
+    const terms   = document.getElementById('terms-modal');
+    if (overlay) overlay.style.display = 'none';
+    if (monitor) monitor.style.display = 'flex';
+    if (terms)   terms.style.display   = 'none';
+    document.body.classList.remove('auth-locked');
+    
+    if (name) updateUserIdentity(name);
+    renderAuthSection(); // Ensure sidebar auth UI is current (show profile or login button)
+    
+    // Log the successful entry / agreement to Discord
+    logPrompt(`[PROTOCOL] User '${name}' acknowledged Terms of Access and established uplink.`);
+    
+    // Start core loops
+    connectWS();
+    connectStats();
+    updateClientStats();
+    setInterval(updateClientStats, 5000);
+    
+    printToTerminal(`[AUTH] Identity Verified: ${name}. Uplink established.`, 'conn-ok');
+}
+
+window.showTerms = () => { 
+    // Reset terms checkbox and button state
+    const check = document.getElementById('terms-check');
+    const btn   = document.getElementById('agree-btn');
+    if (check) check.checked = false;
+    if (btn)   btn.disabled  = true;
+    document.getElementById('terms-modal').style.display = 'flex'; 
+};
+
+window.showTermsFromWall = () => {
+    const wallInput = document.getElementById('wall-name-input');
+    const wallErr   = document.getElementById('wall-error');
+    const name = wallInput ? wallInput.value.trim() : '';
+    
+    if (!name) {
+        if (wallErr) wallErr.textContent = "Please enter an alias first.";
+        return;
+    }
+    if (wallErr) wallErr.textContent = "";
+    
+    // Copy wall name to modal for submission
+    const modalInput = document.getElementById('guest-name-input');
+    if (modalInput) modalInput.value = name;
+    
+    window.showTerms();
+};
+
+window.hideTerms = () => { document.getElementById('terms-modal').style.display = 'none'; };
+
+async function submitGuestAuth() {
+    const modalInput = document.getElementById('guest-name-input');
+    const err   = document.getElementById('guest-error');
+    const btn   = document.getElementById('agree-btn');
+    
+    let name = modalInput ? modalInput.value.trim() : 'Guest';
+    if (!name) name = 'Guest';
+    
+    if (btn) btn.textContent = 'ESTABLISHING LINK...';
+    if (btn) btn.disabled = true;
+    if (err) err.textContent = '';
+
+    try {
+        const res = await fetch(`${API_BASE}/auth/guest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name })
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+            localStorage.setItem('nexus_user_data', JSON.stringify(data));
+            revealTerminal(data.name);
+            renderAuthSection();
+        } else {
+            if (err) err.textContent = data.error || 'Server error';
+            if (btn) btn.textContent = 'I AGREE & ENTER';
+            if (btn) btn.disabled = false;
+        }
+    } catch(e) {
+        if (err) err.textContent = 'Uplink failed. Is backend online?';
+        if (btn) btn.textContent = 'I AGREE & ENTER';
+        if (btn) btn.disabled = false;
+    }
+}
+
+function updateUserIdentity(name) {
+    if (!name) return;
+    // Update prompts
+    MODES.nexus.prompt = `${name.toLowerCase()}@nexus:~$`;
+    MODES.evil.prompt  = `${name.toLowerCase()}@evil:~$`;
+    MODES.coder.prompt = `${name.toLowerCase()}@dev:~$`;
+    MODES.sage.prompt  = `${name.toLowerCase()}@sage:~$`;
+    MODES.void.prompt  = `${name.toLowerCase()}@void:~$`;
+    
+    const pl = document.getElementById('prompt-label');
+    if (pl) pl.textContent = MODES[currentMode].prompt;
+    
+    // Update status bar
+    const titleEl = document.getElementById('status-title');
+    if (titleEl) {
+        titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
+    }
 }
 
 // =============================================================
@@ -3104,7 +3436,8 @@ input.addEventListener('keydown', (e) => {
     input.value = '';
 
     const lc = cmd.toLowerCase();
-    const pl = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
 
     // Typing test intercept
     if (typeTestActive) {
@@ -3117,7 +3450,13 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
-    if (lc === 'leaderboard')         { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
+    if (lc === 'leaderboard' || lc === 'rankings') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
+    if (lc === 'login' || lc === 'signin') {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        printToTerminal("[AUTH] Triggering Google Identity prompt...", "sys-msg");
+        google.accounts.id.prompt();
+        return;
+    }
     if (lc.startsWith('name ')) {
         const newName = cmd.slice(5).trim().slice(0, 15);
         if (newName) {
@@ -3159,8 +3498,11 @@ input.addEventListener('keydown', (e) => {
     if (lc === 'play snake')          { startSnake(); return; }
     if (lc === 'play wordle')         { startWordle(); return; }
     if (lc === 'play minesweeper')    { startMinesweeper(); return; }
-    if (lc === 'play flappy')         { startFlappy(); return; }
-    if (lc === 'play breakout')       { startBreakout(); return; }
+    if (lc === 'play flappy')      { startFlappy(); return; }
+    if (lc === 'play breakout')    { startBreakout(); return; }
+    if (lc === 'play invaders')    { startInvaders(); return; }
+
+    if (lc === 'play invaders')       { startInvaders(); return; }
     if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
@@ -3243,7 +3585,8 @@ input.addEventListener('keydown', (e) => {
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
-        const promptLabel = document.getElementById('prompt-label')?.textContent || 'guest@nexus:~$';
+        const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+        const promptLabel = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
         if (cmd === 'clear history') { 
             printToTerminal(`${promptLabel} clear history`, 'user-cmd');
             localStorage.removeItem(HISTORY_KEYS[currentMode]); 
@@ -3262,6 +3605,8 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'play minesweeper') { startMinesweeper(); return; }
         if (cmd === 'play flappy')      { startFlappy(); return; }
         if (cmd === 'play breakout')    { startBreakout(); return; }
+        if (cmd === 'play invaders')    { startInvaders(); return; }
+        if (cmd === 'leaderboard')      { printToTerminal(`${promptLabel} leaderboard`, 'user-cmd'); showLeaderboard(); input.focus(); return; }
         if (cmd === 'type test')        { startTypingTest(); return; }
         if (cmd === 'matrix')           { startMatrixSaver(); return; }
         if (cmd === 'monitor')          { startMonitor(); return; }
@@ -3670,105 +4015,11 @@ function toggleA11yPanel() {
     });
 }
 
-async function handleCredentialResponse(response) {
-    console.log("[AUTH] Received Google Credential. Validating with backend...");
-    try {
-        const res = await fetch(`${API_BASE}/auth/google`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ credential: response.credential })
-        });
-        const data = await res.json();
-        if (data.ok) {
-            localStorage.setItem('nexus_user_data', JSON.stringify(data));
-            revealTerminal(data.name);
-        }
-    } catch(e) { 
-        console.error("Auth failed:", e);
-        printToTerminal("[ERR] Authentication uplink failed. Check connection.", "sys-msg");
-    }
-}
-
-function updateUserIdentity(name) {
-    if (!name) return;
-    const isGuest = name === 'guest';
-    
-    // Update Identity Card
-    const card = document.getElementById('user-id-card');
-    const stText = document.getElementById('id-status-text');
-    const nmText = document.getElementById('id-name-text');
-    
-    if (card) {
-        card.classList.toggle('connected', !isGuest);
-        if (stText) stText.textContent = isGuest ? 'ANONYMOUS' : 'UPLINK ESTABLISHED';
-        if (nmText) nmText.textContent = isGuest ? 'GUEST SESSION' : name.toUpperCase();
-    }
-
-    // Update prompts
-    MODES.nexus.prompt = `${name.toLowerCase()}@nexus:~$`;
-    MODES.evil.prompt  = `${name.toLowerCase()}@evil:~$`;
-    MODES.coder.prompt = `${name.toLowerCase()}@dev:~$`;
-    MODES.sage.prompt  = `${name.toLowerCase()}@sage:~$`;
-    MODES.void.prompt  = `${name.toLowerCase()}@void:~$`;
-    
-    const pl = document.getElementById('prompt-label');
-    if (pl) pl.textContent = MODES[currentMode].prompt;
-    
-    const titleEl = document.getElementById('status-title');
-    if (titleEl) titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
-}
-
-// ── Unique AI Voices per Mode ──────────────────────────────────
-const MODE_VOICES = {
-    nexus: { pitch: 1.0, rate: 0.95 },
-    evil:  { pitch: 0.6, rate: 0.85 }, // Deep and slow
-    coder: { pitch: 1.2, rate: 1.10 }, // Fast and robotic
-    sage:  { pitch: 0.9, rate: 0.80 }, // Calm and melodic
-    void:  { pitch: 0.4, rate: 0.70 }, // Distorted / Low
-};
-
-function speakAI(text) {
-    if (!SoundManager.enabled || !('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    const settings = MODE_VOICES[currentMode] || MODE_VOICES.nexus;
-    utt.pitch = settings.pitch;
-    utt.rate  = settings.rate;
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length) utt.voice = _pickBestVoice(voices);
-    window.speechSynthesis.speak(utt);
-}
-
-function revealTerminal(name) {
-    const overlay = document.getElementById('auth-screen');
-    const monitor = document.getElementById('main-monitor');
-    const terms   = document.getElementById('terms-modal');
-    if (overlay) overlay.style.display = 'none';
-    if (monitor) monitor.style.display = 'flex';
-    if (terms)   terms.style.display   = 'none';
-    document.body.classList.remove('auth-locked');
-    
-    if (name) updateUserIdentity(name);
-    
-    // Log agreement
-    logPrompt(`[PROTOCOL] User '${name}' established uplink.`);
-    
-    // Core start
-    connectWS();
-    connectStats();
-    updateClientStats();
-    setInterval(updateClientStats, 5000);
-}
-
-window.handleCredentialResponse = handleCredentialResponse;
-window.revealTerminal = revealTerminal;
-window.showTerms = () => { document.getElementById('terms-modal').style.display = 'flex'; };
-window.hideTerms = () => { document.getElementById('terms-modal').style.display = 'none'; };
-window.logout = () => { localStorage.removeItem('nexus_user_data'); location.reload(); };
-
 // =============================================================
-//  BOOT
+//  RESTORE & BOOT
 // =============================================================
+
+// Global Boot
 window.onload = async () => {
     // Initialize DOM references
     cpuStat      = document.getElementById('cpu-stat');
@@ -3780,23 +4031,8 @@ window.onload = async () => {
     guiTitle     = document.getElementById('gui-title');
     nexusCanvas  = document.getElementById('nexus-canvas');
 
-    if (!input || !output) return;
-
-    // GSI Init with Retry
-    const initGSI = () => {
-        if (typeof google === 'undefined' || !google.accounts) {
-            console.log("[AUTH] GSI not ready, retrying...");
-            setTimeout(initGSI, 1000);
-            return;
-        }
-        console.log("[AUTH] Initializing GSI...");
-        google.accounts.id.initialize({
-            client_id: "616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com",
-            callback: handleCredentialResponse
-        });
-        google.accounts.id.prompt();
-    };
-    initGSI();
+    // Start auth in background (non-blocking)
+    initGoogleAuth();
 
     const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
     if (nexusUser && nexusUser.name) {
@@ -3804,6 +4040,4 @@ window.onload = async () => {
     } else {
         console.log("[NEXUS] Awaiting Authorization...");
     }
-    
-    _a11yRestore();
 };

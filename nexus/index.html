@@ -4,31 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Web Terminal</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="auth-locked">
     <!-- Login Wall Overlay -->
     <div id="auth-screen" class="auth-overlay">
         <div class="auth-box">
             <div class="auth-header">NEXUS // CORE ACCESS</div>
-            <p class="auth-desc">Authorization required. Synchronize your identity to establish an uplink.</p>
+            <p class="auth-desc" id="auth-status-msg">Initialising identity protocols...</p>
             
-            <!-- Google GSI HTML API -->
-            <div id="g_id_onload"
-                 data-client_id="616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com"
-                 data-context="signin"
-                 data-ux_mode="popup"
-                 data-callback="handleCredentialResponse"
-                 data-auto_select="true"
-                 data-itp_support="true">
+            <!-- Google Auth Section -->
+            <div class="auth-sub-section">
+                <div class="auth-label">GOOGLE UPLINK</div>
+                <div id="g_id_signin_wall" style="display:flex; justify-content:center; min-height:40px;">
+                    <div style="color:#444; font-size:0.6rem; letter-spacing:1px;">[ SEARCHING FOR GOOGLE IDENTITY... ]</div>
+                </div>
             </div>
-            <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-text="signin_with" data-size="large" data-logo_alignment="left"></div>
 
             <div class="auth-divider"><span>OR</span></div>
-            <button class="auth-guest-link" onclick="showTerms()">CONTINUE AS GUEST</button>
-            <div class="auth-terms">By entering, you agree to the <a href="#" onclick="showTerms()">Nexus Protocol Terms of Access</a>.</div>
-            <div class="auth-footer">Security Level: Grade A // 256-bit Encrypted</div>
+
+            <!-- Local Identity Section -->
+            <div class="auth-sub-section">
+                <div class="auth-label">LOCAL IDENTITY</div>
+                <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+                    <input type="text" id="wall-name-input" placeholder="Enter Alias (e.g. Player1)" maxlength="20" 
+                           style="background:#050510; border:1px solid #333; color:#0ff; padding:10px; font-family:inherit; width:100%; text-align:center; outline:none; font-size:0.8rem;">
+                    <button class="gui-btn" onclick="showTermsFromWall()" style="width:100%; padding:10px;">ESTABLISH LOCAL LINK</button>
+                    <div id="wall-error" style="color:#f55; font-size:0.6rem; height:10px;"></div>
+                </div>
+            </div>
+
+            <div class="auth-footer">
+                <div id="google-diag" style="color:#222; font-size:0.5rem; margin-bottom:10px;">G-Script: Pending...</div>
+                Security Level: Grade A // 256-bit Encrypted
+            </div>
         </div>
     </div>
 
@@ -41,9 +52,18 @@
                 1. LOGGING: Every command typed, your IP, and connection metadata are logged strictly for system optimization and security.<br><br>
                 2. AI: Interactions are processed via neural links. Do not share sensitive secrets with the abyss.<br><br>
                 3. GUEST: Guest sessions are local-only and not tracked on global leaderboards, but interaction logs still apply.
+                <br><br>
+                <div style="display:flex; align-items:center; gap:10px; margin-top:15px; border-top:1px solid #1a1a30; padding-top:15px;">
+                    <input type="text" id="guest-name-input" placeholder="Enter Alias (Max 20 chars)" maxlength="20" style="background:#111; border:1px solid var(--accent); color:#fff; padding:5px 8px; font-family:inherit; width:200px; outline:none;">
+                    <span id="guest-error" style="color:#f55; font-size:0.65rem;"></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; margin-top:15px;">
+                    <input type="checkbox" id="terms-check" onclick="document.getElementById('agree-btn').disabled = !this.checked">
+                    <label for="terms-check" style="font-size:0.75rem; color:#aaa; cursor:pointer;">I have read and acknowledge the Nexus Protocol.</label>
+                </div>
             </div>
             <div style="display:flex; gap:10px; justify-content:center;">
-                <button class="gui-btn" onclick="revealTerminal('guest')">I AGREE & ENTER</button>
+                <button id="agree-btn" class="gui-btn" onclick="submitGuestAuth()" disabled>I AGREE & ENTER</button>
                 <button class="gui-btn" style="border-color:#444; color:#555;" onclick="hideTerms()">CANCEL</button>
             </div>
         </div>
@@ -72,6 +92,9 @@
             </main>
 
             <aside class="quick-actions">
+                <!-- Auth section — populated by JS -->
+                <div id="auth-section"></div>
+
                 <div class="aside-header">GAMES</div>
                 <button class="action-btn" data-cmd="play wordle">Wordle</button>
                 <button class="action-btn" data-cmd="play snake">Snake</button>
@@ -79,7 +102,7 @@
                 <button class="action-btn" data-cmd="play minesweeper">Mines</button>
                 <button class="action-btn" data-cmd="play flappy">Flappy</button>
                 <button class="action-btn" data-cmd="play breakout">Breakout</button>
-                <button class="action-btn" data-cmd="play invaders">Invaders</button>
+                <button class="action-btn" onclick="startInvaders()">Invaders</button>
 
                 <div class="aside-header" style="margin-top:10px;">AI MODE</div>
                 <div class="mode-picker">
@@ -90,16 +113,8 @@
                     <button class="mode-btn" data-mode="void" title="Abyss/Cryptic Mode" style="grid-column: span 2; border-color:#f0f; color:#f0f;">VOID</button>
                 </div>
 
-
                 <div class="aside-header" style="margin-top:10px;">TOOLS</div>
-                <div id="user-id-card" class="identity-card">
-                    <div class="id-status">
-                        <span class="status-dot"></span>
-                        <span id="id-status-text">ANONYMOUS</span>
-                    </div>
-                    <div id="id-name-text" class="id-name">GUEST SESSION</div>
-                </div>
-                <button class="action-btn" data-cmd="leaderboard">Rankings</button>
+                <button class="action-btn" onclick="showRankingsOverlay()">Rankings</button>
                 <button class="action-btn" data-cmd="type test">Type Test</button>
                 <button class="action-btn" data-cmd="matrix">Matrix</button>
                 <button class="action-btn" data-cmd="monitor">Monitor</button>
@@ -129,7 +144,48 @@
             </div>
         </div>
     </div>
-    <script src="secrets.js?v=8"></script>
-    <script src="terminal.js?v=8"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SPACE INVADERS — Fullscreen Overlay
+         Lives outside .glass-panel so position:fixed works correctly
+    ════════════════════════════════════════════════════════════════ -->
+    <div id="invaders-overlay" class="fullscreen-overlay hidden">
+        <div class="overlay-header">
+            <div class="overlay-hud">
+                <span class="overlay-title">SPACE INVADERS</span>
+                <div class="inv-stats">
+                    <span><span class="inv-stat-label">SCORE</span><b id="inv-score-display">0</b></span>
+                    <span><span class="inv-stat-label">WAVE</span><b id="inv-wave-display" style="color:#ff0;">1</b></span>
+                    <span id="inv-lives-display" style="color:#f55;font-size:0.9rem;">♥♥♥</span>
+                </div>
+            </div>
+            <button class="overlay-close" onclick="closeInvadersOverlay()">✕ CLOSE</button>
+        </div>
+        <div class="inv-game-area">
+            <canvas id="invaders-canvas" style="display:none;"></canvas>
+            <p class="inv-controls-hint" style="display:none;">← → MOVE &nbsp;·&nbsp; SPACE TO FIRE &nbsp;·&nbsp; SPACE TO RETRY</p>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         RANKINGS — Fullscreen Overlay
+    ════════════════════════════════════════════════════════════════ -->
+    <div id="rankings-overlay" class="fullscreen-overlay hidden">
+        <div class="overlay-header">
+            <span class="overlay-title">RANKINGS</span>
+            <div style="display:flex;align-items:center;gap:14px;">
+                <div id="rankings-user-badge"></div>
+                <button class="overlay-close" onclick="closeRankingsOverlay()">✕ CLOSE</button>
+            </div>
+        </div>
+        <div class="rankings-body">
+            <div id="rankings-auth-cta" class="rankings-auth-cta hidden"></div>
+            <div id="rankings-tabs" class="rankings-game-tabs"></div>
+            <div id="rankings-content"></div>
+        </div>
+    </div>
+
+    <script src="secrets.js?v=9"></script>
+    <script src="terminal.js?v=9"></script>
 </body>
 </html>
