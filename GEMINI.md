@@ -17,6 +17,7 @@ A single-file portfolio website (`index.html`) featuring embedded CSS and JavaSc
   - Integrated accessibility menu.
 
 ## Development Mandates
+- **CRITICAL SECURITY WARNING:** NEVER use `git add .` or commit all files blindly without verifying what is being staged. NEVER commit `.env`, `secrets.js`, `.claude/` or any other file containing API keys, webhooks, or credentials. A previous AI agent leaked highly sensitive tokens this way. ALWAYS double-check `git status` before committing.
 - **Preserve Single-File Integrity:** Do not introduce external files or build steps unless explicitly requested. Maintain the existing embedded structure.
 - **Game Logic Safety:** 
   - Ensure piece cloning in Tetris to avoid shared-state bugs.
