@@ -1377,10 +1377,12 @@ function launchSnake(snakeMode) {
             if (el) el.textContent = score;
             if (speedRun) stepMs = Math.max(40, 70  - Math.floor(score / 3) * 8);
             else          stepMs = Math.max(50, 100 - Math.floor(score / 5) * 8);
-        } else snake.pop();
+        } else {
+            snake.pop();
+        }
 
         drawSnake();
-        snakeRaf = requestAnimationFrame(frame);
+        if (snakeActive) snakeRaf = requestAnimationFrame(frame);
     }
 
     function drawSnake() {
@@ -3593,11 +3595,30 @@ function handleCommand(cmd) {
     logPrompt(cmd, imgSnap);
 
     // AI Dispatch
-    const system = MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus;
-    const msgCls = (currentMode === 'evil' ? 'evil-msg' : 'ai-msg');
-    
-    console.log(`[AI] Dispatching ${currentMode.toUpperCase()}...`);
-    askEvil(cmd, imgSnap, (currentMode === 'evil' ? null : system), msgCls);
+    if (currentMode === 'evil') {
+        console.log(`[AI] Dispatching EVIL...`);
+        askEvil(cmd, imgSnap, null, 'evil-msg');
+    } else {
+        console.log(`[AI] Dispatching ${currentMode.toUpperCase()} via WebSocket...`);
+        showThinking(cmd);
+        if (termWs && termWs.readyState === WebSocket.OPEN) {
+            const historySlice = messageHistory.slice(-12).map(m => ({ 
+                role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user', 
+                content: m.content 
+            }));
+            const payload = {
+                cmd: cmd,
+                mode: currentMode,
+                history: historySlice,
+                context: '' // Add context if needed later
+            };
+            if (imgSnap) payload.imageB64 = imgSnap;
+            termWs.send(JSON.stringify(payload));
+        } else {
+            console.warn("[WS] Not connected. Falling back to Proxy...");
+            askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        }
+    }
 }
 
 // =============================================================
