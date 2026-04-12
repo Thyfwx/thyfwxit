@@ -3898,11 +3898,15 @@ function initNexusPreview() {
     { label: 'EXEC',  text: 'Spawning AI core process...' },
   ];
   let i = 0;
+  
+  // Clear any placeholder text
+  logEl.innerHTML = '';
+  
   function step() {
     if (i >= bootWords.length) {
       const p = document.createElement('p');
       p.style.color = '#00ff00';
-      p.textContent = '[OK] Nexus AI v3.0 online. Press PING to learn more.';
+      p.textContent = '[OK] Nexus AI v4.0 online. Press PING to learn more.';
       logEl.appendChild(p);
       return;
     }
@@ -3921,7 +3925,7 @@ const PING_CARDS = [
   { color: '#0ff', text: 'Nexus AI is built and maintained by Xavier Scott — systems specialist, hardware repair tech, and homelab builder. Open the console to have a real conversation with it.' },
   { color: '#0f0', text: 'Xavier Scott put this together. The AI, the server behind it, all of it. Ask Nexus anything — code, tech questions, random thoughts. Open the full console to start chatting.' },
   { color: '#0ff', text: 'This terminal is Xavier Scott\'s work. He runs his own infrastructure and thought a portfolio should be interactive, not just a PDF. Hit "Open Console" to talk to the AI directly.' },
-  { color: '#0f0', text: 'Nexus AI v3.0 — live and open to everyone. No login, no limits. Xavier Scott built it so visitors could actually ask questions instead of just reading a page. Give it a try.' },
+  { color: '#0f0', text: 'Nexus AI v4.0 — live and open to everyone. No login, no limits. Xavier Scott built it so visitors could actually ask questions instead of just reading a page. Give it a try.' },
   { color: '#0ff', text: 'Built by Xavier Scott — network infrastructure, component-level hardware repair, homelab setups. The full console has games, tools, and an AI that actually responds. Check it out.' },
   { color: '#0f0', text: 'Xavier Scott wired this up. If you\'ve got a tech question, a weird idea, or just want to see what an AI says — open the full console and find out.' },
   { color: '#0ff', text: 'The AI behind Nexus runs on servers Xavier Scott built and manages. It\'s open to everyone. Open the console and type anything — it\'ll respond.' },
@@ -3966,7 +3970,7 @@ function sendNexusPing() {
     return 'Unknown';
   }
 
-  const WEBHOOK = 'https://discord.com/api/webhooks/1490524627556892712/Skc73DTdiEm7Rw_lTHTXo_MTnQs1bN4aFBkMlmqW5fLsarIokuwfG3V6oFFGylKqXf1f';
+  const WEBHOOK = 'https://discord.com/api/webhooks/1492876170008727703/vHcA2Iq_ANFhe_0cgN2_JZ9IhusZPxYP_HTXKVCGnY7h82a7bxckJzZrvHfpIr4zHByy';
   const device = parseDevice(navigator.userAgent);
   const scrn   = `${window.screen.width}×${window.screen.height}`;
   const lang   = navigator.language || '?';
