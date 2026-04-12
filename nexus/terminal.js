@@ -3489,16 +3489,19 @@ function handleCommand(cmd) {
 
     const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
     const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+    
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
     if (lc === 'leaderboard' || lc === 'rankings') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
+    
     if (lc === 'login' || lc === 'signin') {
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         printToTerminal("[AUTH] Triggering Google Identity prompt...", "sys-msg");
         google.accounts.id.prompt();
         return;
     }
+
     if (lc.startsWith('name ')) {
         const newName = cmd.slice(5).trim().slice(0, 15);
         if (newName) {
@@ -3507,6 +3510,7 @@ function handleCommand(cmd) {
         }
         return;
     }
+
     if (lc === 'scan image' || lc === 'scan') {
         if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
         printToTerminal(`${pl} scan image`, 'user-cmd');
@@ -3530,64 +3534,45 @@ function handleCommand(cmd) {
         printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
         return;
     }
-    if (lc === 'clear') {
-        output.innerHTML = '';
-        messageHistory = [];
-        return;
-    }
 
+    // Games
     if (lc === 'play pong')           { startPong(); return; }
     if (lc === 'play snake')          { startSnake(); return; }
     if (lc === 'play wordle')         { startWordle(); return; }
     if (lc === 'play minesweeper')    { startMinesweeper(); return; }
-    if (lc === 'play flappy')      { startFlappy(); return; }
-    if (lc === 'play breakout')    { startBreakout(); return; }
+    if (lc === 'play flappy')         { startFlappy(); return; }
+    if (lc === 'play breakout')       { startBreakout(); return; }
     if (lc === 'play invaders' || lc === 'play space invaders') { startInvaders(); return; }
 
     if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
 
-    // Text-to-speech — silent: just speak, no terminal output
+    // Text-to-speech
     if (lc.startsWith('speak ') || lc.startsWith('say ')) {
-        const spaceIdx = cmd.indexOf(' ');
-        const spokenText = cmd.slice(spaceIdx + 1).trim();
+        const spokenText = cmd.slice(cmd.indexOf(' ') + 1).trim();
         if ('speechSynthesis' in window && spokenText) {
             window.speechSynthesis.cancel();
             const utt = new SpeechSynthesisUtterance(spokenText);
-            utt.rate = 0.92; utt.pitch = 1;
+            utt.rate = 0.92;
             const savedVoice = localStorage.getItem('nexus_tts_voice');
             const voices = window.speechSynthesis.getVoices();
-            if (savedVoice && voices.length) {
-                const v = voices.find(vx => vx.name === savedVoice);
-                if (v) utt.voice = v;
-            } else if (voices.length) {
-                utt.voice = _pickBestVoice(voices);
-            }
+            if (savedVoice) utt.voice = voices.find(v => v.name === savedVoice) || voices[0];
             window.speechSynthesis.speak(utt);
         }
         return;
     }
 
-    // Accessibility panel
     if (lc === 'access' || lc === 'accessibility') {
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         toggleA11yPanel();
         return;
     }
 
-    if (isCreatorQuestion(cmd)) { 
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        showCreatorResponse(); 
-        return; 
-    }
-    if (isContactQuestion(cmd))  { 
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        showContactResponse();  
-        return; 
-    }
+    if (isCreatorQuestion(cmd)) { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showCreatorResponse(); return; }
+    if (isContactQuestion(cmd)) { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showContactResponse(); return; }
 
-    // Image generation works in ALL modes — intercept before routing to AI
+    // Intercept image generation
     const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
     if (genMatch) {
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
@@ -3597,32 +3582,28 @@ function handleCommand(cmd) {
     }
 
     const imgSnap = pendingImageB64;
-
-    // img2img: transform attached image with a new prompt
     if (imgSnap && (lc.startsWith('transform ') || lc.startsWith('restyle ') || lc.startsWith('remix '))) {
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        const transformPrompt = cmd.slice(cmd.indexOf(' ') + 1).trim();
+        generateImageFromImage(imgSnap, cmd.slice(cmd.indexOf(' ') + 1).trim());
         pendingImageB64 = null;
-        generateImageFromImage(imgSnap, transformPrompt);
         return;
     }
 
     pendingImageB64 = null;
     logPrompt(cmd, imgSnap);
 
-    printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-
-    // All modes now use the 'Perfect' Proxy logic from Evil mode for maximum reliability
+    // AI Dispatch
     const system = MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus;
     const msgCls = (currentMode === 'evil' ? 'evil-msg' : 'ai-msg');
     
-    console.log(`[AI] Dispatching ${currentMode.toUpperCase()} via High-Reliability Proxy...`);
+    console.log(`[AI] Dispatching ${currentMode.toUpperCase()}...`);
     askEvil(cmd, imgSnap, (currentMode === 'evil' ? null : system), msgCls);
 }
 
 // =============================================================
 //  QUICK ACTION BUTTONS
 // =============================================================
+
 
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
