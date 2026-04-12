@@ -1096,14 +1096,11 @@ body.a11y-colorblind .contact-form button {
     <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--neon-color); overflow-y: auto; line-height: 1.5; scroll-behavior: smooth; background: linear-gradient(180deg, #050505 0%, #000 100%);">
       <p style="color: #555;">[BOOT] Initializing encrypted handshake...</p>
       <p style="color: #555;">[AUTH] Open session — no credentials required.</p>
-      <p style="color: #00ff00;">[OK] Connection to Nexus AI v4.0 established.</p>
+      <p style="color: #00ff00;">[OK] Connection to Nexus AI v3.0 established.</p>
     </div>
-    <div style="padding: 10px 15px; border-top: 1px solid #222; background: #080808; display: flex; gap: 10px; align-items: center;">
-       <input type="text" id="nexus-mini-input" placeholder="Type a message..." style="flex-grow: 1; background: transparent; border: none; color: var(--neon-color); font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; outline: none;">
-       <button class="jump-btn" style="padding: 5px 12px; font-size: 0.7rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="handleMiniInput()">SEND</button>
-    </div>
-    <div style="padding: 8px 15px; border-top: 1px solid #111; display: flex; gap: 10px; background: #050505; align-items: center; justify-content: flex-end;">
-       <button class="jump-btn" style="padding: 4px 12px; font-size: 0.65rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">OPEN FULL CONSOLE</button>
+    <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center; justify-content: flex-end;">
+       <button class="jump-btn" style="padding: 8px 18px; font-size: 0.75rem; white-space: nowrap; border-color: #00ff00; color: #00ff00;" onclick="sendNexusPing()">PING</button>
+       <button class="jump-btn" style="padding: 8px 18px; font-size: 0.75rem; white-space: nowrap;" onclick="window.location.href='/nexus/'">OPEN CONSOLE</button>
     </div>
 
   </div>
@@ -3918,76 +3915,38 @@ function initNexusPreview() {
   step();
 }
 
-function handleMiniInput() {
-  const inputEl = document.getElementById('nexus-mini-input');
+const PING_CARDS = [
+  { color: '#0ff', text: 'Nexus AI is built and maintained by Xavier Scott — systems specialist, hardware repair tech, and homelab builder. Open the console to have a real conversation with it.' },
+  { color: '#0f0', text: 'Xavier Scott put this together. The AI, the server behind it, all of it. Ask Nexus anything — code, tech questions, random thoughts. Open the full console to start chatting.' },
+  { color: '#0ff', text: 'This terminal is Xavier Scott\'s work. He runs his own infrastructure and thought a portfolio should be interactive, not just a PDF. Hit "Open Console" to talk to the AI directly.' },
+  { color: '#0f0', text: 'Nexus AI v3.0 — live and open to everyone. No login, no limits. Xavier Scott built it so visitors could actually ask questions instead of just reading a page. Give it a try.' },
+  { color: '#0ff', text: 'Built by Xavier Scott — network infrastructure, component-level hardware repair, homelab setups. The full console has games, tools, and an AI that actually responds. Check it out.' },
+  { color: '#0f0', text: 'Xavier Scott wired this up. If you\'ve got a tech question, a weird idea, or just want to see what an AI says — open the full console and find out.' },
+  { color: '#0ff', text: 'The AI behind Nexus runs on servers Xavier Scott built and manages. It\'s open to everyone. Open the console and type anything — it\'ll respond.' },
+  { color: '#0f0', text: 'Xavier Scott made this site, the AI terminal, and everything in it. The full Nexus console has games, a speed test, system monitor, and a live AI chat. Explore it.' },
+];
+
+let _pingIdx = Math.floor(Math.random() * PING_CARDS.length);
+
+function sendNexusPing() {
   const logEl = document.getElementById('nexus-preview-log');
-  const cmd = inputEl.value.trim();
-  if (!cmd) return;
 
-  // Print user message
-  const u = document.createElement('p');
-  u.style.margin = '8px 0';
-  u.innerHTML = `<span style="color:#555;">guest@nexus:~$</span> ${cmd}`;
-  logEl.appendChild(u);
-  inputEl.value = '';
+  const card = PING_CARDS[_pingIdx % PING_CARDS.length];
+  _pingIdx++;
+
+  const p = document.createElement('p');
+  p.style.cssText = `color:${card.color}; margin:8px 0 4px; line-height:1.5;`;
+  p.textContent = card.text;
+  logEl.appendChild(p);
+
+  const nudge = document.createElement('p');
+  nudge.style.cssText = 'font-size:0.72rem; color:#555; margin:2px 0 10px; border-top:1px solid #1a1a1a; padding-top:6px;';
+  nudge.innerHTML = '↗ <span style="color:var(--neon-color);cursor:pointer;text-decoration:underline;" onclick="window.location.href=\'/nexus/\'">Open full console</span> to chat with Nexus AI.';
+  logEl.appendChild(nudge);
+
   logEl.scrollTop = logEl.scrollHeight;
-
-  // Print thinking indicator
-  const t = document.createElement('p');
-  t.style.color = '#555';
-  t.id = 'mini-thinking';
-  t.textContent = '[...] Nexus is processing';
-  logEl.appendChild(t);
-
-  fetch('https://nexus-evil-proxy.xavierscott300.workers.dev/evil/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      messages: [{ role: 'user', content: cmd }],
-      useEvilSystem: true
-    })
-  })
-  .then(res => {
-    document.getElementById('mini-thinking')?.remove();
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    const aiMsg = document.createElement('p');
-    aiMsg.style.cssText = 'color:#ffaa55; line-height:1.5; margin:8px 0; border-left:2px solid #ff6600; padding-left:8px;';
-    logEl.appendChild(aiMsg);
-
-    function read() {
-      reader.read().then(({ done, value }) => {
-        if (done) return;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        lines.forEach(line => {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              const content = data.choices[0].delta.content;
-              if (content) aiMsg.textContent += content;
-              logEl.scrollTop = logEl.scrollHeight;
-            } catch(e) {}
-          }
-        });
-        read();
-      });
-    }
-    read();
-  })
-  .catch(() => {
-    document.getElementById('mini-thinking')?.remove();
-    const e = document.createElement('p');
-    e.style.color = '#f55';
-    e.textContent = '[ERROR] Connection to AI Core failed.';
-    logEl.appendChild(e);
-  });
+  while (logEl.childNodes.length > 30) logEl.removeChild(logEl.firstChild);
 }
-
-// Allow Enter key
-document.getElementById('nexus-mini-input')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') handleMiniInput();
-});
 
 
 // --- Passive Visitor Logger ---
