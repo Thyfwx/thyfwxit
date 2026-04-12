@@ -62,10 +62,9 @@ window.onerror = function(msg, url, line, col, error) {
 };
 
 // --- Config ---
-const isLocal = window.location.hostname === 'localhost' || 
-                window.location.hostname === '127.0.0.1' || 
-                window.location.hostname.startsWith('192.168.') || 
-                window.location.hostname.endsWith('.local');
+const isLocal = (window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1' || 
+                 window.location.hostname.startsWith('192.168.'));
 
 // Only load secrets locally to avoid MIME errors on production
 if (isLocal && !window.GROQ_KEY) {
@@ -1657,6 +1656,8 @@ function startInvaders() {
         ctx.restore();
         invadersRaf = requestAnimationFrame(tick);
     }
+    // Start the loop
+    invadersRaf = requestAnimationFrame(tick);
 }
 
 function stopInvaders() { cancelAnimationFrame(invadersRaf); invadersActive = false; }
