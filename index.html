@@ -3815,8 +3815,8 @@ function updateTetris(currentTime) {
   }
 
   tetrisDropCounter++;
-  let limit = tetrisSlow ? 200 : 60 - (tetrisSpeedMod * 4);
-  if (!tetrisSlow && limit < 5) limit = 5;
+  let limit = tetrisSlow ? 200 : 60 - (tetrisSpeedMod * 2.5); // Adjusted multiplier
+  if (!tetrisSlow && limit < 2) limit = 2; // Capped for playability
   if (tetrisDropCounter > limit && !tetrisLock) tDrop();
 
   function tHud(lx,ly,lw,lh,label,val,c) {
