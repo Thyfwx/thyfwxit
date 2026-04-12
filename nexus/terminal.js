@@ -62,12 +62,13 @@ window.onerror = function(msg, url, line, col, error) {
 };
 
 // --- Config ---
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const isLocal = (window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1');
 
 // Only load secrets locally to avoid MIME errors on production
 if (isLocal && !window.GROQ_KEY) {
     const s = document.createElement('script');
-    s.src = "./secrets.js"; // Force relative path
+    s.src = "./secrets.js"; 
     document.head.appendChild(s);
 }
 
