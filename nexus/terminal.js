@@ -389,7 +389,7 @@ function doConnect() {
 
         // Welcome message only on the very first successful connection after boot
         if (_firstOpen) {
-            _firstOpen = false;
+            _firstOpen = false; console.log('[NEXUS] First boot established.');
             printToTerminal('[OK] Nexus AI v3.0 — uplink established.', 'conn-ok');
             setTimeout(() => printTypewriter(`Nexus online. Ask me anything — or type help to see what's here.`, 'ready-msg'), 500);
         }
@@ -444,7 +444,7 @@ function doConnect() {
         if (text.includes('__ping__') || text.includes('__pong__') || /\w+@nexus/.test(text.trim())) return;
 
         // 5. Display AI Text
-        printTypewriter(text);
+        if (typeof _lastMsg !== 'undefined' && _lastMsg === text) { console.log('[NEXUS] Echo blocked'); return; } window._lastMsg = text; printTypewriter(text);
 
         // Accumulate for history
         _streamBuf += text;
@@ -2001,13 +2001,14 @@ function stopMatrixSaver() {
 //  STOP ALL GAMES HELPER
 // =============================================================
 function stopAllGames() {
-    // Kill all animation frames instantly
-    window.cancelAnimationFrame(pongRaf);
-    window.cancelAnimationFrame(flappyFrame);
-    window.cancelAnimationFrame(breakoutFrame);
-    window.cancelAnimationFrame(invadersRaf);
-    window.cancelAnimationFrame(snakeRaf);
-    window.cancelAnimationFrame(matrixSaverFrame);
+    // Kill all animation frames safely
+    if (window.pongRaf) window.cancelAnimationFrame(window.pongRaf);
+    if (window.flappyFrame) window.cancelAnimationFrame(window.flappyFrame);
+    if (window.breakoutFrame) window.cancelAnimationFrame(window.breakoutFrame);
+    if (window.breakoutRaf) window.cancelAnimationFrame(window.breakoutRaf);
+    if (window.invadersRaf) window.cancelAnimationFrame(window.invadersRaf);
+    if (window.snakeRaf) window.cancelAnimationFrame(window.snakeRaf);
+    if (window.matrixSaverFrame) window.cancelAnimationFrame(window.matrixSaverFrame);
     
     // Nuke canvas to kill all event listeners
     if (typeof nexusCanvas !== 'undefined' && nexusCanvas) {
