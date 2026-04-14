@@ -1049,3 +1049,4 @@ body.mode-void .terminal-output p {
     .rankings-table { font-size: 0.7rem; }
     .rankings-table td, .rankings-table thead th { padding: 8px 8px; }
 }
+\n.aside { will-change: transform; backface-visibility: hidden; -webkit-overflow-scrolling: touch; }\n
