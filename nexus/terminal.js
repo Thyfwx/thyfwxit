@@ -1224,7 +1224,7 @@ function launchSnake(mode) {
         if (e.key === 'ArrowLeft' && dx === 0)  { dx = -gridSize; dy = 0; }
         if (e.key === 'ArrowRight' && dx === 0) { dx = gridSize; dy = 0; }
     };
-    document.addEventListener('keydown', _snakeKey);
+    document.removeEventListener('keydown', _snakeKey); document.addEventListener('keydown', _snakeKey);
 
     let tsX = 0, tsY = 0;
     _snakeTS = (e) => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; };
@@ -1302,8 +1302,17 @@ function launchSnake(mode) {
         
         if (stealthTimer > 0) stealthTimer--;
 
-        // Draw Grid Background
-        ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, 400, 300);
+        // Draw Lush Emerald Tiles (Mobile Game Style)
+        const tileSize = 20;
+        for(let x=0; x<400; x+=tileSize) {
+            for(let y=0; y<300; y+=tileSize) {
+                ctx.fillStyle = ((x+y)/tileSize) % 2 === 0 ? '#0a1a0a' : '#081408';
+                ctx.fillRect(x, y, tileSize, tileSize);
+            }
+        }
+        // Glowing Border
+        ctx.strokeStyle = '#0f0'; ctx.lineWidth = 2; ctx.strokeRect(0,0,400,300);
+        ctx.shadowBlur = 15; ctx.shadowColor = '#0f0'; ctx.strokeRect(0,0,400,300); ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(0, 255, 255, 0.03)';
         ctx.lineWidth = 0.5;
         for(let x=0; x<400; x+=20) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,300); ctx.stroke(); }
@@ -1424,8 +1433,8 @@ function launchInvaders(difficulty) {
     _invadersKeys = {};
     _invadersKeyDown = (e) => {
         _invadersKeys[e.key] = true;
+        if (e.key === ' ' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') e.preventDefault();
         if (e.key === ' ') {
-            e.preventDefault();
             if (gameOver) { launchInvaders(difficulty); return; }
             if (!playerBullet && shootCooldown <= 0) {
                 playerBullet = { x: px + PLAYER_W / 2, y: 275, vy: -d.bulletSpeed - 3 };
@@ -1435,7 +1444,24 @@ function launchInvaders(difficulty) {
         }
     };
     _invadersKeyUp = (e) => { delete _invadersKeys[e.key]; };
-    document.addEventListener('keydown', _invadersKeyDown); document.addEventListener('keyup', _invadersKeyUp);
+    const moveInvaderPlayer = (cx) => {
+        const rect = nexusCanvas.getBoundingClientRect();
+        px = ((cx - rect.left) / rect.width) * 400 - PLAYER_W / 2;
+        px = Math.max(0, Math.min(400 - PLAYER_W, px));
+    };
+    nexusCanvas.onmousemove = (e) => moveInvaderPlayer(e.clientX);
+    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); moveInvaderPlayer(e.touches[0].clientX); };
+    nexusCanvas.onclick = () => {
+        if (gameOver) { launchInvaders(difficulty); return; }
+        if (!playerBullet && shootCooldown <= 0) {
+            playerBullet = { x: px + PLAYER_W / 2, y: 275, vy: -d.bulletSpeed - 3 };
+            shootCooldown = 250;
+            SoundManager.playBloop(660, 0.05);
+        }
+    };
+    
+    window.removeEventListener('keydown', _invadersKeyDown); window.addEventListener('keydown', _invadersKeyDown); 
+    window.removeEventListener('keyup', _invadersKeyUp); window.addEventListener('keyup', _invadersKeyUp);
 
     function frame(ts) {
         if (!invadersActive) return;
@@ -1519,7 +1545,14 @@ function launchInvaders(difficulty) {
         ctx.fillRect(0, 0, 400, 300);
         
         ctx.shadowBlur = 10; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff'; 
-        ctx.fillRect(px, 275, PLAYER_W, PLAYER_H + 5); ctx.fillRect(px + 10, 269, 10, 6);
+        // Draw Futuristic Tank
+        ctx.fillStyle = '#0ff';
+        ctx.shadowBlur = 15; ctx.shadowColor = '#0ff';
+        ctx.fillRect(px, 280, PLAYER_W, 10); // Base
+        ctx.fillRect(px + 10, 274, 10, 6);   // Turret
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(px + 14, 270, 2, 4);    // Barrel
+        ctx.shadowBlur = 0;
         ctx.shadowBlur = 0;
 
         enemies.forEach((row, r) => { row.forEach((e, c) => {
@@ -1631,7 +1664,7 @@ function startFlappy() {
     }
 
     _flappyKey = (e) => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
-    document.addEventListener('keydown', _flappyKey);
+    document.removeEventListener('keydown', _flappyKey); document.addEventListener('keydown', _flappyKey);
     nexusCanvas.addEventListener('click', flap);
     nexusCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); flap(); }, { passive: false });
 
@@ -1812,7 +1845,7 @@ function launchBreakout(difficulty) {
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
             <span style="color:#f0f;font-size:0.65rem;letter-spacing:1px;">LEVEL <span id="brk-level">1</span></span>
-            <span id="brk-lives" style="color:#0ff;">♥♥♥</span>
+            <div style="width:100px;height:8px;background:#222;border:1px solid #444;border-radius:4px;overflow:hidden;margin-top:4px;"><div id="brk-health" style="width:100%;height:100%;background:linear-gradient(to right, #f0f, #0ff); box-shadow: 0 0 10px #0ff;;transition:width 0.3s;"></div></div>
         </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
@@ -1918,8 +1951,8 @@ function launchBreakout(difficulty) {
             if (balls.length === 0) {
                 lives--;
                 SoundManager.playBloop(150, 0.1);
-                const livesEl = document.getElementById('brk-lives');
-                if (livesEl) livesEl.textContent = '♥'.repeat(Math.max(0, lives));
+                const healthBar = document.getElementById('brk-health');
+                if (healthBar) healthBar.style.width = (lives / 3 * 100) + '%';
                 if (lives <= 0) { 
                     dead = true; 
                     submitScore('breakout', score);
@@ -2111,7 +2144,7 @@ function launchWordle(category) {
             SoundManager.playBloop(400, 0.05);
         }
     };
-    document.addEventListener('keydown', _wordleKey);
+    document.removeEventListener('keydown', _wordleKey); document.addEventListener('keydown', _wordleKey);
 }
 
 function stopWordle() {
@@ -2421,19 +2454,36 @@ function stopMatrixSaver() {
 //  STOP ALL GAMES HELPER
 // =============================================================
 function stopAllGames() {
-    // Kill all loops
+    // Kill all animation frames instantly
     window.cancelAnimationFrame(pongRaf);
     window.cancelAnimationFrame(flappyFrame);
     window.cancelAnimationFrame(breakoutFrame);
     window.cancelAnimationFrame(invadersRaf);
     window.cancelAnimationFrame(snakeRaf);
     window.cancelAnimationFrame(matrixSaverFrame);
+    
+    // Nuke canvas to kill all event listeners
     if (typeof nexusCanvas !== 'undefined' && nexusCanvas) {
-        const newCanvas = nexusCanvas.cloneNode(true);
-        nexusCanvas.parentNode.replaceChild(newCanvas, nexusCanvas);
-        nexusCanvas = newCanvas; // Update global reference
+        const cleanCanvas = nexusCanvas.cloneNode(true);
+        nexusCanvas.parentNode.replaceChild(cleanCanvas, nexusCanvas);
+        nexusCanvas = cleanCanvas;
     }
-    stopPong();
+    
+    // Explicitly call sub-stops
+    if (typeof stopPong === 'function') stopPong();
+    if (typeof stopSnake === 'function') stopSnake();
+    if (typeof stopWordle === 'function') stopWordle();
+    if (typeof stopFlappy === 'function') stopFlappy();
+    if (typeof stopBreakout === 'function') stopBreakout();
+    if (typeof stopInvaders === 'function') stopInvaders();
+    
+    // Global state resets
+    invadersActive = false;
+    breakoutActive = false;
+    flappyActive = false;
+    snakeActive = false;
+    wordleActive = false;
+    mineActive = false;
     stopSnake();
     stopWordle();
     stopMatrixSaver();
