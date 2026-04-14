@@ -164,7 +164,7 @@ document.addEventListener('mousedown', (e) => {
 });
 
 // Per-mode chat history — each AI has its own separate memory
-const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage', void: 'nh_edu' };
+const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage', void: 'nh_educational' };
 
 function saveHistory() {
     const key = HISTORY_KEYS[currentMode];
@@ -610,7 +610,7 @@ const HELP_BY_MODE = {
         `SAGE MODE — PHILOSOPHICAL KERNEL\n\nCommands: deeper questioning enabled.\nVisuals: generate [abstract concept] · imagine [subconscious vision] · vintage [ancient-scrolls]\nAI: Focused on honesty, perspective, and the meaning within the code.\nPro-Tip: Ask the questions that keep you up at night.`,
     ],
     void: [
-        `EDUCATION MODE — ACADEMIC KERNEL\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Cryptic. Profound. Technical. Knowledge is the ultimate encryption key..`,
+        `EDUCATION MODE — ACADEMIC KERNEL\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Scholarly. Encouraging. Professional. Knowledge is the ultimate encryption key..`,
     ],
 };
 
@@ -2769,7 +2769,7 @@ const MODES = {
     void: {
         prompt:  'void@nexus:~$',
         color:   '#ff00ff',
-        title:   'NEXUS EDU',
+        title:   'NEXUS EDUCATIONAL',
         label:   'VOID',
         msg:     '[EDU] Academic kernel loaded. How can I help with your studies?. Logic is an illusion. Speak your truth.',
         msgCls:  'sys-msg',

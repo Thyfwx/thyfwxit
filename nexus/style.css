@@ -843,23 +843,16 @@ body.mode-evil .terminal-output p:nth-child(even) {
     100% { transform: translate(0); }
 }
 
-/* --- AI Overload: VOID (Abyss Drift) --- */
+/* --- Educational Mode (Clean & Sharp) --- */
 body.mode-void .monitor {
-    animation: void-pulse 10s infinite ease-in-out;
+    border-color: #f0f;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.1);
 }
-
 body.mode-void .terminal-output p {
-    animation: void-drift 8s infinite ease-in-out;
-    filter: blur(0.3px);
+    animation: none !important;
+    filter: none !important;
+    color: #fff !important;
 }
-
-@keyframes void-pulse {
-    0%, 100% { filter: brightness(1) contrast(1); }
-    50%       { filter: brightness(0.8) contrast(1.2); }
-}
-
-@keyframes void-drift {
-    0%, 100% { transform: translateX(0); opacity: 1; }
     50%       { transform: translateX(3px); opacity: 0.8; }
 }
 
