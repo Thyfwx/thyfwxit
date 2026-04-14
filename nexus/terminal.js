@@ -40,7 +40,7 @@ window.onerror = function(msg, url, line, col, error) {
             btn.textContent = 'TRANSMITTING...';
             try {
                 // Try to send to Discord webhook via CF proxy if possible, or direct
-                const hook = window.DISCORD_WEBHOOK || 'https://discord.com/api/webhooks/1492487091676778616/xWyHZrrksytkRUgHI7iMNE3K8vIPcR7H3toCOj-hsW06ntvTjDg8cfYVv5c8jUMLTJsQ';
+                const hook = API_BASE + '/api/telemetry'; // Proxied to backend
                 const res = await fetch(hook, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -64,23 +64,15 @@ window.onerror = function(msg, url, line, col, error) {
 // --- Config ---
 const isLocal = (function() {
     const h = window.location.hostname;
-    return h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.');
+    return h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h === '';
 })();
 
-// Only load secrets locally to avoid MIME errors on production
-if (isLocal && !window.GROQ_KEY) {
-    console.log("[NEXUS] Local environment detected. Loading secrets...");
-    const s = document.createElement('script');
-    s.src = "secrets.js"; 
-    document.head.appendChild(s);
-}
-
 const RENDER_HOST = 'nexus-terminalnexus.onrender.com';
-
 const proto     = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const WS_URL    = isLocal ? `${proto}//${window.location.host}/ws/terminal` : `wss://${RENDER_HOST}/ws/terminal`;
-const STATS_URL = isLocal ? `${proto}//${window.location.host}/ws/stats`    : `wss://${RENDER_HOST}/ws/stats`;
-const API_BASE  = isLocal ? `${window.location.protocol}//${window.location.host}` : `https://${RENDER_HOST}`;
+
+const WS_URL    = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${window.location.host}/ws/terminal`) : `wss://${RENDER_HOST}/ws/terminal`;
+const STATS_URL = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${window.location.host}/ws/stats`) : `wss://${RENDER_HOST}/ws/stats`;
+const API_BASE  = isLocal ? (window.location.hostname === '' ? 'http://127.0.0.1:8000' : `${window.location.protocol}//${window.location.host}`) : `https://${RENDER_HOST}`;
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -859,7 +851,7 @@ function startMonitor() {
 
         // ── Draw sparklines ──────────────────────────────────────
         const W = 400, H = 165;
-        ctx.fillStyle = '#050510';
+        ctx.fillStyle = '#0a0a15';
         ctx.fillRect(0, 0, W, H);
 
         const sections = [
@@ -992,9 +984,8 @@ function startBreach() {
 function startPong() {
     stopAllGames();
     guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'NEXUS PONG';
+    guiTitle.textContent = 'NEXUS PONG // CAMPAIGN';
 
-    // Difficulty menu
     guiContent.innerHTML = `
         <div style="text-align:center;padding:10px 0;">
             <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
@@ -1002,9 +993,8 @@ function startPong() {
                 <button class="gui-btn pong-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
                 <button class="gui-btn pong-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
                 <button class="gui-btn pong-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
-                <button class="gui-btn pong-diff" data-diff="insane" style="border-color:#f00;color:#f00;">INSANE</button>
             </div>
-            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
+            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Defeat the AI to advance to higher levels!</p>
         </div>`;
     nexusCanvas.style.display = 'none';
 
@@ -1018,30 +1008,33 @@ function launchPong(difficulty) {
         easy:   { aiSpeed: 2,   interval: 20, imprecision: 80, ballSpeed: 4   },
         medium: { aiSpeed: 3.5, interval: 14, imprecision: 45, ballSpeed: 5   },
         hard:   { aiSpeed: 5,   interval:  8, imprecision: 20, ballSpeed: 6.5 },
-        insane: { aiSpeed: 7.5, interval:  4, imprecision:  4, ballSpeed: 8   },
     };
-    const d = DIFF[difficulty] || DIFF.medium;
-    const WIN_SCORE = 7;
+    let d = { ...DIFF[difficulty] || DIFF.medium };
+    const WIN_SCORE = 5;
 
-    guiContent.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 6px;font-size:0.75rem;">
-            <span style="color:#0ff;">YOU</span>
-            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()} · First to ${WIN_SCORE}</span>
-            <span style="color:#88f;">CPU</span>
-        </div>`;
+    let level = 1;
+    let PADDLE_H = 75, PADDLE_W = 10;
+    
+    function updateUI() {
+        guiContent.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 6px;font-size:0.75rem;">
+                <span style="color:#0ff;">YOU</span>
+                <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">LEVEL ${level} · First to ${WIN_SCORE}</span>
+                <span style="color:#88f;">CPU</span>
+            </div>`;
+    }
+    updateUI();
+
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
-    // Starfield background — generated once
     const stars = Array.from({length: 60}, () => ({
-        x: Math.random()*400, y: Math.random()*300,
-        r: Math.random()*1.2 + 0.3, a: Math.random()*0.5 + 0.1
+        x: Math.random()*400, y: Math.random()*300, r: Math.random()*1.2 + 0.3, a: Math.random()*0.5 + 0.1
     }));
 
     const FPS = 60, STEP = 1000 / FPS;
     let last = 0;
-    const PADDLE_H = 75, PADDLE_W = 10;
     let paddleY = 112, ballX = 200, ballY = 150;
     let ballVX = d.ballSpeed, ballVY = 3;
     let aiY = 112, pScore = 0, aScore = 0;
@@ -1063,39 +1056,39 @@ function launchPong(difficulty) {
     }
 
     function drawEnd(playerWon) {
-        // Stop loop first
+        if (playerWon) {
+            // Level up!
+            level++;
+            pScore = 0; aScore = 0;
+            PADDLE_H = Math.max(30, PADDLE_H - 10);
+            d.ballSpeed += 1;
+            d.aiSpeed += 1;
+            d.imprecision = Math.max(0, d.imprecision - 10);
+            updateUI();
+            resetBall(-1);
+            SoundManager.playBloop(800, 0.2);
+            return;
+        }
+        
         const r = pongRaf; pongRaf = null; cancelAnimationFrame(r);
         gameEnded = true;
 
-        // Sound: Win/Loss
-        if (playerWon) SoundManager.playBloop(800, 0.2);
-        else           SoundManager.playBloop(150, 0.2);
+        SoundManager.playBloop(150, 0.2);
+        submitScore('pong', level * 100);
 
-        // Submit to global leaderboard
-        submitScore('pong', pScore);
-
-        // Draw final frame background
         ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
         stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
 
-        // Full-screen overlay
-        ctx.fillStyle = playerWon ? 'rgba(0,20,0,0.88)' : 'rgba(20,0,0,0.88)';
-        ctx.fillRect(0, 0, 400, 300);
-
-        // Border
-        const borderCol = playerWon ? '#0f0' : '#f44';
-        ctx.strokeStyle = borderCol; ctx.lineWidth = 2;
-        ctx.strokeRect(20, 70, 360, 160);
+        ctx.fillStyle = 'rgba(20,0,0,0.88)'; ctx.fillRect(0, 0, 400, 300);
+        ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(20, 70, 360, 160);
 
         ctx.textAlign = 'center';
-        ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
-        ctx.fillText(playerWon ? 'VICTORY' : 'DEFEATED', 200, 118);
+        ctx.fillStyle = '#f44'; ctx.font = 'bold 30px monospace';
+        ctx.fillText('DEFEATED', 200, 118);
         ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
-        ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
-        ctx.fillStyle = '#555'; ctx.font = '12px monospace';
-        ctx.fillText(playerWon ? 'You beat the CPU.' : 'The CPU won this one.', 200, 174);
+        ctx.fillText(`REACHED LEVEL ${level}`, 200, 150);
         ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
-        ctx.fillText('CLICK to rematch', 200, 204);
+        ctx.fillText('CLICK to retry', 200, 204);
         ctx.textAlign = 'left';
 
         nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchPong(difficulty); };
@@ -1107,7 +1100,6 @@ function launchPong(difficulty) {
         if (delta < STEP - 2) { pongRaf = requestAnimationFrame(tick); return; }
         last = ts;
 
-        // AI movement
         aiTick++;
         if (aiTick % d.interval === 0) aiTargetY = ballY - PADDLE_H / 2 + (Math.random() - 0.5) * d.imprecision;
         if (aiY < aiTargetY) aiY = Math.min(aiY + d.aiSpeed, aiTargetY);
@@ -1136,22 +1128,18 @@ function launchPong(difficulty) {
         if (ballX < 0)   { aScore++; if (aScore >= WIN_SCORE) { drawEnd(false); return; } resetBall(1); }
         if (ballX > 400) { pScore++; if (pScore >= WIN_SCORE) { drawEnd(true);  return; } resetBall(-1); }
 
-        // Draw — starfield background
         ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
         stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
 
-        // Center line
         ctx.setLineDash([8, 8]);
         ctx.strokeStyle = 'rgba(0,255,255,0.12)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(200, 0); ctx.lineTo(200, 300); ctx.stroke();
         ctx.setLineDash([]);
 
-        // Score
         ctx.fillStyle = 'rgba(0,255,255,0.55)'; ctx.font = 'bold 26px monospace'; ctx.textAlign = 'center';
         ctx.fillText(pScore, 90, 34); ctx.fillText(aScore, 310, 34);
         ctx.textAlign = 'left';
 
-        // Progress pips (dots showing how close each player is to winning)
         for (let i = 0; i < WIN_SCORE; i++) {
             ctx.fillStyle = i < pScore ? '#0ff' : 'rgba(0,255,255,0.12)';
             ctx.beginPath(); ctx.arc(22 + i * 18, 46, 4, 0, Math.PI*2); ctx.fill();
@@ -1198,9 +1186,10 @@ function startSnake() {
                 <button class="gui-btn snake-mode" data-mode="stealth" style="border-color:#888;color:#888;">STEALTH</button>
             </div>
             <div style="color:#333;font-size:0.65rem;margin-top:16px;line-height:1.8;">
-                SPEED RUN — starts fast, gets faster<br>
-                ENDLESS — walls wrap around<br>
-                STEALTH — no grid, pure instinct
+                <span style="color:#0ff">CLASSIC:</span> Walls kill. Standard.<br>
+                <span style="color:#ff0">SPEED:</span> Gets faster every apple.<br>
+                <span style="color:#0f0">ENDLESS:</span> Screen wrap enabled.<br>
+                <span style="color:#888">STEALTH:</span> Snake body fades out!
             </div>
         </div>`;
 
@@ -1209,220 +1198,137 @@ function startSnake() {
     });
 }
 
-function launchSnake(snakeMode) {
-    const stealth  = snakeMode === 'stealth';
-    const endless  = snakeMode === 'endless';
-    const speedRun = snakeMode === 'speed';
-    const hiKey    = `snake_hi_${snakeMode}`;
-    let   snakeHi  = parseInt(localStorage.getItem(hiKey) || '0');
-
-    guiContent.innerHTML = `
-        <div style="display:flex;justify-content:space-between;padding:0 10px;font-size:0.75rem;color:#0ff;margin-bottom:4px;">
-            <span>Arrows · WASD · Swipe</span>
-            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${snakeMode.toUpperCase()}</span>
-            <span>Score: <b id="snake-score">0</b> &nbsp;<span style="color:#333">HI:${snakeHi}</span></span>
-        </div>`;
-    nexusCanvas.style.display = 'block';
-    nexusCanvas.width = 400; nexusCanvas.height = 360;
-    const ctx = nexusCanvas.getContext('2d');
-    const CELL = 20, COLS = 20, ROWS = 18;
+function launchSnake(mode) {
+    stopAllGames();
     snakeActive = true;
+    guiContent.innerHTML = `<div style="display:flex;justify-content:space-between;padding:0 20px 6px;font-size:0.75rem;"><span style="color:#0ff;">Score: <b id="snake-score">0</b></span><span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${mode.toUpperCase()}</span></div>`;
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 300;
+    const ctx = nexusCanvas.getContext('2d');
 
-    // Pre-draw background once into an offscreen canvas for perf
-    const bgCanvas = document.createElement('canvas');
-    bgCanvas.width = 400; bgCanvas.height = 360;
-    const bgCtx = bgCanvas.getContext('2d');
-    (function buildBg() {
-        // Dark base
-        bgCtx.fillStyle = '#050510';
-        bgCtx.fillRect(0, 0, 400, 360);
-        
-        if (stealth) return; // Stay dark for stealth mode
-
-        // Cool Circuit Grid
-        bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.04)';
-        bgCtx.lineWidth = 1;
-        for (let x = 0; x <= COLS; x++) {
-            bgCtx.beginPath(); bgCtx.moveTo(x * CELL, 0); bgCtx.lineTo(x * CELL, ROWS * CELL); bgCtx.stroke();
-        }
-        for (let y = 0; y <= ROWS; y++) {
-            bgCtx.beginPath(); bgCtx.moveTo(0, y * CELL); bgCtx.lineTo(COLS * CELL, y * CELL); bgCtx.stroke();
-        }
-        
-        // Circuit traces
-        bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.08)';
-        bgCtx.lineWidth = 1.5;
-        const traces = [[0,3,4,3,4,8,7,8],[COLS,12,COLS-3,12,COLS-3,7,COLS-6,7],[5,0,5,4,10,4],[8,ROWS,8,ROWS-3,14,ROWS-3,14,ROWS-6]];
-        traces.forEach(pts => {
-            bgCtx.beginPath();
-            bgCtx.moveTo(pts[0]*CELL, pts[1]*CELL);
-            for (let i=2;i<pts.length;i+=2) bgCtx.lineTo(pts[i]*CELL, pts[i+1]*CELL);
-            bgCtx.stroke();
-        });
-
-        // Glowing nodes
-        bgCtx.shadowBlur = 6; bgCtx.shadowColor = '#0ff';
-        bgCtx.fillStyle = 'rgba(0, 255, 255, 0.3)';
-        [[4,3],[4,8],[7,8],[COLS-3,12],[COLS-3,7],[5,4],[10,4],[8,ROWS-3],[14,ROWS-3],[14,ROWS-6]].forEach(([cx,cy]) => {
-            bgCtx.beginPath(); bgCtx.arc(cx*CELL, cy*CELL, 2.5, 0, Math.PI*2); bgCtx.fill();
-        });
-        bgCtx.shadowBlur = 0;
-
-        if (endless) {
-            bgCtx.fillStyle = 'rgba(0, 255, 255, 0.02)';
-            bgCtx.fillRect(0,0,3,ROWS*CELL); bgCtx.fillRect(COLS*CELL-3,0,3,ROWS*CELL);
-            bgCtx.fillRect(0,0,COLS*CELL,3); bgCtx.fillRect(0,ROWS*CELL-3,COLS*CELL,3);
-        }
-    })();
-
-    let snake = [{ x: 10, y: 9 }, { x: 9, y: 9 }, { x: 8, y: 9 }];
-    let dir = { x: 1, y: 0 }, nextDir = { x: 1, y: 0 };
-    let apple = spawnApple();
-    let score = 0, dead = false;
-    let stepMs = speedRun ? 70 : 100, lastStep = 0;
-
-    function spawnApple() {
-        let a;
-        do { a = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) }; }
-        while (snake.some(s => s.x === a.x && s.y === a.y));
-        return a;
-    }
+    const gridSize = 10;
+    let snake = [{ x: 200, y: 150 }];
+    let apple = { x: 300, y: 150 };
+    let dx = gridSize, dy = 0;
+    let score = 0, frames = 0, maxFrames = mode === 'speed' ? 10 : 8;
+    let dead = false;
+    
+    // Stealth mode logic
+    let stealthTimer = 0;
 
     _snakeKey = (e) => {
-        if (dead) {
-            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); launchSnake(snakeMode); }
-            return;
-        }
-        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
-        // Guard against 180° reverse using nextDir (not dir) so rapid keypresses don't teleport into self
-        if ((e.key === 'ArrowUp'    || e.key === 'w') && nextDir.y !== 1)  nextDir = { x: 0, y: -1 };
-        if ((e.key === 'ArrowDown'  || e.key === 's') && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
-        if ((e.key === 'ArrowLeft'  || e.key === 'a') && nextDir.x !== 1)  nextDir = { x: -1, y: 0 };
-        if ((e.key === 'ArrowRight' || e.key === 'd') && nextDir.x !== -1) nextDir = { x: 1, y: 0 };
+        if (!snakeActive) return;
+        if (dead && e.key === ' ') { launchSnake(mode); return; }
+        if (e.key === 'ArrowUp' && dy === 0)    { dx = 0; dy = -gridSize; }
+        if (e.key === 'ArrowDown' && dy === 0)  { dx = 0; dy = gridSize; }
+        if (e.key === 'ArrowLeft' && dx === 0)  { dx = -gridSize; dy = 0; }
+        if (e.key === 'ArrowRight' && dx === 0) { dx = gridSize; dy = 0; }
     };
     document.addEventListener('keydown', _snakeKey);
 
-    let swipeX = 0, swipeY = 0;
-    _snakeTS = (e) => { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; };
+    let tsX = 0, tsY = 0;
+    _snakeTS = (e) => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; };
     _snakeTE = (e) => {
-        if (dead) { launchSnake(snakeMode); return; }
-        const dx = e.changedTouches[0].clientX - swipeX;
-        const dy = e.changedTouches[0].clientY - swipeY;
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 25) {
-            if (dx > 0 && nextDir.x !== -1) nextDir = { x: 1, y: 0 };
-            else if (dx < 0 && nextDir.x !== 1) nextDir = { x: -1, y: 0 };
-        } else if (Math.abs(dy) > 25) {
-            if (dy > 0 && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
-            else if (dy < 0 && nextDir.y !== 1) nextDir = { x: 0, y: -1 };
+        if (dead) { launchSnake(mode); return; }
+        if (!tsX || !tsY) return;
+        const x = e.changedTouches[0].clientX, y = e.changedTouches[0].clientY;
+        const diffX = x - tsX, diffY = y - tsY;
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            if (diffX > 0 && dx === 0) { dx = gridSize; dy = 0; } else if (diffX < 0 && dx === 0) { dx = -gridSize; dy = 0; }
+        } else {
+            if (diffY > 0 && dy === 0) { dx = 0; dy = gridSize; } else if (diffY < 0 && dy === 0) { dx = 0; dy = -gridSize; }
         }
+        tsX = 0; tsY = 0;
     };
-    nexusCanvas.addEventListener('touchstart', _snakeTS, { passive: true });
-    nexusCanvas.addEventListener('touchend',   _snakeTE, { passive: true });
+    nexusCanvas.addEventListener('touchstart', _snakeTS);
+    nexusCanvas.addEventListener('touchend', _snakeTE);
 
-    function gameOver() {
-        dead = true;
-        // STOP the loop immediately — this prevents drawSnake() from wiping the death screen
-        snakeActive = false;
-        cancelAnimationFrame(snakeRaf);
-        if (score > snakeHi) { snakeHi = score; localStorage.setItem(hiKey, snakeHi); }
-
-        SoundManager.playBloop(150, 0.2);
-        submitScore(`snake_${snakeMode}`, score);
-
-        drawSnake(); // draw final game state first
-
-        // Death overlay
-        ctx.fillStyle = 'rgba(0,0,0,0.82)';
-        ctx.fillRect(0, 0, 400, 360);
-
-        // Glitch border
-        ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
-        ctx.strokeRect(16, 90, 368, 180);
-        ctx.strokeStyle = 'rgba(0,255,255,0.4)'; ctx.lineWidth = 1;
-        ctx.strokeRect(14, 88, 372, 184);
-
-        ctx.textAlign = 'center';
-        // Title
-        ctx.fillStyle = '#f0f'; ctx.font = 'bold 32px monospace';
-        ctx.fillText('YOU DIED', 200, 138);
-        // Mode badge
-        ctx.fillStyle = '#333'; ctx.font = '11px monospace';
-        ctx.fillText(`— ${snakeMode.toUpperCase()} MODE —`, 200, 158);
-        // Score
-        ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace';
-        ctx.fillText(`Score: ${score}`, 200, 190);
-        // High score
-        const isNew = score === snakeHi && score > 0;
-        ctx.fillStyle = isNew ? '#ff0' : '#555';
-        ctx.font = '13px monospace';
-        ctx.fillText(isNew ? `★ NEW BEST: ${snakeHi} ★` : `Best: ${snakeHi}`, 200, 212);
-        // Restart prompt
-        ctx.fillStyle = '#0ff'; ctx.font = '12px monospace';
-        ctx.fillText('CLICK · ENTER · SWIPE  to restart', 200, 244);
-        ctx.textAlign = 'left';
-
-        nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchSnake(snakeMode); };
+    function spawnApple() {
+        apple.x = Math.floor(Math.random() * (400 / gridSize)) * gridSize;
+        apple.y = Math.floor(Math.random() * (300 / gridSize)) * gridSize;
+        // Prevent spawn on snake
+        if (snake.some(s => s.x === apple.x && s.y === apple.y)) spawnApple();
     }
 
-    function frame(ts) {
+    function frame() {
         if (!snakeActive) return;
-        // Register next frame AFTER dead check so death screen is never overwritten
-        if (ts - lastStep < stepMs) { drawSnake(); snakeRaf = requestAnimationFrame(frame); return; }
-        lastStep = ts;
-
-        dir = nextDir;
-        let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-
-        if (endless) {
-            head.x = (head.x + COLS) % COLS;
-            head.y = (head.y + ROWS) % ROWS;
-            // Skip self-check on tail tip (it's about to vacate unless we just ate)
-            const body = snake.slice(0, snake.length - 1);
-            if (body.some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
-        } else {
-            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
-                snake.slice(0, snake.length - 1).some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
+        if (dead) {
+            ctx.fillStyle = 'rgba(255,0,0,0.5)'; ctx.fillRect(0,0,400,300);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('CRITICAL ERROR', 200, 150);
+            ctx.font = '14px monospace'; ctx.fillText('TAP or SPACE to retry', 200, 190);
+            ctx.textAlign = 'left';
+            return;
         }
 
-        const ate = head.x === apple.x && head.y === apple.y;
+        snakeRaf = requestAnimationFrame(frame);
+        if (++frames < maxFrames) return;
+        frames = 0;
+
+        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+        // Game mode boundary rules
+        if (mode === 'endless') {
+            if (head.x < 0) head.x = 400 - gridSize;
+            else if (head.x >= 400) head.x = 0;
+            if (head.y < 0) head.y = 300 - gridSize;
+            else if (head.y >= 300) head.y = 0;
+        } else {
+            if (head.x < 0 || head.x >= 400 || head.y < 0 || head.y >= 300) dead = true;
+        }
+
+        // Body collision
+        if (snake.some(segment => segment.x === head.x && segment.y === head.y)) dead = true;
+
+        if (dead) { 
+            submitScore(`snake_${mode}`, score); 
+            showLeaderboard(`snake_${mode}`);
+            SoundManager.playBloop(150, 0.2); 
+            return; 
+        }
+
         snake.unshift(head);
-        if (ate) {
-            score++; apple = spawnApple();
+
+        if (head.x === apple.x && head.y === apple.y) {
+            score++;
+            const sEl = document.getElementById('snake-score'); if (sEl) sEl.textContent = score;
+            spawnApple();
             SoundManager.playBloop(600, 0.05);
-            const el = document.getElementById('snake-score');
-            if (el) el.textContent = score;
-            if (speedRun) stepMs = Math.max(40, 70  - Math.floor(score / 3) * 8);
-            else          stepMs = Math.max(50, 100 - Math.floor(score / 5) * 8);
+            if (mode === 'speed') maxFrames = Math.max(3, maxFrames - 0.2);
+            if (mode === 'stealth') stealthTimer = 30; // 30 frames of stealth
         } else {
             snake.pop();
         }
+        
+        if (stealthTimer > 0) stealthTimer--;
 
-        drawSnake();
-        if (snakeActive) snakeRaf = requestAnimationFrame(frame);
-    }
-
-    function drawSnake() {
-        ctx.drawImage(bgCanvas, 0, 0); // blit pre-drawn background
-
-        // Apple glow
-        ctx.shadowBlur = 10; ctx.shadowColor = '#f0f'; ctx.fillStyle = '#f0f';
-        ctx.fillRect(apple.x*CELL+3, apple.y*CELL+3, CELL-6, CELL-6);
-
-        // Body segments — no per-segment shadow (perf)
-        ctx.shadowBlur = 0;
-        snake.forEach((seg, i) => {
-            ctx.fillStyle = i === 0 ? '#fff' : `hsl(${140 + i * 3},100%,55%)`;
-            ctx.fillRect(seg.x*CELL+1, seg.y*CELL+1, CELL-2, CELL-2);
-        });
-        // Head glow only
-        if (snake.length > 0) {
-            ctx.shadowBlur = 14; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#fff';
-            ctx.fillRect(snake[0].x*CELL+1, snake[0].y*CELL+1, CELL-2, CELL-2);
-            ctx.shadowBlur = 0;
+        // Draw Grid Background
+        ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, 400, 300);
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.03)';
+        ctx.lineWidth = 0.5;
+        for(let x=0; x<400; x+=20) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,300); ctx.stroke(); }
+        for(let y=0; y<300; y+=20) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(400,y); ctx.stroke(); }
+        
+        // Mode-specific flourishes
+        if (mode === 'speed') {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.02)';
+            ctx.fillRect(0, 0, 400, 300);
+        } else if (mode === 'stealth') {
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.02)';
+            ctx.fillRect(0, 0, 400, 300);
         }
-    }
+        ctx.fillStyle = mode === 'speed' ? '#ff0' : mode === 'endless' ? '#0f0' : mode === 'stealth' ? '#888' : '#0ff';
+        
+        snake.forEach((segment, i) => {
+            if (mode === 'stealth' && stealthTimer > 0 && i !== 0) return; // Hide body in stealth
+            ctx.fillRect(segment.x, segment.y, gridSize - 1, gridSize - 1);
+        });
 
-    snakeRaf = requestAnimationFrame(frame);
+        ctx.fillStyle = '#f0f'; ctx.shadowBlur = 10; ctx.shadowColor = '#f0f';
+        ctx.fillRect(apple.x, apple.y, gridSize - 1, gridSize - 1);
+        ctx.shadowBlur = 0;
+    }
+    frame();
 }
 
 function stopSnake() {
@@ -1434,242 +1340,226 @@ function stopSnake() {
 }
 
 // =============================================================
-//  CYBER INVADERS (Classic Edition)
+//  SPACE INVADERS
 // =============================================================
 let invadersActive = false;
+let _invadersKeys = {}, _invadersKeyDown = null, _invadersKeyUp = null;
 
 function startInvaders() {
     stopAllGames();
     invadersActive = true;
     guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'CYBER INVADERS // MAINFRAME DEFENSE';
-    nexusCanvas.style.display = 'block';
-    nexusCanvas.width = 400; nexusCanvas.height = 360;
-    const ctx = nexusCanvas.getContext('2d');
+    guiTitle.textContent = 'SPACE INVADERS // NEXUS EDITION';
+    nexusCanvas.style.display = 'none';
 
-    let playerX = 180, bullets = [], enemies = [], particles = [], boss = null;
-    let shields = []; // Data Firewalls
-    let score = 0, wave = 1, gameOver = false, shake = 0;
-    let moveDir = 1;
+    guiContent.innerHTML = `
+        <div style="text-align:center;padding:10px 0;">
+            <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button class="gui-btn inv-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
+                <button class="gui-btn inv-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
+                <button class="gui-btn inv-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
+            </div>
+            <p style="color:#555;font-size:0.68rem;margin-top:14px;">← → to move &nbsp;·&nbsp; Space to fire</p>
+        </div>`;
 
-    function initShields() {
-        shields = [];
-        for (let i = 0; i < 4; i++) {
-            const sx = 50 + i * 100;
-            for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 4; c++) {
-                    shields.push({ x: sx + c * 10, y: 280 + r * 10, hp: 3 });
-                }
-            }
-        }
-    }
-
-    function initEnemies() {
-        enemies = [];
-        const rows = Math.min(6, 3 + Math.floor(wave / 2));
-        for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < 8; c++) {
-                enemies.push({ x: 40 + c * 40, y: 60 + r * 30, alive: true, type: r, hp: 1 });
-            }
-        }
-    }
-
-    function spawnBoss() {
-        boss = { x: 150, y: -50, targetY: 60, hp: 50 + (wave * 10), maxHp: 50 + (wave * 10), moveDir: 1 };
-        SoundManager.playBloop(100, 0.3);
-    }
-
-    function createExplosion(x, y, color) {
-        for (let i = 0; i < 8; i++) {
-            particles.push({
-                x, y, 
-                vx: (Math.random() - 0.5) * 6, 
-                vy: (Math.random() - 0.5) * 6, 
-                life: 1.0, 
-                color
-            });
-        }
-    }
-
-    if (wave % 5 === 0) spawnBoss(); else initEnemies();
-    initShields();
-
-    const movePlayer = (x) => {
-        const rect = nexusCanvas.getBoundingClientRect();
-        playerX = ((x - rect.left) / rect.width) * 400 - 20;
-        playerX = Math.max(0, Math.min(360, playerX));
-    };
-    nexusCanvas.onmousemove = (e) => movePlayer(e.clientX);
-    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); movePlayer(e.touches[0].clientX); };
-    nexusCanvas.onclick = () => {
-        if (gameOver) { startInvaders(); return; }
-        if (bullets.length < 4) {
-            bullets.push({ x: playerX + 18, y: 330 });
-            SoundManager.playBloop(600, 0.03);
-        }
-    };
-
-    function tick(ts) {
-        if (!invadersActive) return;
-        
-        ctx.save();
-        if (shake > 0) {
-            ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
-            shake *= 0.9;
-        }
-
-        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 360);
-        
-        // Scanlines background
-        ctx.fillStyle = 'rgba(0, 255, 255, 0.03)';
-        for (let i = 0; i < 360; i += 4) ctx.fillRect(0, i, 400, 1);
-
-        if (!gameOver) {
-            // Player
-            ctx.fillStyle = '#0ff';
-            ctx.shadowBlur = 10; ctx.shadowColor = '#0ff';
-            ctx.fillRect(playerX, 330, 40, 10);
-            ctx.fillRect(playerX + 15, 320, 10, 10);
-            ctx.shadowBlur = 0;
-
-            // Bullets
-            bullets.forEach((b, i) => {
-                b.y -= 6; // SLOWER bullets for classic feel
-                ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 3, 12);
-                
-                // Shield collision
-                shields.forEach((s, si) => {
-                    if (s.hp > 0 && b.x > s.x && b.x < s.x + 10 && b.y > s.y && b.y < s.y + 10) {
-                        s.hp--; bullets.splice(i, 1);
-                        SoundManager.playBloop(100, 0.02);
-                    }
-                });
-
-                if (b.y < 0) bullets.splice(i, 1);
-            });
-
-            // Shields
-            shields.forEach(s => {
-                if (s.hp <= 0) return;
-                ctx.fillStyle = `rgba(0, 255, 255, ${s.hp / 3})`;
-                ctx.fillRect(s.x, s.y, 9, 9);
-            });
-
-            // Particles
-            particles.forEach((p, i) => {
-                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
-                ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
-                ctx.fillRect(p.x, p.y, 3, 3);
-                if (p.life <= 0) particles.splice(i, 1);
-            });
-            ctx.globalAlpha = 1.0;
-
-            // Boss Logic
-            if (boss) {
-                if (boss.y < boss.targetY) boss.y += 1;
-                boss.x += boss.moveDir * 2;
-                if (boss.x > 300 || boss.x < 20) boss.moveDir *= -1;
-
-                // Boss health bar
-                ctx.fillStyle = '#333'; ctx.fillRect(100, 10, 200, 6);
-                ctx.fillStyle = '#f0f'; ctx.fillRect(100, 10, (boss.hp / boss.maxHp) * 200, 6);
-                
-                // Draw Boss
-                ctx.fillStyle = '#f0f'; ctx.font = 'bold 24px monospace';
-                ctx.fillText('[ FIREWALL ]', boss.x, boss.y);
-
-                // Bullet collision with Boss
-                bullets.forEach((b, bi) => {
-                    if (b.x > boss.x && b.x < boss.x + 120 && b.y > boss.y - 20 && b.y < boss.y) {
-                        boss.hp--; bullets.splice(bi, 1);
-                        createExplosion(b.x, b.y, '#f0f');
-                        shake = 4;
-                        SoundManager.playBloop(150, 0.02);
-                    }
-                });
-
-                if (boss.hp <= 0) {
-                    score += 500;
-                    createExplosion(boss.x + 60, boss.y, '#fff');
-                    boss = null;
-                    wave++;
-                    SoundManager.playBloop(800, 0.2);
-                    if (wave % 5 !== 0) initEnemies(); else spawnBoss();
-                }
-            }
-
-            // Regular Enemies
-            let edge = false;
-            enemies.forEach(e => {
-                if (!e.alive) return;
-                ctx.fillStyle = e.type % 2 === 0 ? '#f0f' : '#0f0';
-                ctx.font = 'bold 16px monospace';
-                const sprite = e.type % 2 === 0 ? '⚇' : '⚉';
-                ctx.fillText(sprite, e.x, e.y);
-                
-                if (e.x > 370 || e.x < 10) edge = true;
-
-                // Collision
-                bullets.forEach((b, bi) => {
-                    if (b.x > e.x - 5 && b.x < e.x + 20 && b.y > e.y - 15 && b.y < e.y) {
-                        e.alive = false; bullets.splice(bi, 1);
-                        score += 10 * wave;
-                        createExplosion(e.x, e.y, ctx.fillStyle);
-                        SoundManager.playBloop(200, 0.03);
-                    }
-                });
-
-                if (e.y > 315) gameOver = true;
-            });
-
-            if (edge) {
-                moveDir *= -1;
-                enemies.forEach(e => e.y += 12);
-            }
-            enemies.forEach(e => e.x += moveDir * (0.8 + wave * 0.12)); // SLOWER movement
-
-            if (!boss && enemies.length > 0 && enemies.every(e => !e.alive)) {
-                wave++;
-                initEnemies();
-                initShields(); // Restore shields each wave
-                if (wave % 5 === 0) spawnBoss();
-                SoundManager.playBloop(800, 0.1);
-            }
-
-            ctx.fillStyle = '#0ff'; ctx.font = '10px monospace';
-            ctx.fillText(`MAINFRAME SECURITY: ${Math.max(0, 100 - wave)}%`, 10, 20);
-            ctx.fillText(`THREAT LEVEL: ${wave}`, 320, 20);
-            ctx.fillText(`DATA RECOVERED: ${score}`, 10, 350);
-        } else {
-            // SYSTEM BREACHED - PROPER END SCREEN
-            ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.fillRect(0,0,400,360);
-            ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(50, 100, 300, 120);
-            
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#f44'; ctx.font = 'bold 28px monospace';
-            ctx.fillText('SYSTEM BREACHED', 200, 145);
-            
-            ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
-            ctx.fillText(`DATA RECOVERED: ${score}`, 200, 175);
-            
-            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
-            ctx.fillText('CLICK TO RESTORE UPLINK', 200, 205);
-            ctx.textAlign = 'left';
-            
-            if (score > 0 && !nexusCanvas.onclick) { 
-                submitScore('invaders', score);
-                nexusCanvas.onclick = () => { nexusCanvas.onclick = null; startInvaders(); };
-            }
-        }
-
-        ctx.restore();
-        invadersRaf = requestAnimationFrame(tick);
-    }
-    // Start the loop
-    invadersRaf = requestAnimationFrame(tick);
+    guiContent.querySelectorAll('.inv-diff').forEach(btn => {
+        btn.addEventListener('click', () => launchInvaders(btn.dataset.diff));
+    });
 }
 
-function stopInvaders() { cancelAnimationFrame(invadersRaf); invadersActive = false; }
+function launchInvaders(difficulty) {
+    const DIFFS = {
+        easy:   { speed: 0.8,  fireRate: 0.003, bulletSpeed: 3.5, playerSpeed: 8 },
+        medium: { speed: 1.2,  fireRate: 0.007, bulletSpeed: 5,   playerSpeed: 9 },
+        hard:   { speed: 1.8,  fireRate: 0.012, bulletSpeed: 7,   playerSpeed: 11 },
+    };
+    const d = DIFFS[difficulty] || DIFFS.medium;
+
+    stopAllGames();
+    invadersActive = true;
+    guiContent.innerHTML = `
+        <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
+            <span style="color:#0ff;">Score: <b id="inv-score">0</b></span>
+            <span style="color:#f0f;font-size:0.65rem;letter-spacing:1px;">WAVE <span id="inv-wave">1</span></span>
+            <span id="inv-lives" style="color:#0ff;">♥♥♥</span>
+        </div>`;
+    
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 300;
+    const ctx = nexusCanvas.getContext('2d');
+
+    const COLS = 8, ROWS = 4;
+    const EW = 24, EH = 16, HGAP = 15, VGAP = 12;
+    const GRID_W = COLS * (EW + HGAP) - HGAP;
+    const PLAYER_W = 30, PLAYER_H = 14;
+
+    let score = 0, lives = 3, wave = 1, gameOver = false;
+    let lastTs = 0, stepTimer = 0, stepInterval = 750;
+    let px = 185, playerBullet = null, shootCooldown = 0;
+    let eBullets = [], enemies = [], boss = null;
+    let gridX = 0, gridY = 40, gridDX = d.speed, invScoreSubmitted = false;
+
+    function buildEnemies() {
+        enemies = [];
+        gridX = (400 - GRID_W) / 2; gridY = 40;
+        gridDX = d.speed + (wave - 1) * 0.3;
+        stepInterval = Math.max(150, 750 - (wave - 1) * 80);
+        
+        const rowsToSpawn = Math.min(6, ROWS + Math.floor(wave / 2));
+        for (let r = 0; r < rowsToSpawn; r++) {
+            enemies.push([]);
+            for (let c = 0; c < COLS; c++) {
+                const type = wave > 2 && r === 0 ? 2 : (r <= 1 ? 1 : 0);
+                enemies[r].push({ alive: true, type: type, anim: 0, hp: type === 2 ? 2 : 1, startX: c * (EW + HGAP), yOffset: 0 });
+            }
+        }
+    }
+
+    function buildBoss() {
+        boss = { x: -40, y: 15, hp: 10 + (wave * 5), maxHp: 10 + (wave * 5), vx: 1.5 + (wave * 0.2) };
+    }
+
+    buildEnemies();
+    _invadersKeys = {};
+    _invadersKeyDown = (e) => {
+        _invadersKeys[e.key] = true;
+        if (e.key === ' ') {
+            e.preventDefault();
+            if (gameOver) { launchInvaders(difficulty); return; }
+            if (!playerBullet && shootCooldown <= 0) {
+                playerBullet = { x: px + PLAYER_W / 2, y: 275, vy: -d.bulletSpeed - 3 };
+                shootCooldown = 250;
+                SoundManager.playBloop(660, 0.05);
+            }
+        }
+    };
+    _invadersKeyUp = (e) => { delete _invadersKeys[e.key]; };
+    document.addEventListener('keydown', _invadersKeyDown); document.addEventListener('keyup', _invadersKeyUp);
+
+    function frame(ts) {
+        if (!invadersActive) return;
+        const raw = lastTs ? Math.min(ts - lastTs, 50) : 16.67, dt = raw / 16.67;
+        lastTs = ts;
+
+        if (!gameOver) {
+            if ((_invadersKeys['ArrowLeft']  || _invadersKeys['a']) && px > 5) px -= d.playerSpeed * dt;
+            if ((_invadersKeys['ArrowRight'] || _invadersKeys['d']) && px < 400 - PLAYER_W - 5) px += d.playerSpeed * dt;
+            if (shootCooldown > 0) shootCooldown -= raw;
+
+            gridX += gridDX * dt;
+            if (gridX + GRID_W > 390 || gridX < 10) {
+                gridDX *= -1; gridY += 10;
+                if (gridY + (ROWS * VGAP) > 260) gameOver = true;
+            }
+
+            stepTimer += raw;
+            if (stepTimer > stepInterval) { 
+                stepTimer = 0; 
+                enemies.flat().forEach(e => {
+                    e.anim = 1 - e.anim;
+                    if (e.type === 2) e.yOffset = e.yOffset === 0 ? 5 : 0;
+                }); 
+            }
+
+            enemies.flat().forEach((e, i) => {
+                if (e.alive && Math.random() < d.fireRate * dt) {
+                    const r = Math.floor(i / COLS), c = i % COLS;
+                    eBullets.push({ x: gridX + e.startX + EW/2, y: gridY + r * (EH + VGAP) + EH + e.yOffset, vy: d.bulletSpeed });
+                }
+            });
+
+            if (boss) {
+                boss.x += boss.vx * dt;
+                if (boss.x > 450) boss = null;
+                else if (Math.random() < d.fireRate * 2 * dt) {
+                    eBullets.push({ x: boss.x + 20, y: boss.y + 15, vy: d.bulletSpeed + 1 });
+                }
+            }
+
+            if (playerBullet) {
+                playerBullet.y += playerBullet.vy * dt;
+                if (playerBullet.y < 0) playerBullet = null;
+                else {
+                    if (boss && playerBullet && playerBullet.x > boss.x && playerBullet.x < boss.x + 40 && playerBullet.y > boss.y && playerBullet.y < boss.y + 15) {
+                        boss.hp--; playerBullet = null; SoundManager.playBloop(300, 0.05);
+                        if (boss.hp <= 0) { score += 200 * wave; boss = null; SoundManager.playBloop(800, 0.2); }
+                    }
+                    enemies.flat().forEach(e => {
+                        if (e.alive && playerBullet) {
+                            const r = enemies.findIndex(row => row.includes(e));
+                            const ex = gridX + e.startX, ey = gridY + r * (EH + VGAP) + e.yOffset;
+                            if (playerBullet.x > ex && playerBullet.x < ex + EW && playerBullet.y > ey && playerBullet.y < ey + EH) {
+                                e.hp--; playerBullet = null; SoundManager.playBloop(200, 0.05);
+                                if (e.hp <= 0) { e.alive = false; score += (3 - e.type) * 10 * wave; }
+                            }
+                        }
+                    });
+                }
+            }
+
+            eBullets.forEach((b, bi) => {
+                b.y += b.vy * dt;
+                if (b.y > 300) eBullets.splice(bi, 1);
+                else if (b.x > px && b.x < px + PLAYER_W && b.y > 275 && b.y < 275 + PLAYER_H) {
+                    eBullets.splice(bi, 1); lives--; SoundManager.playBloop(150, 0.1);
+                    if (lives <= 0) gameOver = true;
+                }
+            });
+
+            if (enemies.flat().every(e => !e.alive) && !boss) { 
+                wave++; 
+                if (wave % 3 === 0) buildBoss();
+                buildEnemies(); 
+                SoundManager.playBloop(800, 0.1); 
+            }
+        }
+
+        ctx.fillStyle = wave % 3 === 0 ? '#100505' : '#0a0a15';
+        ctx.fillRect(0, 0, 400, 300);
+        
+        ctx.shadowBlur = 10; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#0ff'; 
+        ctx.fillRect(px, 275, PLAYER_W, PLAYER_H + 5); ctx.fillRect(px + 10, 269, 10, 6);
+        ctx.shadowBlur = 0;
+
+        enemies.forEach((row, r) => { row.forEach((e, c) => {
+            if (!e.alive) return;
+            ctx.fillStyle = e.type === 0 ? '#f55' : e.type === 1 ? '#f0f' : '#ff0';
+            ctx.fillRect(gridX + e.startX + 2, gridY + r * (EH + VGAP) + e.yOffset, EW - 4, EH);
+        });});
+
+        if (boss) {
+            ctx.fillStyle = '#f00'; ctx.fillRect(boss.x, boss.y, 40, 15);
+            ctx.fillStyle = '#ff0'; ctx.fillRect(boss.x + 10, boss.y - 5, 20, 5);
+            ctx.fillStyle = '#fff'; ctx.fillRect(boss.x, boss.y - 10, (boss.hp/boss.maxHp)*40, 3);
+        }
+
+        ctx.fillStyle = '#fff';
+        if (playerBullet) ctx.fillRect(playerBullet.x - 1, playerBullet.y, 2, 8);
+        eBullets.forEach(b => { ctx.fillStyle = '#f00'; ctx.fillRect(b.x - 1, b.y, 2, 8); });
+
+        const sEl = document.getElementById('inv-score'); if (sEl) sEl.textContent = score;
+        const wEl = document.getElementById('inv-wave'); if (wEl) wEl.textContent = wave;
+        const lEl = document.getElementById('inv-lives'); if (lEl) lEl.textContent = '♥'.repeat(Math.max(0, lives));
+
+        if (gameOver) {
+            ctx.fillStyle = 'rgba(255,0,0,0.3)'; ctx.fillRect(0,0,400,300);
+            ctx.fillStyle = '#f44'; ctx.font = 'bold 30px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('SYSTEM BREACHED', 200, 140);
+            ctx.fillStyle = '#fff'; ctx.font = '14px monospace'; ctx.fillText('SPACE TO RETRY', 200, 180);
+            ctx.textAlign = 'left';
+            if (!invScoreSubmitted && score > 0) { submitScore('invaders', score); showLeaderboard('invaders'); invScoreSubmitted = true; }
+        }
+        invadersRaf = requestAnimationFrame(frame);
+    }
+    invadersRaf = requestAnimationFrame(frame);
+}
+
+function stopInvaders() { 
+    cancelAnimationFrame(invadersRaf); invadersActive = false; 
+    if (_invadersKeyDown) document.removeEventListener('keydown', _invadersKeyDown); 
+    if (_invadersKeyUp) document.removeEventListener('keyup', _invadersKeyUp);
+}
 
 // =============================================================
 //  FLAPPY BIRD (Nexus Edition)
@@ -1735,9 +1625,9 @@ function startFlappy() {
     })();
 
     function flap() {
-        if (dead) { startFlappy(); return; }
-        if (!started) { started = true; lastTs = performance.now(); }
-        bird.vy = FLAP_VEL;
+    if (dead) { stopFlappy(); startFlappy(); return; }
+    if (!started) { started = true; lastTs = performance.now(); }
+    bird.vy = FLAP_VEL;
     }
 
     _flappyKey = (e) => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
@@ -1861,7 +1751,7 @@ function startFlappy() {
             ctx.textAlign = 'left';
         }
 
-        flappyFrame = requestAnimationFrame(frame);
+        if (!dead) flappyFrame = requestAnimationFrame(frame);
     }
     flappyFrame = requestAnimationFrame((ts) => { lastTs = ts; frame(ts); });
 }
@@ -1877,29 +1767,6 @@ function stopFlappy() {
 //  BREAKOUT
 // =============================================================
 let breakoutFrame, breakoutActive = false;
-
-function startBreakout() {
-    stopAllGames();
-    guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'NEXUS BREAKOUT';
-    nexusCanvas.style.display = 'none';
-
-    guiContent.innerHTML = `
-        <div style="text-align:center;padding:10px 0;">
-            <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
-            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                <button class="gui-btn brk-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
-                <button class="gui-btn brk-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
-                <button class="gui-btn brk-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
-                <button class="gui-btn brk-diff" data-diff="chaos"  style="border-color:#f00;color:#f00;">CHAOS</button>
-            </div>
-            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
-        </div>`;
-
-    guiContent.querySelectorAll('.brk-diff').forEach(btn => {
-        btn.addEventListener('click', () => launchBreakout(btn.dataset.diff));
-    });
-}
 
 function startBreakout() {
     stopAllGames();
@@ -1926,6 +1793,11 @@ function startBreakout() {
 }
 
 function launchBreakout(difficulty) {
+    stopAllGames();
+    guiContent.innerHTML = ''; // Wipe menu immediately
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.style.zIndex = '100';
+    console.log('[DEBUG] Launching Breakout:', difficulty);
     const DIFFS = {
         easy:   { PW: 96, startVX: 2,   startVY: -3.5, accel: 1.01 },
         medium: { PW: 72, startVX: 2.8, startVY: -4.5, accel: 1.03 },
@@ -1939,7 +1811,7 @@ function launchBreakout(difficulty) {
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
-            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()}</span>
+            <span style="color:#f0f;font-size:0.65rem;letter-spacing:1px;">LEVEL <span id="brk-level">1</span></span>
             <span id="brk-lives" style="color:#0ff;">♥♥♥</span>
         </div>`;
     nexusCanvas.style.display = 'block';
@@ -1950,9 +1822,7 @@ function launchBreakout(difficulty) {
     const BW = 43, BH = 16, BCOLS = 8, BROWS = 5;
     const BCOLORS = ['#f0f','#f55','#f80','#ff0','#0f0'];
     let paddle = 165;
-    // Ball system — supporting Multi-ball
     let balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
-    // Power-up system
     let powerups = [];
     const PU_TYPES = [
         { label: 'M', color: '#0ff', type: 'multi' },
@@ -1960,26 +1830,24 @@ function launchBreakout(difficulty) {
         { label: 'S', color: '#ff0', type: 'slow' }
     ];
 
-    let bricks = [], score = 0, lives = 3, dead = false, won = false;
+    let bricks = [], score = 0, lives = 3, level = 1, dead = false, won = false;
     let lastTs = 0, wideTimer = 0;
-    let hi = parseInt(localStorage.getItem('breakout_hi') || '0');
-
-    // Pre-draw circuit board background
-    const brkBg = document.createElement('canvas');
-    brkBg.width = 400; brkBg.height = 300;
-    (function buildBrkBg() {
-        const c = brkBg.getContext('2d');
-        c.fillStyle = '#050510'; c.fillRect(0, 0, 400, 300);
-        c.strokeStyle = 'rgba(0,255,255,0.04)'; c.lineWidth = 1;
-        for (let x = 0; x <= 400; x += 25) { c.beginPath(); c.moveTo(x,0); c.lineTo(x,300); c.stroke(); }
-        for (let y = 0; y <= 300; y += 25) { c.beginPath(); c.moveTo(0,y); c.lineTo(400,y); c.stroke(); }
-    })();
-
+    
     function initBricks() {
         bricks = [];
-        for (let r = 0; r < BROWS; r++)
-            for (let c = 0; c < BCOLS; c++)
-                bricks.push({ x: 8 + c * (BW + 4), y: 30 + r * (BH + 5), alive: true, color: BCOLORS[r] });
+        balls = [{ x: 200, y: 230, vx: d.startVX * (1 + level*0.1), vy: d.startVY * (1 + level*0.1) }];
+        powerups = [];
+        currentPW = d.PW;
+        
+        for (let r = 0; r < BROWS + Math.floor(level/2); r++) {
+            for (let c = 0; c < BCOLS; c++) {
+                // Introduce gaps and steel bricks at higher levels
+                if (level > 1 && (r + c) % 5 === 0) continue; 
+                let hp = 1;
+                if (level > 2 && Math.random() < 0.1) hp = 2; // Steel brick
+                bricks.push({ x: 8 + c * (BW + 4), y: 30 + r * (BH + 5), alive: true, hp: hp, color: hp === 2 ? '#aaa' : BCOLORS[r % BCOLORS.length] });
+            }
+        }
     }
     initBricks();
 
@@ -1998,54 +1866,55 @@ function launchBreakout(difficulty) {
         lastTs = ts;
 
         if (!dead && !won) {
-            // Handle Wide Paddle timer
             if (wideTimer > 0) {
                 wideTimer -= raw;
                 if (wideTimer <= 0) currentPW = d.PW;
             }
 
-            // Move Balls
             balls.forEach((ball, bi) => {
                 ball.x += ball.vx * dt; ball.y += ball.vy * dt;
                 if (ball.x <= BR || ball.x >= 400 - BR) { ball.vx *= -1; SoundManager.playBloop(300, 0.02); }
                 if (ball.y <= BR) { ball.vy = Math.abs(ball.vy); SoundManager.playBloop(300, 0.02); }
                 
-                // Paddle hit
                 if (ball.y + BR >= 270 && ball.y - BR <= 282 && ball.x >= paddle && ball.x <= paddle + currentPW) {
                     ball.vy = -Math.abs(ball.vy);
                     const hitPoint = (ball.x - (paddle + currentPW / 2)) / (currentPW / 2);
-                    ball.vx = hitPoint * 5.5;
+                    ball.vx = hitPoint * 8; // Increased horizontal influence
+                    // Ensure ball doesn't get stuck horizontally
+                    if (Math.abs(ball.vx) < 1) ball.vx = ball.vx < 0 ? -2 : 2;
                     SoundManager.playBloop(400, 0.05);
                 }
 
-                // Brick hit
                 bricks.forEach(b => {
                     if (!b.alive) return;
                     if (ball.x + BR > b.x && ball.x - BR < b.x + BW && ball.y + BR > b.y && ball.y - BR < b.y + BH) {
-                        b.alive = false; ball.vy *= -1; score += 10;
+                        b.hp--; ball.vy *= -1;
                         SoundManager.playBloop(600 + Math.random() * 200, 0.05);
                         
-                        // Drop powerup? (15% chance)
-                        if (Math.random() < 0.15) {
-                            const pu = PU_TYPES[Math.floor(Math.random() * PU_TYPES.length)];
-                            powerups.push({ x: b.x + BW/2, y: b.y, type: pu.type, label: pu.label, color: pu.color });
+                        if (b.hp <= 0) {
+                            b.alive = false; score += 10 * level;
+                            if (Math.random() < 0.15) {
+                                const pu = PU_TYPES[Math.floor(Math.random() * PU_TYPES.length)];
+                                powerups.push({ x: b.x + BW/2, y: b.y, type: pu.type, label: pu.label, color: pu.color });
+                            }
+                        } else {
+                            b.color = BCOLORS[Math.floor(Math.random() * BCOLORS.length)]; // Crack effect
                         }
 
                         if (d.accel) {
                             ball.vx *= d.accel; ball.vy *= d.accel;
                             const spd = Math.sqrt(ball.vx**2 + ball.vy**2);
-                            if (spd > 14) { ball.vx = ball.vx/spd*14; ball.vy = ball.vy/spd*14; }
+                            const maxSpd = 10 + level * 2;
+                            if (spd > maxSpd) { ball.vx = ball.vx/spd*maxSpd; ball.vy = ball.vy/spd*maxSpd; }
                         }
                         const el = document.getElementById('brk-score');
                         if (el) el.textContent = score;
                     }
                 });
 
-                // Ball lost
                 if (ball.y > 310) balls.splice(bi, 1);
             });
 
-            // No balls left? Lose a life
             if (balls.length === 0) {
                 lives--;
                 SoundManager.playBloop(150, 0.1);
@@ -2056,21 +1925,19 @@ function launchBreakout(difficulty) {
                     submitScore('breakout', score);
                     showLeaderboard('breakout');
                 } else {
-                    balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
+                    balls = [{ x: 200, y: 230, vx: d.startVX * (1 + level*0.1), vy: d.startVY * (1 + level*0.1) }];
                     powerups = [];
                     currentPW = d.PW; wideTimer = 0;
                 }
             }
 
-            // Move Powerups
             powerups.forEach((pu, pi) => {
                 pu.y += 2 * dt;
                 if (pu.y > 270 && pu.y < 285 && pu.x > paddle && pu.x < paddle + currentPW) {
-                    // CATCH!
                     powerups.splice(pi, 1);
                     SoundManager.playBloop(800, 0.1);
                     if (pu.type === 'multi') {
-                        balls.push({ x: ball.x || 200, y: 230, vx: -3, vy: -4 }, { x: ball.x || 200, y: 230, vx: 3, vy: -4 });
+                        balls.push({ x: balls[0]?.x || 200, y: 230, vx: -3, vy: -4 }, { x: balls[0]?.x || 200, y: 230, vx: 3, vy: -4 });
                     } else if (pu.type === 'wide') {
                         currentPW = d.PW * 1.6; wideTimer = 10000;
                     } else if (pu.type === 'slow') {
@@ -2081,14 +1948,21 @@ function launchBreakout(difficulty) {
             });
 
             if (bricks.every(b => !b.alive)) { 
-                won = true; 
-                submitScore('breakout', score);
-                showLeaderboard('breakout');
+                level++;
+                const lEl = document.getElementById('brk-level');
+                if (lEl) lEl.textContent = level;
+                initBricks();
+                SoundManager.playBloop(1000, 0.2);
             }
         }
 
-        // Draw
-        ctx.drawImage(brkBg, 0, 0);
+        // Draw bg based on level
+        ctx.fillStyle = level % 2 === 0 ? '#0a0a1a' : '#050510';
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.strokeStyle = 'rgba(0,255,255,0.04)'; ctx.lineWidth = 1;
+        for (let x = 0; x <= 400; x += 25) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,300); ctx.stroke(); }
+        for (let y = 0; y <= 300; y += 25) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(400,y); ctx.stroke(); }
+
         bricks.forEach(b => {
             if (!b.alive) return;
             ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, BW, BH);
@@ -2097,230 +1971,153 @@ function launchBreakout(difficulty) {
 
         powerups.forEach(pu => {
             ctx.fillStyle = pu.color;
-            ctx.font = 'bold 14px monospace';
-            ctx.fillText(`[${pu.label}]`, pu.x - 10, pu.y);
+            ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
+            ctx.fillText(pu.label, pu.x, pu.y);
+            ctx.textAlign = 'left';
         });
 
-        ctx.fillStyle = '#0ff';
-        ctx.beginPath(); ctx.roundRect(paddle, 270, currentPW, PH, 4); ctx.fill();
+        ctx.fillStyle = '#0ff'; ctx.shadowBlur = 8; ctx.shadowColor = '#0ff';
+        ctx.fillRect(paddle, 275, currentPW, PH);
+        balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, BR, 0, Math.PI * 2); ctx.fill(); });
+        ctx.shadowBlur = 0;
 
-        ctx.fillStyle = '#fff';
-        balls.forEach(b => {
-            ctx.beginPath(); ctx.arc(b.x, b.y, BR, 0, Math.PI * 2); ctx.fill();
-        });
-
-        if (dead || won) {
-            ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0,0,400,300);
-            ctx.textAlign = 'center';
-            ctx.fillStyle = won ? '#0f0' : '#f44';
-            ctx.font = 'bold 30px monospace';
-            ctx.fillText(won ? 'BOARD CLEARED' : 'SYSTEM CRASHED', 200, 130);
-            ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
-            ctx.fillText(`Score: ${score}`, 200, 160);
-            ctx.fillText('CLICK to restart', 200, 200);
+        if (dead) {
+            ctx.fillStyle = 'rgba(255,0,0,0.5)'; ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('SYSTEM FAILURE', 200, 150);
+            ctx.font = '14px monospace'; ctx.fillText('CLICK TO RETRY', 200, 190);
             ctx.textAlign = 'left';
             nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
         }
 
-        breakoutRaf = requestAnimationFrame(frame);
+        breakoutFrame = requestAnimationFrame(frame);
     }
+    breakoutFrame = requestAnimationFrame(frame);
 }
 
-function stopBreakout() {
-    breakoutActive = false;
-    cancelAnimationFrame(breakoutFrame);
+function stopBreakout() { 
+    cancelAnimationFrame(breakoutFrame); 
+    breakoutActive = false; 
+    nexusCanvas.onmousemove = null;
+    nexusCanvas.ontouchmove = null;
 }
 
 // =============================================================
-//  WORDLE
+//  WORDLE (Tech Edition)
 // =============================================================
-const WORDLE_WORDS = [
-    'ABOUT','ABOVE','ABUSE','ACTOR','ACUTE','ADMIT','ADOPT','ADULT','AFTER','AGENT',
-    'AGREE','AHEAD','ALARM','ALBUM','ALERT','ALIKE','ALIVE','ALLEY','ALLOW','ALONE',
-    'ALONG','ALTER','ANGEL','ANGLE','ANGRY','ANIME','APPLY','ARENA','ARGUE','ARISE',
-    'ASIDE','ASSET','AVOID','AWAKE','AWARD','AWARE','AWFUL','BASIC','BASIS','BEACH',
-    'BEGIN','BEING','BELOW','BENCH','BERRY','BIRTH','BLACK','BLADE','BLAME','BLANK',
-    'BLAST','BLAZE','BLEED','BLEND','BLESS','BLIND','BLOCK','BLOOD','BLOOM','BOARD',
-    'BOOST','BOUND','BRAIN','BRAND','BRAVE','BREAD','BREAK','BRICK','BRIEF','BRING',
-    'BROAD','BROWN','BUILD','BUILT','BURST','CABIN','CARRY','CAUSE','CHAIN','CHAIR',
-    'CHAOS','CHARM','CHART','CHASE','CHEAP','CHECK','CHESS','CHEST','CHILD','CLAIM',
-    'CLASH','CLASS','CLEAN','CLEAR','CLICK','CLIMB','CLONE','CLOSE','CLOUD','COAST',
-    'COUNT','COURT','COVER','CRACK','CRANE','CRASH','CRAZY','CROSS','CROWD','CRUSH',
-    'CURVE','CYCLE','DAILY','DANCE','DEALT','DEATH','DELAY','DEPTH','DIRTY','DODGE',
-    'DOUBT','DRAFT','DRAIN','DRAMA','DRAWN','DREAM','DRINK','DRIVE','DROVE','DRUNK',
-    'EARTH','EIGHT','ELITE','EMPTY','ENEMY','ENJOY','ENTER','ERROR','EVENT','EVERY',
-    'EXACT','EXIST','EXTRA','FAITH','FALSE','FANCY','FATAL','FAULT','FEAST','FIELD',
-    'FIGHT','FINAL','FIRST','FIXED','FLAME','FLARE','FLASH','FLESH','FLOAT','FLOOD',
-    'FLOOR','FOUND','FRAME','FRANK','FRESH','FRONT','FROST','GUARD','GUESS','GUIDE',
-    'HABIT','HAPPY','HARSH','HEART','HEAVY','HINGE','HONOR','HORSE','HOTEL','HOUSE',
-    'HUMAN','HUMOR','IDEAL','IMAGE','INDEX','INNER','INPUT','ISSUE','JOINT','JUDGE',
-    'JUICE','LABEL','LARGE','LASER','LATER','LAYER','LEGAL','LIGHT','LIMIT','LOGIC',
-    'LOOSE','LOVER','LOWER','LUCKY','MAGIC','MAJOR','MAKER','MATCH','MAYOR','MEANT',
-    'MEDIA','MERIT','METAL','MINOR','MINUS','MIXED','MODEL','MONEY','MOUNT','MOUSE',
-    'MOVED','MUSIC','NERVE','NIGHT','NOBLE','NOISE','NORTH','NOVEL','NURSE','OCCUR',
-    'OFFER','OFTEN','OLIVE','ONSET','ORBIT','ORDER','OTHER','OUTER','OWNED','PANEL',
-    'PANIC','PAPER','PARTY','PATCH','PAUSE','PEACE','PHONE','PILOT','PIXEL','PIZZA',
-    'PLACE','PLANE','PLANT','PLATE','POINT','POWER','PRESS','PRICE','PRIDE','PRIME',
-    'PROBE','PROOF','PROSE','PROUD','PROVE','PROXY','PULSE','PUNCH','QUICK','QUIET',
-    'QUITE','QUOTE','RADIO','RAISE','RALLY','RANGE','RAPID','REACH','READY','REBEL',
-    'REFER','RELAY','REPLY','RESET','RIDGE','RIGHT','RIGID','RISEN','RISKY','RIVER',
-    'ROBOT','ROCKY','ROUGH','ROUND','ROUTE','ROYAL','RURAL','SAINT','SCALE','SCARE',
-    'SCENE','SCOPE','SCORE','SENSE','SERVE','SETUP','SEVEN','SHAPE','SHARE','SHARP',
-    'SHELL','SHIFT','SHIRT','SHOCK','SHOOT','SHORT','SHOUT','SIGHT','SKILL','SKULL',
-    'SLEEP','SLICE','SLIDE','SLOPE','SMART','SMILE','SMOKE','SNAKE','SOLAR','SOLID',
-    'SOLVE','SORRY','SOUTH','SPACE','SPEAK','SPEED','SPEND','SPLIT','STAND','START',
-    'STATE','STEAM','STEEL','STICK','STILL','STONE','STOOD','STORM','STORY','STRIP',
-    'STUCK','STUDY','STYLE','SUPER','SWEET','SWING','SWORD','TABLE','TAKEN','TASTE',
-    'TEACH','TEETH','THEME','THICK','THING','THINK','THREE','THROW','TIGHT','TIMER',
-    'TIRED','TODAY','TOUCH','TOUGH','TOWER','TOXIC','TRACE','TRACK','TRADE','TRAIL',
-    'TRAIN','TRASH','TREAT','TREND','TRIAL','TRICK','TRUST','TRUTH','TWIST','UNDER',
-    'UNION','UNITY','UNTIL','UPPER','UPSET','URBAN','VALID','VALUE','VENUE','VIVID',
-    'VOCAL','VOICE','WAGER','WASTE','WATCH','WATER','WEIRD','WHITE','WHOLE','WIDER',
-    'WORLD','WORRY','WORSE','WORST','WORTH','WOULD','WRECK','WRITE','YIELD','YOUNG',
-];
-
-let wordleActive = false;
-let wordleAnswer = '';
-let wordleGuesses = [];
-let wordleCurrent = '';
-let wordleKeyState = {};
-
-const WORDLE_MAX = 6;
-const WORDLE_LEN = 5;
+let wordleActive = false, _wordleKey = null;
 
 function startWordle() {
     stopAllGames();
-    wordleActive = true;
-    wordleAnswer = WORDLE_WORDS[Math.floor(Math.random() * WORDLE_WORDS.length)];
-    wordleGuesses = [];
-    wordleCurrent = '';
-    wordleKeyState = {};
-
     guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'NEXUS WORDLE';
+    guiTitle.textContent = 'NEXUS DECRYPT';
     nexusCanvas.style.display = 'none';
 
-    renderWordle();
-    printToTerminal('Wordle started — type a 5-letter word and press Enter.', 'sys-msg');
+    guiContent.innerHTML = `
+        <div style="text-align:center;padding:10px 0;">
+            <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DATABANK</div>
+            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+                <button class="gui-btn word-cat" data-cat="tech"   style="border-color:#0ff;color:#0ff;">IT & TECH</button>
+                <button class="gui-btn word-cat" data-cat="code"   style="border-color:#0f0;color:#0f0;">CODING</button>
+                <button class="gui-btn word-cat" data-cat="hard"   style="border-color:#f0f;color:#f0f;">6-LETTER SECRETS</button>
+            </div>
+            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Decrypt the secure hash. Type your guess.</p>
+        </div>`;
+
+    guiContent.querySelectorAll('.word-cat').forEach(btn => {
+        btn.addEventListener('click', () => launchWordle(btn.dataset.cat));
+    });
+}
+
+function launchWordle(category) {
+    stopAllGames();
+    wordleActive = true;
+    
+    const WORDS = {
+        tech: ['LINUX','APPLE','MACRO','BOARD','POWER','DRIVE','CABLE','LASER','FIBER','MODEM','ROUTER','CLOUD','PIXEL'],
+        code: ['ARRAY','FLOAT','REACT','FETCH','AWAIT','ASYNC','CONST','WHILE','CATCH','THROW','SCOPE','MERGE','DEBUG'],
+        hard: ['SERVER','CLIENT','DOMAIN','HACKER','KERNEL','MEMORY','GIGABIT','UPTIME','SYSTEM','ROUTER']
+    };
+    
+    const wordList = WORDS[category] || WORDS.tech;
+    const targetWord = wordList[Math.floor(Math.random() * wordList.length)];
+    const wordLen = targetWord.length;
+    const maxGuesses = 6;
+
+    let guesses = [];
+    let currentGuess = "";
+    let gameOver = false;
+
+    guiContent.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;padding-top:10px;">
+            <div id="word-grid" style="display:grid;grid-template-rows:repeat(${maxGuesses}, 40px);gap:5px;margin-bottom:15px;"></div>
+            <div id="word-msg" style="color:#f55;font-size:0.75rem;height:15px;"></div>
+            <button class="gui-btn" id="word-retry" style="display:none;margin-top:10px;" onclick="launchWordle('${category}')">RETRY DECRYPTION</button>
+        </div>
+    `;
+
+    function renderGrid() {
+        const grid = document.getElementById('word-grid');
+        if (!grid) return;
+        grid.style.gridTemplateColumns = `repeat(${wordLen}, 40px)`;
+        let html = '';
+        for (let i = 0; i < maxGuesses; i++) {
+            const guess = guesses[i] || (i === guesses.length ? currentGuess.padEnd(wordLen, ' ') : ' '.repeat(wordLen));
+            for (let j = 0; j < wordLen; j++) {
+                let bg = 'transparent', color = '#fff', border = '#333';
+                if (i < guesses.length) {
+                    const char = guess[j];
+                    if (targetWord[j] === char) { bg = '#0f0'; color = '#000'; border = '#0f0'; }
+                    else if (targetWord.includes(char)) { bg = '#ff0'; color = '#000'; border = '#ff0'; }
+                    else { bg = '#333'; color = '#888'; border = '#333'; }
+                } else if (i === guesses.length && guess[j] !== ' ') {
+                    border = '#0ff';
+                }
+                html += `<div style="display:flex;align-items:center;justify-content:center;border:1px solid ${border};background:${bg};color:${color};font-weight:bold;font-size:1.2rem;">${guess[j]}</div>`;
+            }
+        }
+        grid.innerHTML = html;
+    }
+
+    renderGrid();
+
+    _wordleKey = (e) => {
+        if (!wordleActive || gameOver) return;
+        if (e.key === 'Backspace') { currentGuess = currentGuess.slice(0, -1); renderGrid(); SoundManager.playBloop(300, 0.05); return; }
+        if (e.key === 'Enter' && currentGuess.length === wordLen) {
+            guesses.push(currentGuess);
+            if (currentGuess === targetWord) {
+                gameOver = true;
+                document.getElementById('word-msg').style.color = '#0f0';
+                document.getElementById('word-msg').textContent = 'DECRYPTION SUCCESSFUL';
+                document.getElementById('word-retry').style.display = 'block';
+                SoundManager.playBloop(1000, 0.2);
+                submitScore('wordle', (maxGuesses - guesses.length + 1) * 100);
+            } else if (guesses.length === maxGuesses) {
+                gameOver = true;
+                document.getElementById('word-msg').textContent = `LOCKED OUT. WORD WAS: ${targetWord}`;
+                document.getElementById('word-retry').style.display = 'block';
+                SoundManager.playBloop(150, 0.2);
+            } else {
+                currentGuess = "";
+                SoundManager.playBloop(800, 0.1);
+            }
+            renderGrid();
+            return;
+        }
+        if (/^[a-zA-Z]$/.test(e.key) && currentGuess.length < wordLen) {
+            currentGuess += e.key.toUpperCase();
+            renderGrid();
+            SoundManager.playBloop(400, 0.05);
+        }
+    };
+    document.addEventListener('keydown', _wordleKey);
 }
 
 function stopWordle() {
     wordleActive = false;
+    if (_wordleKey) { document.removeEventListener('keydown', _wordleKey); _wordleKey = null; }
 }
-
-function renderWordle() {
-    const rows = [];
-    for (let r = 0; r < WORDLE_MAX; r++) {
-        const guess = wordleGuesses[r];
-        const isCurrentRow = r === wordleGuesses.length && !wordleIsOver();
-        const tiles = [];
-        for (let c = 0; c < WORDLE_LEN; c++) {
-            let letter = '';
-            let bg = '#1a1a2e';
-            let border = '#444';
-            let color = '#fff';
-            if (guess) {
-                letter = guess.result[c].letter;
-                if (guess.result[c].state === 'correct') { bg = '#1a6b1a'; border = '#0f0'; color = '#0f0'; }
-                else if (guess.result[c].state === 'present') { bg = '#6b5a00'; border = '#ff0'; color = '#ff0'; }
-                else { bg = '#333'; border = '#555'; color = '#888'; }
-            } else if (isCurrentRow) {
-                letter = wordleCurrent[c] || '';
-                border = letter ? '#0ff' : '#333';
-            }
-            tiles.push(`<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:${bg};border:2px solid ${border};color:${color};font-size:1.3rem;font-weight:bold;border-radius:4px;font-family:'Fira Code',monospace;transition:border 0.1s;">${letter}</div>`);
-        }
-        rows.push(`<div style="display:flex;gap:6px;">${tiles.join('')}</div>`);
-    }
-
-    // Keyboard
-    const ROWS_KB = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['ENTER','Z','X','C','V','B','N','M','⌫']];
-    const kbRows = ROWS_KB.map(row => {
-        const keys = row.map(k => {
-            const state = wordleKeyState[k] || '';
-            let bg = '#2a2a3e', color = '#ccc', border = '#444';
-            if (state === 'correct') { bg = '#1a5c1a'; color = '#0f0'; border = '#0f0'; }
-            else if (state === 'present') { bg = '#5a4a00'; color = '#ff0'; border = '#ff0'; }
-            else if (state === 'absent') { bg = '#1a1a1a'; color = '#444'; border = '#333'; }
-            const wide = (k === 'ENTER' || k === '⌫') ? 'min-width:52px;' : 'min-width:30px;';
-            return `<button onclick="wordleKey('${k}')" style="${wide}padding:8px 4px;background:${bg};border:1px solid ${border};color:${color};font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:bold;border-radius:4px;cursor:pointer;">${k}</button>`;
-        });
-        return `<div style="display:flex;gap:4px;justify-content:center;">${keys.join('')}</div>`;
-    }).join('');
-
-    guiContent.innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:6px;align-items:center;margin-bottom:12px;">${rows.join('')}</div>
-        <div style="display:flex;flex-direction:column;gap:5px;">${kbRows}</div>
-        <p id="wordle-msg" style="text-align:center;font-size:0.8rem;color:#0ff;margin-top:8px;min-height:1.2em;"></p>`;
-}
-
-window.wordleKey = function(k) {
-    if (!wordleActive) return;
-    if (wordleIsOver()) return;
-    SoundManager.playBloop(400, 0.05);
-    if (k === '⌫' || k === 'Backspace') { wordleCurrent = wordleCurrent.slice(0, -1); renderWordle(); return; }
-    if (k === 'ENTER' || k === 'Enter') { submitWordleGuess(); return; }
-    if (/^[A-Z]$/.test(k) && wordleCurrent.length < WORDLE_LEN) { wordleCurrent += k; renderWordle(); }
-};
-
-function submitWordleGuess() {
-    if (wordleCurrent.length < WORDLE_LEN) {
-        document.getElementById('wordle-msg').textContent = 'Not enough letters.';
-        return;
-    }
-    const guess = wordleCurrent.toUpperCase();
-    const answer = wordleAnswer;
-    const result = [];
-    const used = answer.split('').map(() => false);
-
-    // First pass: correct
-    for (let i = 0; i < WORDLE_LEN; i++) {
-        if (guess[i] === answer[i]) { result[i] = { letter: guess[i], state: 'correct' }; used[i] = true; }
-        else result[i] = { letter: guess[i], state: 'absent' };
-    }
-    // Second pass: present
-    for (let i = 0; i < WORDLE_LEN; i++) {
-        if (result[i].state === 'correct') continue;
-        const j = answer.split('').findIndex((ch, idx) => ch === guess[i] && !used[idx]);
-        if (j !== -1) { result[i].state = 'present'; used[j] = true; }
-    }
-
-    wordleGuesses.push({ word: guess, result });
-    wordleCurrent = '';
-
-    // Update key state
-    result.forEach(({ letter, state }) => {
-        const prev = wordleKeyState[letter];
-        if (prev === 'correct') return;
-        if (state === 'correct') wordleKeyState[letter] = 'correct';
-        else if (state === 'present' && prev !== 'correct') wordleKeyState[letter] = 'present';
-        else if (!prev) wordleKeyState[letter] = 'absent';
-    });
-
-    renderWordle();
-
-    const won = result.every(r => r.state === 'correct');
-    if (won) {
-        wordleActive = false;
-        SoundManager.playBloop(800, 0.2);
-        submitScore('wordle', (WORDLE_MAX - wordleGuesses.length + 1) * 20);
-        document.getElementById('wordle-msg').textContent = `🟩 Nice! The word was ${answer}. Close to restart.`;
-        printToTerminal(`Wordle solved in ${wordleGuesses.length}/${WORDLE_MAX}! Word: ${answer}`, 'conn-ok');
-    } else if (wordleGuesses.length >= WORDLE_MAX) {
-        wordleActive = false;
-        SoundManager.playBloop(150, 0.2);
-        document.getElementById('wordle-msg').textContent = `The word was ${answer}. Close to try again.`;
-        printToTerminal(`Wordle over. The word was ${answer}.`, 'sys-msg');
-    }
-}
-
-function wordleIsOver() {
-    if (wordleGuesses.length >= WORDLE_MAX) return true;
-    return wordleGuesses.length > 0 && wordleGuesses[wordleGuesses.length - 1].result.every(r => r.state === 'correct');
-}
-
-// Called from WS when AI sends feedback during a wordle session (passthrough now)
-function updateWordleVisuals(text, grid) { /* handled by client-side wordle now */ }
 
 // =============================================================
 //  MINESWEEPER
@@ -2624,6 +2421,11 @@ function stopMatrixSaver() {
 //  STOP ALL GAMES HELPER
 // =============================================================
 function stopAllGames() {
+    if (typeof nexusCanvas !== 'undefined' && nexusCanvas) {
+        const newCanvas = nexusCanvas.cloneNode(true);
+        nexusCanvas.parentNode.replaceChild(newCanvas, nexusCanvas);
+        nexusCanvas = newCanvas; // Update global reference
+    }
     stopPong();
     stopSnake();
     stopWordle();
@@ -3493,6 +3295,20 @@ function setupInputListeners() {
         input.value = '';
 
         const lc = cmd.toLowerCase();
+        if (lc === 'sys-check' || lc === 'debug') {
+            const diag = [
+                '-- NEXUS CORE DIAGNOSTIC --',
+                'WebSocket: ' + (termWs?.readyState === 1 ? 'ONLINE' : 'OFFLINE'),
+                'Canvas: ' + (nexusCanvas ? 'LOADED (' + nexusCanvas.width + 'x' + nexusCanvas.height + ')' : 'MISSING'),
+                'Backend: ' + API_BASE,
+                'Mode: ' + currentMode,
+                'API Keys: Check /api/status',
+                '-------------------------'
+            ].join('\n');
+            printToTerminal(diag, 'sys-msg');
+            return;
+        }
+        
         const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
         const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
 
@@ -4144,4 +3960,60 @@ window.onload = async () => {
         // Ensure diagnostic reporter catches this if it's a hard crash
         throw e; 
     }
+};
+
+// =============================================================
+//  RANKINGS OVERLAY
+// =============================================================
+window.showRankingsOverlay = async function(game = 'pong') {
+    const overlay = document.getElementById('rankings-overlay');
+    if (!overlay) return;
+    stopAllGames();
+    overlay.classList.remove('hidden');
+    
+    const tabs = document.getElementById('rankings-tabs');
+    const content = document.getElementById('rankings-content');
+    const games = ['pong', 'snake_easy', 'snake_endless', 'snake_speed', 'wordle', 'breakout', 'invaders'];
+    
+    if (tabs) {
+        tabs.innerHTML = '';
+        games.forEach(g => {
+            const btn = document.createElement('button');
+            btn.className = `rankings-tab ${g === game ? 'active' : ''}`;
+            btn.textContent = g.split('_')[0].toUpperCase();
+            btn.onclick = () => window.showRankingsOverlay(g);
+            tabs.appendChild(btn);
+        });
+    }
+
+    if (content) content.innerHTML = '<p style="color:#0ff;text-align:center;padding:20px;">LINKING TO DATABANK...</p>';
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/leaderboard?game=${game}`);
+        const scores = await resp.json();
+        
+        if (!scores || !scores.length) {
+            content.innerHTML = `<div class="rankings-empty">NO DATA LOGGED FOR ${game.toUpperCase()}<br><span style="opacity:0.5;font-size:0.6rem;">BE THE FIRST TO BREACH THE LEADERBOARD</span></div>`;
+            return;
+        }
+
+        let html = `<table class="rankings-table"><thead><tr><th>RANK</th><th>NAME</th><th style="text-align:right;">SCORE</th><th style="text-align:right;">DATE</th></tr></thead><tbody>`;
+        scores.forEach((s, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+            html += `<tr>
+                <td><span class="r-medal">${medal}</span><span class="r-num">${i + 1}</span></td>
+                <td class="r-name">${escHtml(s.name)}</td>
+                <td class="r-score" style="text-align:right;">${Number(s.score).toLocaleString()}</td>
+                <td class="r-date" style="text-align:right;">${s.date || ''}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        content.innerHTML = html;
+    } catch (e) {
+        content.innerHTML = '<p style="color:#f55;text-align:center;padding:20px;">UPLINK FAILED. BACKEND OFFLINE.</p>';
+    }
+};
+
+window.closeRankingsOverlay = () => {
+    document.getElementById('rankings-overlay').classList.add('hidden');
 };
