@@ -14,12 +14,19 @@
             <div class="auth-header">NEXUS // CORE ACCESS</div>
             <p class="auth-desc" id="auth-status-msg">Identity synchronization required.</p>
             
+            
             <!-- Google Auth Section -->
             <div class="auth-sub-section">
                 <div class="auth-label">GOOGLE UPLINK</div>
-                <div style="display:flex; justify-content:center; min-height:40px;" id="g_id_signin_wall">
+                <div id="g_id_signin_wall" style="min-height:40px; display:flex; justify-content:center; align-items:center;">
+                    <!-- Auto-button renders here -->
                 </div>
+                <button id="manual-google-btn" class="gui-btn" onclick="triggerGoogleManual()" style="display:none; width:100%; margin-top:5px; border-color:#4285F4; color:#4285F4; font-size:0.7rem;">
+                    <img src="https://www.google.com/favicon.ico" style="width:12px; margin-right:8px; vertical-align:middle;">
+                    MANUAL GOOGLE UPLINK
+                </button>
             </div>
+    
 
             <div class="auth-divider"><span>OR</span></div>
 
@@ -142,6 +149,6 @@
         </div>
     </div>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="terminal.js?v=21"></script>
+    <script src="terminal.js?v=22"></script>
     </body>
     </html>

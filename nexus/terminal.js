@@ -2093,6 +2093,17 @@ window.forceOwnerLocal = () => {
     location.reload();
 };
 
+
+window.triggerGoogleManual = () => {
+    console.log("[AUTH] Triggering Google Identity prompt manually...");
+    google.accounts.id.prompt((notification) => {
+        if (notification.isNotDisplayed()) {
+            console.warn("[AUTH] Prompt not displayed:", notification.getNotDisplayedReason());
+            alert("Google Login blocked. Please check if localhost:8000 is allowed in your Google Cloud Console.");
+        }
+    });
+};
+
 async function initGoogleAuth() {
     if (_authInited) return;
     renderAuthSection();
@@ -2125,7 +2136,14 @@ async function initGoogleAuth() {
             google.accounts.id.renderButton(wallEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'large' });
         }
 
-        _authInited = true;
+        _authInited = true; 
+        setTimeout(() => {
+            const wall = document.getElementById('g_id_signin_wall');
+            if (wall && wall.children.length === 0) {
+                const mb = document.getElementById('manual-google-btn');
+                if (mb) mb.style.display = 'block';
+            }
+        }, 3000);
         return true;
     };
 
@@ -3524,7 +3542,7 @@ window.onload = async () => {
         if (nexusUser && nexusUser.name) {
             revealTerminal(nexusUser.name);
         } else {
-            console.log("[NEXUS] Awaiting Authorization..."); if(isLocal) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
+            console.log("[NEXUS] Awaiting Authorization..."); if(true) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
         }
     } catch (e) {
         console.error("[CRITICAL] Boot sequence failed:", e);
