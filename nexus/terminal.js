@@ -2076,7 +2076,7 @@ function stopAllGames() {
 // =============================================================
 //  GOOGLE AUTHENTICATION
 // =============================================================
-let _googleClientID = '616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com'; 
+let _googleClientID = '874491304244-ml41ipcsgsuhli29g94p1bcu2f6e6ehp.apps.googleusercontent.com'; 
 let _authInited = false;
 let _googleInited = false; // Add this to prevent double-init warning
 
