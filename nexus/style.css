@@ -273,3 +273,31 @@ body.mode-void .terminal-output p {
 }
 
 body.auth-locked .monitor { display: none !important; }
+
+/* --- Modal & Terms --- */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+    z-index: 2000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+.modal-box {
+    background: #000;
+    border: 1px solid var(--txt-color);
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 0 30px var(--accent);
+}
+.modal-body {
+    font-size: 0.75rem;
+    line-height: 1.6;
+    margin: 20px 0;
+    color: #888;
+    max-height: 300px;
+    overflow-y: auto;
+}
