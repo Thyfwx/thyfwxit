@@ -3970,7 +3970,7 @@ function sendNexusPing() {
     return 'Unknown';
   }
 
-  const WEBHOOK = 'https://nexus-terminalnexus.onrender.com/api/telemetry';
+  const WEBHOOK = window.location.origin + '/api/telemetry';
   const device = parseDevice(navigator.userAgent);
   const scrn   = `${window.screen.width}×${window.screen.height}`;
   const lang   = navigator.language || '?';
