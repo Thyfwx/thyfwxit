@@ -1043,3 +1043,9 @@ body.mode-void .terminal-output p {
     .rankings-table td, .rankings-table thead th { padding: 8px 8px; }
 }
 \n.aside { will-change: transform; backface-visibility: hidden; -webkit-overflow-scrolling: touch; }\n
+#g_id_signin_wall, #sidebar-g_id_signin {
+    min-height: 40px !important;
+    display: flex !important;
+    justify-content: center !important;
+    margin: 10px 0 !important;
+}

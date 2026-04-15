@@ -2079,14 +2079,30 @@ let _googleClientID = '616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.google
 let _authInited = false;
 let _googleInited = false; // Add this to prevent double-init warning
 
+
+window.forceOwnerLocal = () => {
+    const ownerData = {
+        ok: true,
+        name: 'Xavier (Local)',
+        email: 'lovexdgamer@gmail.com',
+        picture: '',
+        is_owner: true
+    };
+    localStorage.setItem('nexus_user_data', JSON.stringify(ownerData));
+    localStorage.setItem('nexus_owner', 'true');
+    location.reload();
+};
+
 async function initGoogleAuth() {
     if (_authInited) return;
     renderAuthSection();
 
     const setupGoogle = () => {
+        console.log("[AUTH] setupGoogle called. Google lib:", !!(window.google && window.google.accounts));
         const hasGoogle = !!(window.google && window.google.accounts);
         if (!hasGoogle || _googleInited) return _googleInited;
 
+        console.log("[AUTH] Initializing Google with ID:", _googleClientID);
         google.accounts.id.initialize({
             client_id: _googleClientID,
             callback: handleCredentialResponse,
@@ -2100,10 +2116,12 @@ async function initGoogleAuth() {
 
         const sideEl = document.getElementById('sidebar-g_id_signin');
         if (sideEl && sideEl.children.length === 0) {
+            console.log("[AUTH] Rendering sidebar button...");
             google.accounts.id.renderButton(sideEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'medium' });
         }
         const wallEl = document.getElementById('g_id_signin_wall');
         if (wallEl && wallEl.children.length === 0) {
+            console.log("[AUTH] Rendering wall button...");
             google.accounts.id.renderButton(wallEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'large' });
         }
 
@@ -2906,6 +2924,26 @@ function setupInputListeners() {
         input.value = '';
 
         const lc = cmd.toLowerCase();
+        
+        if (lc === 'sudo-owner' || lc === 'become-owner') {
+            if (isLocal) {
+                const ownerData = {
+                    ok: true,
+                    name: 'Xavier (Local)',
+                    email: 'lovexdgamer@gmail.com',
+                    picture: '',
+                    is_owner: true
+                };
+                localStorage.setItem('nexus_user_data', JSON.stringify(ownerData));
+                localStorage.setItem('nexus_owner', 'true');
+                printToTerminal('[OK] Local Owner status granted. Reloading...', 'conn-ok');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                printToTerminal('[ERR] sudo-owner restricted to local nodes.', 'sys-msg');
+            }
+            return;
+        }
+    
         if (lc === 'sys-check' || lc === 'debug') {
             const diag = [
                 '-- NEXUS CORE DIAGNOSTIC --',
@@ -3486,7 +3524,7 @@ window.onload = async () => {
         if (nexusUser && nexusUser.name) {
             revealTerminal(nexusUser.name);
         } else {
-            console.log("[NEXUS] Awaiting Authorization...");
+            console.log("[NEXUS] Awaiting Authorization..."); if(isLocal) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
         }
     } catch (e) {
         console.error("[CRITICAL] Boot sequence failed:", e);
