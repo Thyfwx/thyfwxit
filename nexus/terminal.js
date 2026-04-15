@@ -90,7 +90,7 @@ let historyIndex = -1;
 let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 
 // Animation frame holders to prevent crashes in stopAllGames
-let pongRaf, flappyFrame, breakoutRaf, invadersRaf;
+let pongRaf, breakoutRaf, flappyFrame, invadersRaf, snakeRaf, matrixSaverFrame;
 
 // =============================================================
 //  SOUND DESIGN (WEB AUDIO API)
@@ -546,7 +546,10 @@ window.showLeaderboard = showLeaderboard;
 // =============================================================
 //  TYPEWRITER EFFECT FOR AI RESPONSES
 // =============================================================
+let _lastTypewritten = "";
 function printTypewriter(text, className = 'ai-msg') {
+    if (!text || text === _lastTypewritten) return;
+    _lastTypewritten = text;
     if (!output) output = document.getElementById('terminal-output');
     if (!output) return;
 
@@ -1570,13 +1573,13 @@ function launchInvaders(difficulty) {
             nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
         }
 
-        breakoutFrame = requestAnimationFrame(frame);
+        breakoutRaf = requestAnimationFrame(frame);
     }
-    breakoutFrame = requestAnimationFrame(frame);
+    breakoutRaf = requestAnimationFrame(frame);
 }
 
 function stopBreakout() { 
-    cancelAnimationFrame(breakoutFrame); 
+    cancelAnimationFrame(breakoutRaf); 
     breakoutActive = false; 
     nexusCanvas.onmousemove = null;
     nexusCanvas.ontouchmove = null;
@@ -2004,7 +2007,7 @@ function stopAllGames() {
     // Kill all animation frames safely
     if (window.pongRaf) window.cancelAnimationFrame(window.pongRaf);
     if (window.flappyFrame) window.cancelAnimationFrame(window.flappyFrame);
-    if (window.breakoutFrame) window.cancelAnimationFrame(window.breakoutFrame);
+    if (window.breakoutRaf) window.cancelAnimationFrame(window.breakoutRaf);
     if (window.breakoutRaf) window.cancelAnimationFrame(window.breakoutRaf);
     if (window.invadersRaf) window.cancelAnimationFrame(window.invadersRaf);
     if (window.snakeRaf) window.cancelAnimationFrame(window.snakeRaf);
@@ -2486,7 +2489,7 @@ async function askHFDirect(cmd, system) {
         
         document.getElementById('ai-thinking')?.remove();
         const p = document.createElement('p');
-        p.className = 'ai-msg';
+        p.className = 'ai-msg ' + (currentMode === 'evil' ? 'evil-msg' : '');
         output.appendChild(p);
         let full = '';
         
@@ -2768,10 +2771,783 @@ const MODES = {
         msgCls:  'conn-ok',
     },
     void: {
-        prompt:  'void@nexus:~$',
+        prompt:  'educational@nexus:~,
+        msg: '[EDUCATIONAL] Academic kernel online. Professor Nexus ready to assist.',
+        msgCls:  'sys-msg',
+    },
+};
+
+function setMode(modeKey) {
+    if (!MODES[modeKey]) return;
+    saveHistory();
+    
+    // Apply mode-specific body class for overload effects
+    Object.keys(MODES).forEach(m => document.body.classList.remove(`mode-${m}`));
+    document.body.classList.add(`mode-${modeKey}`);
+    
+    currentMode = modeKey;
+    localStorage.setItem('nexus_mode', modeKey);
+    messageHistory = loadHistory(modeKey);
+    const m = MODES[modeKey];
+
+    const promptEl   = document.getElementById('prompt-label');
+    const titleEl    = document.getElementById('status-title');
+    const modeIndEl  = document.getElementById('mode-indicator');
+
+    if (promptEl)  { promptEl.textContent = m.prompt; console.log('[MODE] Set to', modeKey); promptEl.style.color = m.color; }
+    if (titleEl)   titleEl.textContent = m.title;
+    if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color || 'inherit'; }
+
+    // IMMEDIATE COLOR UPDATE — No refresh needed
+    if (m.color) {
+        document.documentElement.style.setProperty('--accent', m.color);
+        document.documentElement.style.setProperty('--txt-color', m.color);
+    }
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === modeKey);
+    });
+
+    SoundManager.playBloop(300, 0.05);
+    
+    // Cleaner, less crowded text
+    const cleanMsg = m.msg.includes('.') ? m.msg.split('.')[0] + '.' : m.msg;
+    printToTerminal(cleanMsg, m.msgCls);
+}
+
+// Wire up mode picker buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        if (btn.dataset.mode === 'evil') {
+            evilAgeGate(() => { setMode('evil'); input.focus(); });
+        } else {
+            setMode(btn.dataset.mode);
+            input.focus();
+        }
+    });
+});
+
+// Apply saved mode visuals on page load (without printing a mode message)
+(function initModeUI() {
+    const m = MODES[currentMode];
+    if (!m) return;
+    const promptEl  = document.getElementById('prompt-label');
+    const titleEl   = document.getElementById('status-title');
+    const modeIndEl = document.getElementById('mode-indicator');
+    if (promptEl)  { promptEl.textContent = m.prompt; promptEl.style.color = m.color; }
+    if (titleEl)   titleEl.textContent = m.title;
+    if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color; }
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === currentMode);
+    });
+})();
+
+// =============================================================
+//  INPUT HANDLING
+// =============================================================
+function setupInputListeners() {
+    if (!input) input = document.getElementById('terminal-input');
+    if (!input) return;
+
+    input.addEventListener('input', () => {
+        SoundManager.playClick();
+    });
+
+    input.addEventListener('keydown', (e) => {
+        // Route keypresses to Wordle when active
+        if (wordleActive) {
+            if (e.key === 'Enter') { e.preventDefault(); wordleKey('ENTER'); return; }
+            if (e.key === 'Backspace') { wordleKey('⌫'); return; }
+            if (/^[a-zA-Z]$/.test(e.key)) { wordleKey(e.key.toUpperCase()); e.preventDefault(); return; }
+        }
+
+        // Typing test: live feedback, Escape to cancel
+        if (typeTestActive) {
+            if (e.key === 'Escape') {
+                clearInterval(typeTimerInterval);
+                typeTestActive = false;
+                guiContainer.classList.add('gui-hidden');
+                printToTerminal('Typing test cancelled.', 'sys-msg');
+                input.value = '';
+                return;
+            }
+            if (e.key !== 'Enter') {
+                setTimeout(() => checkTypingTest(input.value), 0);
+                return;
+            }
+        }
+
+        if (e.key !== 'Enter' && e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (historyIndex < cmdHistory.length - 1) { historyIndex++; input.value = cmdHistory[historyIndex]; }
+            return;
+        }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            historyIndex > 0 ? (historyIndex--, input.value = cmdHistory[historyIndex]) : (historyIndex = -1, input.value = '');
+            return;
+        }
+
+        let cmd = input.value.trim();
+        if (!cmd) return;
+
+        cmdHistory.unshift(cmd);
+        if (cmdHistory.length > 50) cmdHistory.pop();
+        localStorage.setItem('nexus_cmd_history', JSON.stringify(cmdHistory));
+        historyIndex = -1;
+        input.value = '';
+
+        const lc = cmd.toLowerCase();
+        if (lc === 'sys-check' || lc === 'debug') {
+            const diag = [
+                '-- NEXUS CORE DIAGNOSTIC --',
+                'WebSocket: ' + (termWs?.readyState === 1 ? 'ONLINE' : 'OFFLINE'),
+                'Canvas: ' + (nexusCanvas ? 'LOADED (' + nexusCanvas.width + 'x' + nexusCanvas.height + ')' : 'MISSING'),
+                'Backend: ' + API_BASE,
+                'Mode: ' + currentMode,
+                'API Keys: Check /api/status',
+                '-------------------------'
+            ].join('\n');
+            printToTerminal(diag, 'sys-msg');
+            return;
+        }
+        
+        const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+        const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+
+        // Typing test intercept
+        if (typeTestActive) {
+            const done = checkTypingTest(cmd);
+            if (done) return;
+        }
+
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
+        // Command Router
+        handleCommand(cmd);
+    });
+}
+
+// Initial attempt
+setupInputListeners();
+
+function handleCommand(cmd) {
+    const lc = cmd.toLowerCase();
+    if (lc === 'clear') { 
+        if (output) output.innerHTML = ''; 
+        messageHistory = []; 
+        pendingImageB64 = null; 
+        localStorage.removeItem(HISTORY_KEYS[currentMode]); 
+        return; 
+    }
+    if (lc === 'history') { showHistory(); return; }
+
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+    
+    if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
+    if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
+    if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
+    if (lc === 'leaderboard' || lc === 'rankings') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
+    
+    if (lc === 'login' || lc === 'signin') {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        printToTerminal("[AUTH] Triggering Google Identity prompt...", "sys-msg");
+        google.accounts.id.prompt();
+        return;
+    }
+
+    if (lc.startsWith('name ')) {
+        const newName = cmd.slice(5).trim().slice(0, 15);
+        if (newName) {
+            localStorage.setItem('nexus_user_name', newName);
+            printToTerminal(`[SYS] Identity updated: ${newName}`, 'conn-ok');
+        }
+        return;
+    }
+
+    if (lc === 'scan image' || lc === 'scan') {
+        if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
+        printToTerminal(`${pl} scan image`, 'user-cmd');
+        cmd = 'Describe and analyze this image in detail. What do you see?';
+    }
+    
+    if (lc === 'evil')  {
+        if (false) { // Evil now routed through WS
+        console.log(`[AI] Dispatching ${currentMode.toUpperCase()}...`);
+        showThinking(cmd);
+        
+        if (termWs && termWs.readyState === WebSocket.OPEN) {
+            // Register timeout only IF we are using WS
+            _thinkFallbackCmd = cmd;
+            clearTimeout(_thinkTimeout);
+            _thinkTimeout = setTimeout(() => {
+                if (_thinkFallbackCmd) {
+                    console.warn("[AI] WebSocket timed out. Falling back to Proxy...");
+                    askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+                    _thinkFallbackCmd = null;
+                }
+            }, 18000);
+
+            const historySlice = messageHistory.slice(-12).map(m => ({ 
+                role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user', 
+                content: m.content 
+            }));
+            const payload = {
+                cmd: cmd,
+                mode: currentMode,
+                history: historySlice,
+                context: '' 
+            };
+            if (imgSnap) payload.imageB64 = imgSnap;
+            termWs.send(JSON.stringify(payload));
+        } else {
+            console.warn("[AI] WebSocket offline. Immediate fallback to Direct API...");
+            askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        }
+    }
+}
+
+// =============================================================
+//  QUICK ACTION BUTTONS
+// =============================================================
+
+
+document.querySelectorAll('.action-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const cmd = btn.getAttribute('data-cmd');
+        const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+        const promptLabel = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+        if (cmd === 'clear history') { 
+            printToTerminal(`${promptLabel} clear history`, 'user-cmd');
+            localStorage.removeItem(HISTORY_KEYS[currentMode]); 
+            messageHistory = []; 
+            printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
+            input.focus();
+            return;
+        }
+        if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; localStorage.removeItem(HISTORY_KEYS[currentMode]); return; }
+        if (cmd === 'help')             { printToTerminal(`${promptLabel} help`, 'user-cmd'); showHelp(); input.focus(); return; }
+        if (cmd === 'whoami')           { printToTerminal(`${promptLabel} whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
+        if (cmd === 'neofetch')         { printToTerminal(`${promptLabel} neofetch`, 'user-cmd'); runNeofetch(); input.focus(); return; }
+        if (cmd === 'play pong')        { startPong(); return; }
+        if (cmd === 'play snake')       { startSnake(); return; }
+        if (cmd === 'play wordle')      { startWordle(); return; }
+        if (cmd === 'play minesweeper') { startMinesweeper(); return; }
+        if (cmd === 'play flappy')      { startFlappy(); return; }
+        if (cmd === 'play breakout')    { startBreakout(); return; }
+        if (cmd === 'play invaders')    { startInvaders(); return; }
+        if (cmd === 'leaderboard')      { printToTerminal(`${promptLabel} leaderboard`, 'user-cmd'); showLeaderboard(); input.focus(); return; }
+        if (cmd === 'type test')        { startTypingTest(); return; }
+        if (cmd === 'matrix')           { startMatrixSaver(); return; }
+        if (cmd === 'monitor')          { startMonitor(); return; }
+
+        printToTerminal(`${promptLabel} ${cmd}`, 'user-cmd');
+
+        if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
+        if (isContactQuestion(cmd))  { showContactResponse();  input.focus(); return; }
+
+        // Image generation works in ALL modes
+        const genMatchBtn = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
+        if (genMatchBtn) {
+            const isVintageBtn = /^vintage\s/i.test(cmd);
+            generateImage(isVintageBtn ? cmd.trim() : genMatchBtn[1].trim());
+            input.focus();
+            return;
+        }
+
+        const snap = pendingImageB64;
+        pendingImageB64 = null;
+        logPrompt(cmd, snap);
+
+        const system = MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus;
+        const msgCls = (currentMode === 'evil' ? 'evil-msg' : 'ai-msg');
+        
+        console.log(`[AI] Dispatching ${currentMode.toUpperCase()} (via button) through Proxy...`);
+        askEvil(cmd, snap, (currentMode === 'evil' ? null : system), msgCls);
+        
+        input.focus();
+    });
+});
+
+// =============================================================
+//  UTILITIES
+// =============================================================
+function printToTerminal(text, className = 'sys-msg') {
+    // Fail-safe initialization
+    if (!output) output = document.getElementById('terminal-output');
+    if (!output) return; // Still not found? Silently fail to prevent crash.
+
+    const p = document.createElement('p');
+    p.className = className;
+    p.innerHTML = text.replace(/\n/g, '<br>');
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+}
+
+function showThinking(cmd) {
+    if (!output) output = document.getElementById('terminal-output');
+    if (!output) return;
+
+    document.getElementById('ai-thinking')?.remove(); // clear any stale one first
+    clearTimeout(_thinkTimeout);
+    _thinkFallbackCmd = cmd || null;
+
+    const col = MODE_COLORS[currentMode] || '#4af';
+    const label = (currentMode === 'evil' ? 'EVIL' : currentMode === 'coder' ? 'CODER' : currentMode === 'sage' ? 'SAGE' : 'NEXUS');
+    const p = document.createElement('p');
+    p.id = 'ai-thinking';
+    p.style.margin = '6px 0';
+    p.innerHTML = `
+        <span class="nexus-thinking-bar" style="color:${col};">
+            <span class="nexus-spinner"></span>
+            <span class="bar-dot"></span>
+            <span class="bar-dot"></span>
+            <span class="bar-dot"></span>
+            <span style="font-size:0.72rem;letter-spacing:2px;margin-left:4px;opacity:0.8;">${label} thinking</span>
+        </span>`;
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+
+    // After 18s with no WS response, fall back to CF Worker (Groq) with mode system prompt.
+    // This makes NEXUS/CODER/SAGE resilient to Render.com cold starts or Gemini hangs.
+    _thinkTimeout = setTimeout(() => {
+        document.getElementById('ai-thinking')?.remove();
+        _thinkTimeout = null;
+        const fallback = _thinkFallbackCmd;
+        _thinkFallbackCmd = null;
+        if (fallback && currentMode !== 'evil') {
+            // WS timed out — retry instantly via CF Worker (no "routing via..." noise)
+            askEvil(fallback, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        } else if (fallback && currentMode === 'evil') {
+            askEvil(fallback, null);
+        }
+    }, 18000);
+}
+
+// Log AI responses to Discord so full conversations are visible in logs
+function _logAIResponse(responseText) {
+    if (!responseText || responseText.length < 3) return;
+    const user = JSON.parse(localStorage.getItem('nexus_user_data') || '{"name":"Guest"}');
+    
+    const embed = {
+        title: `🤖 Nexus Reply to ${user.name}`,
+        color: 0xff00ff,
+        description: `\`\`\`\n${responseText.slice(0, 1500)}\n\`\`\``,
+        timestamp: new Date().toISOString()
+    };
+    
+    postToDiscord({ embeds: [embed] }, discordThreadId || null);
+}
+
+function jsonPayload(cmd) {
+    const history = (messageHistory || []).slice(-10);
+    const payload = { command: cmd, history: history, mode: currentMode, context: XAVIER_BIO };
+    if (pendingImageB64) {
+        payload.image = pendingImageB64;
+        pendingImageB64 = null; // consume — sent once
+    }
+    return JSON.stringify(payload);
+}
+
+let statsWs;
+function connectStats() {
+    if (statsWs) { statsWs.onclose = null; statsWs.close(); }
+    statsWs = new WebSocket(STATS_URL);
+    statsWs.onmessage = (e) => {
+        try {
+            const d = JSON.parse(e.data);
+            if (cpuStat) cpuStat.textContent = d.cpu.toFixed(1) + '%';
+            if (memStat) memStat.textContent = d.mem.toFixed(1) + '%';
+        } catch (_) {}
+    };
+    statsWs.onclose = () => setTimeout(connectStats, 5000);
+}
+
+function updateClientStats() {
+    if (statsWs && statsWs.readyState === WebSocket.OPEN) return;
+    if (!cpuStat) cpuStat = document.getElementById('cpu-stat');
+    if (!memStat) memStat = document.getElementById('mem-stat');
+    if (cpuStat) cpuStat.textContent = (navigator.hardwareConcurrency || '--') + ' Cores';
+    if (memStat) memStat.textContent  = (navigator.deviceMemory || '--') + ' GB';
+}
+
+// =============================================================
+//  IMAGE VIEWER + AI SCAN
+// =============================================================
+let pendingImageB64 = null; // set when an image is loaded, cleared after sending
+
+function openImageViewer(file) {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+        pendingImageB64 = ev.target.result;
+        const b64 = pendingImageB64;
+
+        // ── Inline terminal thumbnail ──────────────────────────
+        const p = document.createElement('p');
+        p.className = 'sys-msg';
+        p.innerHTML = `📎 <b style="color:#0ff">${file.name}</b> <span style="color:#444">(${(file.size/1024).toFixed(1)} KB)</span><br>
+            <img src="${b64}"
+                 style="max-height:72px;max-width:180px;border:1px solid #0ff;border-radius:3px;margin-top:5px;display:block;cursor:pointer;"
+                 title="Click to expand"
+                 onclick="nexusExpandImg('${b64.slice(0,32)}')">
+            <span style="font-size:0.7rem;color:#555;">Ask a question or type <b style="color:#0ff;">scan image</b> to analyze</span>`;
+        output.appendChild(p);
+        output.scrollTop = output.scrollHeight;
+
+        // No GUI popup — stays in chat. Click thumbnail to expand.
+        input.focus();
+    };
+    reader.readAsDataURL(file);
+}
+
+// Expand image full-size in GUI when thumbnail clicked
+window.nexusExpandImg = function(src) {
+    stopAllGames();
+    guiTitle.textContent = 'IMAGE VIEWER';
+    guiContent.innerHTML = `<div style="text-align:center;"><img src="${src}" style="max-width:100%;border:2px solid #0ff;border-radius:4px;display:block;margin:0 auto;"></div>`;
+    nexusCanvas.style.display = 'none';
+    guiContainer.classList.remove('gui-hidden');
+};
+
+document.getElementById('img-input').addEventListener('change', (e) => {
+    if (e.target.files[0]) openImageViewer(e.target.files[0]);
+    e.target.value = '';
+});
+
+// =============================================================
+//  MOBILE: hide sidebar when keyboard is open
+// =============================================================
+const quickActions = document.querySelector('.quick-actions');
+input.addEventListener('focus', () => {
+    if (window.innerWidth <= 700) quickActions.classList.add('kb-hidden');
+});
+input.addEventListener('blur', () => {
+    quickActions.classList.remove('kb-hidden');
+});
+
+// =============================================================
+//  INIT
+// =============================================================
+// Restore saved mode (UI only — no message, no flash)
+if (currentMode !== 'nexus') {
+    const m = MODES[currentMode];
+    if (m) {
+        const promptEl  = document.getElementById('prompt-label');
+        const titleEl   = document.getElementById('status-title');
+        const modeIndEl = document.getElementById('mode-indicator');
+        if (promptEl)  promptEl.textContent  = m.prompt;
+        if (titleEl)   titleEl.textContent   = m.title;
+        if (modeIndEl) modeIndEl.textContent = m.label;
+        if (m.color) {
+            document.documentElement.style.setProperty('--accent', m.color);
+            document.documentElement.style.setProperty('--txt-color', m.color);
+        }
+        document.querySelectorAll('.mode-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.mode === currentMode);
+        });
+    }
+}
+// Restore current mode's history into memory
+const _savedHistory = loadHistory(currentMode);
+if (_savedHistory.length) {
+    messageHistory = _savedHistory;
+    setTimeout(() => {
+        const col = MODE_COLORS[currentMode] || '#0ff';
+        printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages from last session — type <b style="color:${col}">history</b> to view all modes.`, 'sys-msg');
+    }, 2000);
+}
+
+connectWS();
+connectStats();
+updateClientStats();
+setInterval(updateClientStats, 5000);
+
+// =============================================================
+//  ACCESSIBILITY
+// =============================================================
+
+const A11Y_CLASSES = ['a11y-large', 'a11y-xl', 'a11y-high-contrast', 'a11y-reduce-motion', 'a11y-dyslexic', 'a11y-wide-spacing', 'a11y-bold', 'a11y-dim', 'crt-mode'];
+
+function _a11ySave() {
+    const active = A11Y_CLASSES.filter(c => document.body.classList.contains(c));
+    localStorage.setItem('nexus_a11y', JSON.stringify(active));
+    localStorage.setItem('nexus_sound', SoundManager.enabled ? '1' : '0');
+}
+
+function toggleSound() {
+    SoundManager.enabled = !SoundManager.enabled;
+    if (SoundManager.enabled) SoundManager.playBloop(600, 0.05);
+    _a11ySave();
+    _a11ySyncButtons();
+}
+
+function clearAllHistory() {
+    if (!confirm("Wipe ALL conversation memory across ALL modes?")) return;
+    Object.values(HISTORY_KEYS).forEach(key => localStorage.removeItem(key));
+    messageHistory = [];
+    printToTerminal("[SYSTEM] Global memory wiped. All modes reset.", "sys-msg");
+    const p = document.getElementById('a11y-panel');
+    if (p) p.classList.remove('a11y-panel-open');
+}
+
+function _a11ySyncButtons() {
+    document.querySelectorAll('.a11y-toggle').forEach(btn => {
+        const cls = btn.dataset.class;
+        if (cls) btn.classList.toggle('on', document.body.classList.contains(cls));
+        if (btn.id === 'sound-toggle') btn.classList.toggle('on', SoundManager.enabled);
+    });
+}
+
+function toggleA11yClass(cls) {
+    document.body.classList.toggle(cls);
+    if (cls === 'a11y-large' && document.body.classList.contains(cls))  document.body.classList.remove('a11y-xl');
+    if (cls === 'a11y-xl'    && document.body.classList.contains(cls))  document.body.classList.remove('a11y-large');
+    _a11ySave();
+    _a11ySyncButtons();
+}
+
+function toggleSound() {
+    SoundManager.enabled = !SoundManager.enabled;
+    if (SoundManager.enabled) SoundManager.playBloop(600, 0.05);
+    _a11ySave();
+    _a11ySyncButtons();
+}
+
+// ── Voice selection helpers ──────────────────────────────────────────────────
+// Preferred voice names in priority order (Google > Microsoft > macOS > default)
+const _VOICE_PREF = [
+    'Google US English', 'Google UK English Female', 'Google UK English Male',
+    'Microsoft Aria Online (Natural) - English (United States)',
+    'Microsoft Jenny Online (Natural) - English (United States)',
+    'Microsoft Guy Online (Natural) - English (United States)',
+    'Microsoft Zira - English (United States)',
+    'Microsoft David - English (United States)',
+    'Samantha', 'Alex', 'Karen', 'Daniel',
+];
+
+function _pickBestVoice(voices) {
+    // Try ranked preferences first
+    for (const name of _VOICE_PREF) {
+        const v = voices.find(v => v.name === name);
+        if (v) return v;
+    }
+    // Fall back to any en-US voice, then any English voice
+    return voices.find(v => v.lang === 'en-US')
+        || voices.find(v => v.lang.startsWith('en'))
+        || voices[0];
+}
+
+function _buildVoiceOptions(sel) {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) {
+        sel.innerHTML = '<option value="">No voices available</option>';
+        return;
+    }
+    const saved = localStorage.getItem('nexus_tts_voice');
+    const list  = voices.filter(v => v.lang.startsWith('en'));
+    sel.innerHTML = '<option value="">— Auto (best available) —</option>';
+    (list.length ? list : voices).forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = `${v.name} (${v.lang})`;
+        sel.appendChild(opt);
+    });
+    // Set selection using sel.value — simpler and always works
+    if (saved) {
+        sel.value = saved;
+        if (!sel.value) { sel.value = ''; localStorage.removeItem('nexus_tts_voice'); }
+    } else {
+        const best = _pickBestVoice(list.length ? list : voices);
+        if (best) sel.value = best.name;
+    }
+}
+
+function clearAllHistory() {
+    if (!confirm("Wipe ALL conversation memory across ALL modes?")) return;
+    Object.values(HISTORY_KEYS).forEach(key => localStorage.removeItem(key));
+    messageHistory = [];
+    printToTerminal("[SYSTEM] Global memory wiped. All modes reset.", "sys-msg");
+    const p = document.getElementById('a11y-panel');
+    if (p) p.classList.remove('a11y-panel-open');
+}
+
+function toggleA11yPanel() {
+    const panel = document.getElementById('a11y-panel');
+    if (panel) {
+        panel.classList.toggle('a11y-panel-open');
+        // Re-populate voices each open (Chrome loads them async after first gesture)
+        if (panel.classList.contains('a11y-panel-open')) {
+            const sel = panel.querySelector('#a11y-voice-sel');
+            if (sel) _buildVoiceOptions(sel);
+        }
+        return;
+    }
+
+    const el = document.createElement('div');
+    el.id = 'a11y-panel';
+    el.className = 'a11y-panel a11y-panel-open';
+    el.innerHTML = `
+        <div class="a11y-panel-header">
+            <span>[ ACCESSIBILITY ]</span>
+            <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">✕</button>
+        </div>
+
+        <div class="a11y-section-label">VISUALS</div>
+
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="crt-mode" onclick="toggleA11yClass('crt-mode')">CRT Mode</button>
+            <button class="a11y-toggle" id="sound-toggle" onclick="toggleSound()">Sound Effects</button>
+        </div>
+
+        <div class="a11y-section-label">TEXT SIZE</div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-large" onclick="toggleA11yClass('a11y-large')">Large</button>
+            <button class="a11y-toggle" data-class="a11y-xl"    onclick="toggleA11yClass('a11y-xl')">Extra Large</button>
+        </div>
+
+        <div class="a11y-section-label">TEXT STYLE</div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-bold"         onclick="toggleA11yClass('a11y-bold')">Bold</button>
+            <button class="a11y-toggle" data-class="a11y-wide-spacing" onclick="toggleA11yClass('a11y-wide-spacing')">Wide Spacing</button>
+        </div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-dyslexic" onclick="toggleA11yClass('a11y-dyslexic')">Dyslexia Font</button>
+        </div>
+
+        <div class="a11y-section-label">DISPLAY</div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-high-contrast" onclick="toggleA11yClass('a11y-high-contrast')">High Contrast</button>
+            <button class="a11y-toggle" data-class="a11y-dim"           onclick="toggleA11yClass('a11y-dim')">Dim Mode</button>
+        </div>
+        <div class="a11y-row">
+            <button class="a11y-toggle" data-class="a11y-reduce-motion" onclick="toggleA11yClass('a11y-reduce-motion')">Less Motion</button>
+        </div>
+
+        <div class="a11y-section-label">VOICE (speak command)</div>
+        <select id="a11y-voice-sel" class="a11y-voice-sel">
+            <option value="">Loading voices…</option>
+        </select>
+
+        <div class="a11y-tip">All settings saved automatically.</div>
+    `;
+    document.querySelector('.glass-panel').appendChild(el);
+    _a11ySyncButtons();
+
+    // Populate voice picker — voices load async in Chrome
+    const sel = el.querySelector('#a11y-voice-sel');
+    const doPopulate = () => _buildVoiceOptions(sel);
+    if (window.speechSynthesis.getVoices().length) {
+        doPopulate();
+    } else {
+        window.speechSynthesis.addEventListener('voiceschanged', doPopulate, { once: true });
+    }
+
+    sel.addEventListener('change', () => {
+        if (sel.value) localStorage.setItem('nexus_tts_voice', sel.value);
+        else           localStorage.removeItem('nexus_tts_voice');
+    });
+}
+
+// =============================================================
+//  RESTORE & BOOT
+// =============================================================
+
+// Global Boot
+window.onload = async () => {
+    try {
+        // Initialize DOM references
+        cpuStat      = document.getElementById('cpu-stat');
+        memStat      = document.getElementById('mem-stat');
+        output       = document.getElementById('terminal-output');
+        input        = document.getElementById('terminal-input');
+        guiContainer = document.getElementById('game-gui-container');
+        guiContent   = document.getElementById('gui-content');
+        guiTitle     = document.getElementById('gui-title');
+        nexusCanvas  = document.getElementById('nexus-canvas');
+
+        // Load history for the current mode on boot
+        messageHistory = loadHistory(currentMode);
+
+        // Start auth in background (non-blocking)
+        initGoogleAuth();
+
+        const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+        if (nexusUser && nexusUser.name) {
+            revealTerminal(nexusUser.name);
+        } else {
+            console.log("[NEXUS] Awaiting Authorization...");
+        }
+    } catch (e) {
+        console.error("[CRITICAL] Boot sequence failed:", e);
+        // Ensure diagnostic reporter catches this if it's a hard crash
+        throw e; 
+    }
+};
+
+// =============================================================
+//  RANKINGS OVERLAY
+// =============================================================
+window.showRankingsOverlay = async function(game = 'pong') {
+    const overlay = document.getElementById('rankings-overlay');
+    if (!overlay) return;
+    stopAllGames();
+    overlay.classList.remove('hidden');
+    
+    const tabs = document.getElementById('rankings-tabs');
+    const content = document.getElementById('rankings-content');
+    const games = ['pong', 'snake_easy', 'snake_endless', 'snake_speed', 'wordle', 'breakout', 'invaders'];
+    
+    if (tabs) {
+        tabs.innerHTML = '';
+        games.forEach(g => {
+            const btn = document.createElement('button');
+            btn.className = `rankings-tab ${g === game ? 'active' : ''}`;
+            btn.textContent = g.split('_')[0].toUpperCase();
+            btn.onclick = () => window.showRankingsOverlay(g);
+            tabs.appendChild(btn);
+        });
+    }
+
+    if (content) content.innerHTML = '<p style="color:#0ff;text-align:center;padding:20px;">LINKING TO DATABANK...</p>';
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/leaderboard?game=${game}`);
+        const scores = await resp.json();
+        
+        if (!scores || !scores.length) {
+            content.innerHTML = `<div class="rankings-empty">NO DATA LOGGED FOR ${game.toUpperCase()}<br><span style="opacity:0.5;font-size:0.6rem;">BE THE FIRST TO BREACH THE LEADERBOARD</span></div>`;
+            return;
+        }
+
+        let html = `<table class="rankings-table"><thead><tr><th>RANK</th><th>NAME</th><th style="text-align:right;">SCORE</th><th style="text-align:right;">DATE</th></tr></thead><tbody>`;
+        scores.forEach((s, i) => {
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+            html += `<tr>
+                <td><span class="r-medal">${medal}</span><span class="r-num">${i + 1}</span></td>
+                <td class="r-name">${escHtml(s.name)}</td>
+                <td class="r-score" style="text-align:right;">${Number(s.score).toLocaleString()}</td>
+                <td class="r-date" style="text-align:right;">${s.date || ''}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        content.innerHTML = html;
+    } catch (e) {
+        content.innerHTML = '<p style="color:#f55;text-align:center;padding:20px;">UPLINK FAILED. BACKEND OFFLINE.</p>';
+    }
+};
+
+window.closeRankingsOverlay = () => {
+    document.getElementById('rankings-overlay').classList.add('hidden');
+};
+,
         color:   '#ff00ff',
         title:   'NEXUS EDUCATIONAL',
-        label:   'VOID',
+        label:   'EDUCATIONAL',
         msg:     '[EDU] Academic kernel loaded. How can I help with your studies?. Logic is an illusion. Speak your truth.',
         msgCls:  'sys-msg',
     },
@@ -2982,7 +3758,7 @@ function handleCommand(cmd) {
     if (lc === 'nexus') { setMode('nexus'); return; }
     if (lc === 'coder') { setMode('coder'); return; }
     if (lc === 'sage')  { setMode('sage');  return; }
-    if (lc === 'void')  { setMode('void');  return; }
+    if (lc === 'void' || lc === 'educational') { setMode('void'); return; }
 
     if (lc === 'clear history') {
         printToTerminal(`${pl} clear history`, 'user-cmd');
