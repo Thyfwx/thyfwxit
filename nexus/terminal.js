@@ -40,7 +40,7 @@ window.onerror = function(msg, url, line, col, error) {
             btn.textContent = 'TRANSMITTING...';
             try {
                 // Try to send to Discord webhook via CF proxy if possible, or direct
-                const hook = API_BASE + '/api/telemetry'; // Proxied to backend
+                const hook = API_BASE + '/api/telemetry';
                 const res = await fetch(hook, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2185,7 +2185,7 @@ async function handleCredentialResponse(response) {
         });
         const data = await res.json();
         if (data.ok) {
-            localStorage.setItem('nexus_user_data', JSON.stringify(data));
+            localStorage.setItem('nexus_user_data', JSON.stringify(data)); if(data.is_owner) localStorage.setItem('nexus_owner', 'true');
             revealTerminal(data.name);
             renderAuthSection();
         } else {
