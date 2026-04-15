@@ -70,12 +70,13 @@ const isLocal = (function() {
     return h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h === '';
 })();
 
-const RENDER_HOST = 'nexus-terminalnexus.onrender.com';
-const proto     = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const RENDER_HOST = isLocal ? 'localhost:8000' : window.location.host;
+const proto       = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const apiProto    = window.location.protocol;
 
-const WS_URL    = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${window.location.host}/ws/terminal`) : `wss://${RENDER_HOST}/ws/terminal`;
-const STATS_URL = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${window.location.host}/ws/stats`) : `wss://${RENDER_HOST}/ws/stats`;
-const API_BASE  = isLocal ? (window.location.hostname === '' ? 'http://127.0.0.1:8000' : `${window.location.protocol}//${window.location.host}`) : `https://${RENDER_HOST}`;
+const WS_URL    = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${window.location.host}/ws/terminal`) : `${proto}//${RENDER_HOST}/ws/terminal`;
+const STATS_URL = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${window.location.host}/ws/stats`) : `${proto}//${RENDER_HOST}/ws/stats`;
+const API_BASE  = isLocal ? (window.location.hostname === '' ? 'http://127.0.0.1:8000' : `${apiProto}//${window.location.host}`) : `${apiProto}//${RENDER_HOST}`;
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -2096,35 +2097,56 @@ window.forceOwnerLocal = () => {
 
 window.triggerGoogleManual = () => {
     console.log("[AUTH] Triggering Google Identity prompt manually...");
+    if (!(window.google && google.accounts && google.accounts.id)) {
+        alert("Google Identity Services library not loaded yet. Please wait a few seconds and try again.");
+        return;
+    }
     google.accounts.id.prompt((notification) => {
         if (notification.isNotDisplayed()) {
-            console.warn("[AUTH] Prompt not displayed:", notification.getNotDisplayedReason());
-            alert("Google Login blocked. Please check if localhost:8000 is allowed in your Google Cloud Console.");
+            const reason = notification.getNotDisplayedReason();
+            console.warn("[AUTH] Prompt not displayed:", reason);
+            alert(`Google Login prompt could not be displayed.\nReason: ${reason}\n\nEnsure that ${window.location.origin} is authorized in your Google Cloud Console.`);
         }
     });
 };
+
+let _lastInitializedID = null;
 
 async function initGoogleAuth() {
     if (_authInited) return;
     renderAuthSection();
 
     const setupGoogle = () => {
-        console.log("[AUTH] setupGoogle called. Google lib:", !!(window.google && window.google.accounts));
-        const hasGoogle = !!(window.google && window.google.accounts);
-        if (!hasGoogle || _googleInited) return _googleInited;
+        const hasGoogle = !!(window.google && window.google.accounts && window.google.accounts.id);
+        if (!hasGoogle) return false;
+        
+        // If already initialized with this ID, just ensure buttons are rendered
+        if (_lastInitializedID === _googleClientID) {
+            renderGoogleButtons();
+            return true;
+        }
 
         console.log("[AUTH] Initializing Google with ID:", _googleClientID);
-        google.accounts.id.initialize({
-            client_id: _googleClientID,
-            callback: handleCredentialResponse,
-            ux_mode: 'popup',
-            context: 'signin',
-            itp_support: true,
-            auto_select: true
-        });
-        _googleInited = true;
+        try {
+            google.accounts.id.initialize({
+                client_id: _googleClientID,
+                callback: handleCredentialResponse,
+                ux_mode: 'popup',
+                context: 'signin',
+                itp_support: true,
+                auto_select: true
+            });
+            _lastInitializedID = _googleClientID;
+            renderGoogleButtons();
+            _authInited = true;
+            return true;
+        } catch (e) {
+            console.error("[AUTH] Google init failed:", e);
+            return false;
+        }
+    };
 
-
+    function renderGoogleButtons() {
         const sideEl = document.getElementById('sidebar-g_id_signin');
         if (sideEl && sideEl.children.length === 0) {
             console.log("[AUTH] Rendering sidebar button...");
@@ -2136,7 +2158,6 @@ async function initGoogleAuth() {
             google.accounts.id.renderButton(wallEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'large' });
         }
 
-        _authInited = true; 
         setTimeout(() => {
             const wall = document.getElementById('g_id_signin_wall');
             if (wall && wall.children.length === 0) {
@@ -2144,13 +2165,10 @@ async function initGoogleAuth() {
                 if (mb) mb.style.display = 'block';
             }
         }, 3000);
-        return true;
-    };
-
-    // Try immediately with default ID
-    if (setupGoogle()) {
-        console.log("[AUTH] Init with local ID");
     }
+
+    // Try immediately
+    setupGoogle();
 
     // Update ID from server in background
     fetch(`${API_BASE}/api/config`)
@@ -2159,18 +2177,17 @@ async function initGoogleAuth() {
             if (cfg.google_client_id && cfg.google_client_id !== _googleClientID) {
                 console.log("[AUTH] Updating Client ID from server...");
                 _googleClientID = cfg.google_client_id;
-                _authInited = false; // re-init with new ID
                 setupGoogle();
             }
         })
         .catch(() => { /* keep using default */ });
 
-    // Fallback: If script isn't loaded yet, wait for it
+    // Fallback poll
     let attempts = 0;
     const poll = setInterval(() => {
         attempts++;
         if (setupGoogle() || attempts > 20) clearInterval(poll); 
-    }, 200); // Fast poll
+    }, 200);
 }
 
 function renderAuthSection() {
