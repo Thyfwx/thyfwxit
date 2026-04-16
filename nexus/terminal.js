@@ -392,6 +392,56 @@ function runBootSequence(callback) {
 // =============================================================
 //  WEBSOCKET
 // =============================================================
+// =============================================================
+//  CORE UTILITIES (HOISTED)
+// =============================================================
+function printToTerminal(text, className = 'sys-msg') {
+    // Fail-safe initialization
+    if (!output) output = document.getElementById('terminal-output');
+    if (!output) return; // Still not found? Silently fail to prevent crash.
+
+    const p = document.createElement('p');
+    p.className = className;
+    p.innerHTML = text.replace(/\n/g, '<br>');
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+}
+
+let _lastTypewritten = "";
+function printTypewriter(text, className = 'ai-msg') {
+    if (!text || text === _lastTypewritten) return;
+    _lastTypewritten = text;
+    if (!output) output = document.getElementById('terminal-output');
+    if (!output) return;
+
+    const p = document.createElement('p');
+    p.className = className;
+    output.appendChild(p);
+
+    // Build one <span> per line so we only mutate the current span (O(1) per tick)
+    const lines = text.split('\n');
+    const spans = [];
+    lines.forEach((_, i) => {
+        if (i > 0) p.appendChild(document.createElement('br'));
+        const s = document.createElement('span');
+        p.appendChild(s);
+        spans.push(s);
+    });
+
+    let lineIdx = 0, charIdx = 0;
+    const BATCH = 5; // chars per tick
+
+    function tick() {
+        if (lineIdx >= lines.length) { output.scrollTop = output.scrollHeight; return; }
+        charIdx = Math.min(charIdx + BATCH, lines[lineIdx].length);
+        spans[lineIdx].textContent = lines[lineIdx].slice(0, charIdx);
+        if (charIdx >= lines[lineIdx].length) { lineIdx++; charIdx = 0; }
+        output.scrollTop = output.scrollHeight;
+        setTimeout(tick, 8);
+    }
+    tick();
+}
+
 function connectWS() {
     // Single Connection Guard: Stop if already connected or connecting
     if (termWs && (termWs.readyState === WebSocket.OPEN || termWs.readyState === WebSocket.CONNECTING)) {
@@ -573,44 +623,6 @@ async function showLeaderboard(game = 'pong') {
 }
 
 window.showLeaderboard = showLeaderboard;
-
-// =============================================================
-//  TYPEWRITER EFFECT FOR AI RESPONSES
-// =============================================================
-let _lastTypewritten = "";
-function printTypewriter(text, className = 'ai-msg') {
-    if (!text || text === _lastTypewritten) return;
-    _lastTypewritten = text;
-    if (!output) output = document.getElementById('terminal-output');
-    if (!output) return;
-
-    const p = document.createElement('p');
-    p.className = className;
-    output.appendChild(p);
-
-    // Build one <span> per line so we only mutate the current span (O(1) per tick)
-    const lines = text.split('\n');
-    const spans = [];
-    lines.forEach((_, i) => {
-        if (i > 0) p.appendChild(document.createElement('br'));
-        const s = document.createElement('span');
-        p.appendChild(s);
-        spans.push(s);
-    });
-
-    let lineIdx = 0, charIdx = 0;
-    const BATCH = 5; // chars per tick — bump for faster output
-
-    function tick() {
-        if (lineIdx >= lines.length) { output.scrollTop = output.scrollHeight; return; }
-        charIdx = Math.min(charIdx + BATCH, lines[lineIdx].length);
-        spans[lineIdx].textContent = lines[lineIdx].slice(0, charIdx);
-        if (charIdx >= lines[lineIdx].length) { lineIdx++; charIdx = 0; }
-        output.scrollTop = output.scrollHeight;
-        setTimeout(tick, 8);
-    }
-    tick();
-}
 
 // =============================================================
 //  UTILITIES
@@ -3190,18 +3202,6 @@ document.querySelectorAll('.action-btn').forEach(btn => {
 // =============================================================
 //  UTILITIES
 // =============================================================
-function printToTerminal(text, className = 'sys-msg') {
-    // Fail-safe initialization
-    if (!output) output = document.getElementById('terminal-output');
-    if (!output) return; // Still not found? Silently fail to prevent crash.
-
-    const p = document.createElement('p');
-    p.className = className;
-    p.innerHTML = text.replace(/\n/g, '<br>');
-    output.appendChild(p);
-    output.scrollTop = output.scrollHeight;
-}
-
 function showThinking(cmd) {
     if (!output) output = document.getElementById('terminal-output');
     if (!output) return;
