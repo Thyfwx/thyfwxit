@@ -83,26 +83,28 @@ const RENDER_HOST = 'nexus-terminalnexus.onrender.com';
 const proto       = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const apiProto    = window.location.protocol;
 
-// Dynamic API Base with Auto-Probe
-let API_BASE = (isLocalHost || forceLocal) ? 'http://127.0.0.1:8000' : `${apiProto}//${window.location.host}`;
-let WS_URL   = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${window.location.host}/ws/terminal`;
-let STATS_URL = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${window.location.host}/ws/stats`;
+// Dynamic API Base:
+// Use local backend if on localhost OR forced via ?local=1.
+// OTHERWISE, use the public RENDER_HOST (The actual backend server).
+let API_BASE = (isLocalHost || forceLocal) ? 'http://127.0.0.1:8000' : `${apiProto}//${RENDER_HOST}`;
+let WS_URL   = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${RENDER_HOST}/ws/terminal`;
+let STATS_URL = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${RENDER_HOST}/ws/stats`;
 
-// Auto-Probe for local backend if on domain
+// Auto-Probe for local backend: If we are on a domain and NOT forced local,
+// try to see if the user's computer is online to "promote" the session to high-power AI.
 if (!isLocalHost && !forceLocal) {
     fetch('http://127.0.0.1:8000/ping')
         .then(r => r.json())
         .then(data => {
             if (data.ok) {
-                console.log("[NEXUS] Local Uplink detected. Rerouting to local backend...");
+                console.log("[NEXUS] Local Uplink detected. Upgrading to High-Power AI Link.");
                 API_BASE = 'http://127.0.0.1:8000';
                 WS_URL   = 'ws://127.0.0.1:8000/ws/terminal';
                 STATS_URL = 'ws://127.0.0.1:8000/ws/stats';
-                // Re-init Google if needed
                 if (typeof initGoogleAuth === 'function') initGoogleAuth();
             }
         })
-        .catch(() => { /* keep domain default */ });
+        .catch(() => { console.log("[NEXUS] Local Uplink unavailable. Using Public Core."); });
 }
 
 // Discord webhook
