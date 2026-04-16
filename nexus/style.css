@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+
 :root {
     --bg-color: #050510;
     --txt-color: #0ff;
@@ -654,7 +656,6 @@ body.a11y-dim { filter: brightness(0.72); }
 body.a11y-dim .a11y-panel { filter: brightness(1.4); } /* keep panel readable */
 
 /* Dyslexia-friendly font */
-@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap');
 body.a11y-dyslexic,
 body.a11y-dyslexic .terminal-output p,
 body.a11y-dyslexic #terminal-input,
@@ -1042,10 +1043,13 @@ body.mode-void .terminal-output p {
     .rankings-table { font-size: 0.7rem; }
     .rankings-table td, .rankings-table thead th { padding: 8px 8px; }
 }
-\n.aside { will-change: transform; backface-visibility: hidden; -webkit-overflow-scrolling: touch; }\n
+
 #g_id_signin_wall, #sidebar-g_id_signin {
-    min-height: 40px !important;
+    min-height: 44px !important;
     display: flex !important;
     justify-content: center !important;
-    margin: 10px 0 !important;
+    align-items: center !important;
+    margin: 15px 0 !important;
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
 }

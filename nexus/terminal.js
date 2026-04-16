@@ -71,18 +71,39 @@ window.onerror = function(msg, url, line, col, error) {
 // --- CLEAN GLOBALS ---
 var pongRaf, breakoutRaf, flappyFrame, invadersRaf, snakeRaf, matrixSaverFrame;
 // --- Config ---
-const isLocal = (function() {
+const isLocalHost = (function() {
     const h = window.location.hostname;
     return h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h === '';
 })();
 
-const RENDER_HOST = isLocal ? 'localhost:8000' : window.location.host;
+const urlParams = new URLSearchParams(window.location.search);
+let forceLocal = urlParams.has('local');
+
+const RENDER_HOST = 'nexus-terminalnexus.onrender.com';
 const proto       = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const apiProto    = window.location.protocol;
 
-const WS_URL    = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${window.location.host}/ws/terminal`) : `${proto}//${RENDER_HOST}/ws/terminal`;
-const STATS_URL = isLocal ? (window.location.hostname === '' ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${window.location.host}/ws/stats`) : `${proto}//${RENDER_HOST}/ws/stats`;
-const API_BASE  = isLocal ? (window.location.hostname === '' ? 'http://127.0.0.1:8000' : `${apiProto}//${window.location.host}`) : `${apiProto}//${RENDER_HOST}`;
+// Dynamic API Base with Auto-Probe
+let API_BASE = (isLocalHost || forceLocal) ? 'http://127.0.0.1:8000' : `${apiProto}//${window.location.host}`;
+let WS_URL   = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${window.location.host}/ws/terminal`;
+let STATS_URL = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${window.location.host}/ws/stats`;
+
+// Auto-Probe for local backend if on domain
+if (!isLocalHost && !forceLocal) {
+    fetch('http://127.0.0.1:8000/ping')
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                console.log("[NEXUS] Local Uplink detected. Rerouting to local backend...");
+                API_BASE = 'http://127.0.0.1:8000';
+                WS_URL   = 'ws://127.0.0.1:8000/ws/terminal';
+                STATS_URL = 'ws://127.0.0.1:8000/ws/stats';
+                // Re-init Google if needed
+                if (typeof initGoogleAuth === 'function') initGoogleAuth();
+            }
+        })
+        .catch(() => { /* keep domain default */ });
+}
 
 // Discord webhook
 // Discord logging routes through the CF Worker — webhook URL stored as CF secret,
@@ -2124,15 +2145,17 @@ async function initGoogleAuth() {
 
     const setupGoogle = () => {
         const hasGoogle = !!(window.google && window.google.accounts && window.google.accounts.id);
-        if (!hasGoogle) return false;
+        if (!hasGoogle) {
+            console.warn("[AUTH] Google Identity Library not yet available...");
+            return false;
+        }
         
-        // If already initialized with this ID, just ensure buttons are rendered
         if (_lastInitializedID === _googleClientID) {
             renderGoogleButtons();
             return true;
         }
 
-        console.log("[AUTH] Initializing Google with ID:", _googleClientID);
+        console.log("[AUTH] Identity Protocol Booting: ", _googleClientID.substring(0, 15) + "...");
         try {
             google.accounts.id.initialize({
                 client_id: _googleClientID,
@@ -2147,26 +2170,29 @@ async function initGoogleAuth() {
             _authInited = true;
             return true;
         } catch (e) {
-            console.error("[AUTH] Google init failed:", e);
+            console.error("[AUTH] Google Init Protocol Failed:", e);
             return false;
         }
     };
 
     function renderGoogleButtons() {
+        console.log("[AUTH] Rendering Google Access Nodes...");
         const sideEl = document.getElementById('sidebar-g_id_signin');
-        if (sideEl && sideEl.children.length === 0) {
-            console.log("[AUTH] Rendering sidebar button...");
+        if (sideEl) {
+            sideEl.innerHTML = ''; // Clear stale nodes
             google.accounts.id.renderButton(sideEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'medium' });
         }
         const wallEl = document.getElementById('g_id_signin_wall');
-        if (wallEl && wallEl.children.length === 0) {
-            console.log("[AUTH] Rendering wall button...");
+        if (wallEl) {
+            wallEl.innerHTML = ''; // Clear stale nodes
             google.accounts.id.renderButton(wallEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'large' });
         }
 
+        // Emergency Protocol: If still empty after 3 seconds, force manual button
         setTimeout(() => {
             const wall = document.getElementById('g_id_signin_wall');
             if (wall && wall.children.length === 0) {
+                console.warn("[AUTH] Auto-render failed. Engaging manual uplink override.");
                 const mb = document.getElementById('manual-google-btn');
                 if (mb) mb.style.display = 'block';
             }
@@ -2176,17 +2202,21 @@ async function initGoogleAuth() {
     // Try immediately
     setupGoogle();
 
-    // Update ID from server in background
-    fetch(`${API_BASE}/api/config`)
-        .then(r => r.json())
-        .then(cfg => {
+    // Protocol Update: Sync configuration from Uplink
+    const syncConfig = async (url) => {
+        try {
+            const r = await fetch(`${url}/api/config`);
+            const cfg = await r.json();
             if (cfg.google_client_id && cfg.google_client_id !== _googleClientID) {
-                console.log("[AUTH] Updating Client ID from server...");
+                console.log("[AUTH] Config Synchronization: SUCCESS");
                 _googleClientID = cfg.google_client_id;
                 setupGoogle();
             }
-        })
-        .catch(() => { /* keep using default */ });
+        } catch(e) {}
+    };
+
+    syncConfig(API_BASE);
+    if (!isLocalHost) syncConfig('http://127.0.0.1:8000');
 
     // Fallback poll
     let attempts = 0;
@@ -3563,7 +3593,18 @@ window.onload = async () => {
 
         const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
         if (nexusUser && nexusUser.name) {
-            revealTerminal(nexusUser.name);
+            console.log("[NEXUS] Validating existing session...");
+            fetch(`${API_BASE}/ping`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) revealTerminal(nexusUser.name);
+                    else throw new Error("Backend offline");
+                })
+                .catch(() => {
+                    console.warn("[NEXUS] Session validation failed. Awaiting Auth.");
+                    localStorage.removeItem('nexus_user_data');
+                    if (true) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
+                });
         } else {
             console.log("[NEXUS] Awaiting Authorization..."); if(true) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
         }
