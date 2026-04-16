@@ -4,6 +4,12 @@
 
 console.log("[NEXUS] Core script loading...");
 
+// Fallback keys (loaded from secrets.js or provided by backend)
+window.XAI_KEY         = window.XAI_KEY || '';
+window.GROQ_KEY        = window.GROQ_KEY || '';
+window.HF_KEY          = window.HF_KEY || '';
+window.DISCORD_WEBHOOK = window.DISCORD_WEBHOOK || '';
+
 // --- Global Diagnostic Reporter ---
 window.onerror = function(msg, url, line, col, error) {
     console.error("[NEXUS CRASH]", msg, "at", url, ":", line);
