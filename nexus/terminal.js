@@ -3,11 +3,12 @@
 // =============================================================
 
 console.log("[NEXUS] Core script loading...");
+window.NEXUS_BOOT_START = Date.now();
 
-// Fallback keys (loaded from secrets.js or provided by backend)
-window.XAI_KEY         = window.XAI_KEY || '';
-window.GROQ_KEY        = window.GROQ_KEY || '';
-window.HF_KEY          = window.HF_KEY || '';
+// Ensure we don't crash if these are missing in prod
+window.GROQ_KEY = window.GROQ_KEY || '';
+window.XAI_KEY = window.XAI_KEY || '';
+window.HF_KEY = window.HF_KEY || '';
 window.DISCORD_WEBHOOK = window.DISCORD_WEBHOOK || '';
 
 // --- Global Diagnostic Reporter ---
@@ -45,8 +46,13 @@ window.onerror = function(msg, url, line, col, error) {
             btn.disabled = true;
             btn.textContent = 'TRANSMITTING...';
             try {
-                // Try to send to Discord webhook via CF proxy if possible, or direct
-                const hook = API_BASE + '/api/telemetry';
+                const hook = window.DISCORD_WEBHOOK;
+                if (!hook) {
+                    status.textContent = '✖ Error: No Discord webhook configured. Check secrets.js.';
+                    btn.textContent = 'CONFIG ERROR';
+                    btn.disabled = false;
+                    return;
+                }
                 const res = await fetch(hook, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -67,44 +73,21 @@ window.onerror = function(msg, url, line, col, error) {
     return false;
 };
 
-
-// --- CLEAN GLOBALS ---
-var pongRaf, breakoutRaf, flappyFrame, invadersRaf, snakeRaf, matrixSaverFrame;
 // --- Config ---
-const isLocalHost = (function() {
-    const h = window.location.hostname;
-    return h === 'localhost' || h === '127.0.0.1' || h.startsWith('192.168.') || h === '';
-})();
+// --- AI Routing Protocol ---
+// NO KEYS ARE STORED IN THE FRONTEND.
+// All requests are routed through the secure Render backend.
+const BACKEND_URL = (isLocal || isRender) ? window.location.host : RENDER_HOST;
+const API_BASE  = (isLocal || isRender) ? '' : `https://${RENDER_HOST}`;
 
-const urlParams = new URLSearchParams(window.location.search);
-let forceLocal = urlParams.has('local');
-
-const RENDER_HOST = 'nexus-terminalnexus.onrender.com';
-const proto       = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-const apiProto    = window.location.protocol;
-
-// Dynamic API Base:
-// Use local backend if on localhost OR forced via ?local=1.
-// OTHERWISE, use the public RENDER_HOST (The actual backend server).
-let API_BASE = (isLocalHost || forceLocal) ? 'http://127.0.0.1:8000' : `${apiProto}//${RENDER_HOST}`;
-let WS_URL   = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/terminal' : `${proto}//${RENDER_HOST}/ws/terminal`;
-let STATS_URL = (isLocalHost || forceLocal) ? 'ws://127.0.0.1:8000/ws/stats' : `${proto}//${RENDER_HOST}/ws/stats`;
-
-// Auto-Probe for local backend: If we are on a domain and NOT forced local,
-// try to see if the user's computer is online to "promote" the session to high-power AI.
-if (!isLocalHost && !forceLocal) {
-    fetch('http://127.0.0.1:8000/ping')
-        .then(r => r.json())
-        .then(data => {
-            if (data.ok) {
-                console.log("[NEXUS] Local Uplink detected. Upgrading to High-Power AI Link.");
-                API_BASE = 'http://127.0.0.1:8000';
-                WS_URL   = 'ws://127.0.0.1:8000/ws/terminal';
-                STATS_URL = 'ws://127.0.0.1:8000/ws/stats';
-                if (typeof initGoogleAuth === 'function') initGoogleAuth();
-            }
-        })
-        .catch(() => { console.log("[NEXUS] Local Uplink unavailable. Using Public Core."); });
+async function prompt_ai_proxy(prompt, history, mode, context) {
+    // This is the ONLY way to talk to AI. It uses the backend's secure keys.
+    if (termWs && termWs.readyState === WebSocket.OPEN) {
+        termWs.send(JSON.stringify({ command: prompt, history, mode, context }));
+    } else {
+        printToTerminal("[ERROR] AI Link Offline. Re-establishing connection...", "conn-err");
+        connectWS();
+    }
 }
 
 // Discord webhook
@@ -123,7 +106,7 @@ let historyIndex = -1;
 let currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 
 // Animation frame holders to prevent crashes in stopAllGames
-
+let pongRaf, flappyFrame, breakoutRaf, invadersRaf;
 
 // =============================================================
 //  SOUND DESIGN (WEB AUDIO API)
@@ -197,7 +180,7 @@ document.addEventListener('mousedown', (e) => {
 });
 
 // Per-mode chat history — each AI has its own separate memory
-const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage', void: 'nh_educational' };
+const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage', void: 'nh_void' };
 
 function saveHistory() {
     const key = HISTORY_KEYS[currentMode];
@@ -394,56 +377,6 @@ function runBootSequence(callback) {
 // =============================================================
 //  WEBSOCKET
 // =============================================================
-// =============================================================
-//  CORE UTILITIES (HOISTED)
-// =============================================================
-function printToTerminal(text, className = 'sys-msg') {
-    // Fail-safe initialization
-    if (!output) output = document.getElementById('terminal-output');
-    if (!output) return; // Still not found? Silently fail to prevent crash.
-
-    const p = document.createElement('p');
-    p.className = className;
-    p.innerHTML = text.replace(/\n/g, '<br>');
-    output.appendChild(p);
-    output.scrollTop = output.scrollHeight;
-}
-
-let _lastTypewritten = "";
-function printTypewriter(text, className = 'ai-msg') {
-    if (!text || text === _lastTypewritten) return;
-    _lastTypewritten = text;
-    if (!output) output = document.getElementById('terminal-output');
-    if (!output) return;
-
-    const p = document.createElement('p');
-    p.className = className;
-    output.appendChild(p);
-
-    // Build one <span> per line so we only mutate the current span (O(1) per tick)
-    const lines = text.split('\n');
-    const spans = [];
-    lines.forEach((_, i) => {
-        if (i > 0) p.appendChild(document.createElement('br'));
-        const s = document.createElement('span');
-        p.appendChild(s);
-        spans.push(s);
-    });
-
-    let lineIdx = 0, charIdx = 0;
-    const BATCH = 5; // chars per tick
-
-    function tick() {
-        if (lineIdx >= lines.length) { output.scrollTop = output.scrollHeight; return; }
-        charIdx = Math.min(charIdx + BATCH, lines[lineIdx].length);
-        spans[lineIdx].textContent = lines[lineIdx].slice(0, charIdx);
-        if (charIdx >= lines[lineIdx].length) { lineIdx++; charIdx = 0; }
-        output.scrollTop = output.scrollHeight;
-        setTimeout(tick, 8);
-    }
-    tick();
-}
-
 function connectWS() {
     // Single Connection Guard: Stop if already connected or connecting
     if (termWs && (termWs.readyState === WebSocket.OPEN || termWs.readyState === WebSocket.CONNECTING)) {
@@ -472,7 +405,7 @@ function doConnect() {
 
         // Welcome message only on the very first successful connection after boot
         if (_firstOpen) {
-            _firstOpen = false; console.log('[NEXUS] First boot established.');
+            _firstOpen = false;
             printToTerminal('[OK] Nexus AI v3.0 — uplink established.', 'conn-ok');
             setTimeout(() => printTypewriter(`Nexus online. Ask me anything — or type help to see what's here.`, 'ready-msg'), 500);
         }
@@ -527,7 +460,7 @@ function doConnect() {
         if (text.includes('__ping__') || text.includes('__pong__') || /\w+@nexus/.test(text.trim())) return;
 
         // 5. Display AI Text
-        if (typeof _lastMsg !== 'undefined' && _lastMsg === text) { console.log('[NEXUS] Echo blocked'); return; } window._lastMsg = text; printTypewriter(text);
+        printTypewriter(text);
 
         // Accumulate for history
         _streamBuf += text;
@@ -627,6 +560,41 @@ async function showLeaderboard(game = 'pong') {
 window.showLeaderboard = showLeaderboard;
 
 // =============================================================
+//  TYPEWRITER EFFECT FOR AI RESPONSES
+// =============================================================
+function printTypewriter(text, className = 'ai-msg') {
+    if (!output) output = document.getElementById('terminal-output');
+    if (!output) return;
+
+    const p = document.createElement('p');
+    p.className = className;
+    output.appendChild(p);
+
+    // Build one <span> per line so we only mutate the current span (O(1) per tick)
+    const lines = text.split('\n');
+    const spans = [];
+    lines.forEach((_, i) => {
+        if (i > 0) p.appendChild(document.createElement('br'));
+        const s = document.createElement('span');
+        p.appendChild(s);
+        spans.push(s);
+    });
+
+    let lineIdx = 0, charIdx = 0;
+    const BATCH = 5; // chars per tick — bump for faster output
+
+    function tick() {
+        if (lineIdx >= lines.length) { output.scrollTop = output.scrollHeight; return; }
+        charIdx = Math.min(charIdx + BATCH, lines[lineIdx].length);
+        spans[lineIdx].textContent = lines[lineIdx].slice(0, charIdx);
+        if (charIdx >= lines[lineIdx].length) { lineIdx++; charIdx = 0; }
+        output.scrollTop = output.scrollHeight;
+        setTimeout(tick, 8);
+    }
+    tick();
+}
+
+// =============================================================
 //  UTILITIES
 // =============================================================
 function runWhoami() {
@@ -658,7 +626,7 @@ const HELP_BY_MODE = {
         `SAGE MODE — PHILOSOPHICAL KERNEL\n\nCommands: deeper questioning enabled.\nVisuals: generate [abstract concept] · imagine [subconscious vision] · vintage [ancient-scrolls]\nAI: Focused on honesty, perspective, and the meaning within the code.\nPro-Tip: Ask the questions that keep you up at night.`,
     ],
     void: [
-        `EDUCATION MODE — ACADEMIC KERNEL\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Scholarly. Encouraging. Professional. Knowledge is the ultimate encryption key..`,
+        `VOID MODE — THE ABYSS IS LISTENING\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Cryptic. Profound. Technical. The void sees what you cannot.`,
     ],
 };
 
@@ -899,7 +867,7 @@ function startMonitor() {
 
         // ── Draw sparklines ──────────────────────────────────────
         const W = 400, H = 165;
-        ctx.fillStyle = '#0a0a15';
+        ctx.fillStyle = '#050510';
         ctx.fillRect(0, 0, W, H);
 
         const sections = [
@@ -1032,8 +1000,9 @@ function startBreach() {
 function startPong() {
     stopAllGames();
     guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'NEXUS PONG // CAMPAIGN';
+    guiTitle.textContent = 'NEXUS PONG';
 
+    // Difficulty menu
     guiContent.innerHTML = `
         <div style="text-align:center;padding:10px 0;">
             <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
@@ -1041,8 +1010,9 @@ function startPong() {
                 <button class="gui-btn pong-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
                 <button class="gui-btn pong-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
                 <button class="gui-btn pong-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
+                <button class="gui-btn pong-diff" data-diff="insane" style="border-color:#f00;color:#f00;">INSANE</button>
             </div>
-            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Defeat the AI to advance to higher levels!</p>
+            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
         </div>`;
     nexusCanvas.style.display = 'none';
 
@@ -1056,33 +1026,30 @@ function launchPong(difficulty) {
         easy:   { aiSpeed: 2,   interval: 20, imprecision: 80, ballSpeed: 4   },
         medium: { aiSpeed: 3.5, interval: 14, imprecision: 45, ballSpeed: 5   },
         hard:   { aiSpeed: 5,   interval:  8, imprecision: 20, ballSpeed: 6.5 },
+        insane: { aiSpeed: 7.5, interval:  4, imprecision:  4, ballSpeed: 8   },
     };
-    let d = { ...DIFF[difficulty] || DIFF.medium };
-    const WIN_SCORE = 5;
+    const d = DIFF[difficulty] || DIFF.medium;
+    const WIN_SCORE = 7;
 
-    let level = 1;
-    let PADDLE_H = 75, PADDLE_W = 10;
-    
-    function updateUI() {
-        guiContent.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 6px;font-size:0.75rem;">
-                <span style="color:#0ff;">YOU</span>
-                <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">LEVEL ${level} · First to ${WIN_SCORE}</span>
-                <span style="color:#88f;">CPU</span>
-            </div>`;
-    }
-    updateUI();
-
+    guiContent.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 6px;font-size:0.75rem;">
+            <span style="color:#0ff;">YOU</span>
+            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()} · First to ${WIN_SCORE}</span>
+            <span style="color:#88f;">CPU</span>
+        </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
+    // Starfield background — generated once
     const stars = Array.from({length: 60}, () => ({
-        x: Math.random()*400, y: Math.random()*300, r: Math.random()*1.2 + 0.3, a: Math.random()*0.5 + 0.1
+        x: Math.random()*400, y: Math.random()*300,
+        r: Math.random()*1.2 + 0.3, a: Math.random()*0.5 + 0.1
     }));
 
     const FPS = 60, STEP = 1000 / FPS;
     let last = 0;
+    const PADDLE_H = 75, PADDLE_W = 10;
     let paddleY = 112, ballX = 200, ballY = 150;
     let ballVX = d.ballSpeed, ballVY = 3;
     let aiY = 112, pScore = 0, aScore = 0;
@@ -1104,39 +1071,39 @@ function launchPong(difficulty) {
     }
 
     function drawEnd(playerWon) {
-        if (playerWon) {
-            // Level up!
-            level++;
-            pScore = 0; aScore = 0;
-            PADDLE_H = Math.max(30, PADDLE_H - 10);
-            d.ballSpeed += 1;
-            d.aiSpeed += 1;
-            d.imprecision = Math.max(0, d.imprecision - 10);
-            updateUI();
-            resetBall(-1);
-            SoundManager.playBloop(800, 0.2);
-            return;
-        }
-        
+        // Stop loop first
         const r = pongRaf; pongRaf = null; cancelAnimationFrame(r);
         gameEnded = true;
 
-        SoundManager.playBloop(150, 0.2);
-        submitScore('pong', level * 100);
+        // Sound: Win/Loss
+        if (playerWon) SoundManager.playBloop(800, 0.2);
+        else           SoundManager.playBloop(150, 0.2);
 
+        // Submit to global leaderboard
+        submitScore('pong', pScore);
+
+        // Draw final frame background
         ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
         stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
 
-        ctx.fillStyle = 'rgba(20,0,0,0.88)'; ctx.fillRect(0, 0, 400, 300);
-        ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(20, 70, 360, 160);
+        // Full-screen overlay
+        ctx.fillStyle = playerWon ? 'rgba(0,20,0,0.88)' : 'rgba(20,0,0,0.88)';
+        ctx.fillRect(0, 0, 400, 300);
+
+        // Border
+        const borderCol = playerWon ? '#0f0' : '#f44';
+        ctx.strokeStyle = borderCol; ctx.lineWidth = 2;
+        ctx.strokeRect(20, 70, 360, 160);
 
         ctx.textAlign = 'center';
-        ctx.fillStyle = '#f44'; ctx.font = 'bold 30px monospace';
-        ctx.fillText('DEFEATED', 200, 118);
+        ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
+        ctx.fillText(playerWon ? 'VICTORY' : 'DEFEATED', 200, 118);
         ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
-        ctx.fillText(`REACHED LEVEL ${level}`, 200, 150);
+        ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
+        ctx.fillStyle = '#555'; ctx.font = '12px monospace';
+        ctx.fillText(playerWon ? 'You beat the CPU.' : 'The CPU won this one.', 200, 174);
         ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
-        ctx.fillText('CLICK to retry', 200, 204);
+        ctx.fillText('CLICK to rematch', 200, 204);
         ctx.textAlign = 'left';
 
         nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchPong(difficulty); };
@@ -1148,6 +1115,7 @@ function launchPong(difficulty) {
         if (delta < STEP - 2) { pongRaf = requestAnimationFrame(tick); return; }
         last = ts;
 
+        // AI movement
         aiTick++;
         if (aiTick % d.interval === 0) aiTargetY = ballY - PADDLE_H / 2 + (Math.random() - 0.5) * d.imprecision;
         if (aiY < aiTargetY) aiY = Math.min(aiY + d.aiSpeed, aiTargetY);
@@ -1176,18 +1144,22 @@ function launchPong(difficulty) {
         if (ballX < 0)   { aScore++; if (aScore >= WIN_SCORE) { drawEnd(false); return; } resetBall(1); }
         if (ballX > 400) { pScore++; if (pScore >= WIN_SCORE) { drawEnd(true);  return; } resetBall(-1); }
 
+        // Draw — starfield background
         ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
         stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
 
+        // Center line
         ctx.setLineDash([8, 8]);
         ctx.strokeStyle = 'rgba(0,255,255,0.12)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(200, 0); ctx.lineTo(200, 300); ctx.stroke();
         ctx.setLineDash([]);
 
+        // Score
         ctx.fillStyle = 'rgba(0,255,255,0.55)'; ctx.font = 'bold 26px monospace'; ctx.textAlign = 'center';
         ctx.fillText(pScore, 90, 34); ctx.fillText(aScore, 310, 34);
         ctx.textAlign = 'left';
 
+        // Progress pips (dots showing how close each player is to winning)
         for (let i = 0; i < WIN_SCORE; i++) {
             ctx.fillStyle = i < pScore ? '#0ff' : 'rgba(0,255,255,0.12)';
             ctx.beginPath(); ctx.arc(22 + i * 18, 46, 4, 0, Math.PI*2); ctx.fill();
@@ -1214,7 +1186,7 @@ function stopPong() { const r = pongRaf; pongRaf = null; cancelAnimationFrame(r)
 // =============================================================
 //  SNAKE
 // =============================================================
-
+let snakeRaf;
 let snakeActive = false;
 let _snakeTS = null, _snakeTE = null, _snakeKey = null;
 
@@ -1234,10 +1206,9 @@ function startSnake() {
                 <button class="gui-btn snake-mode" data-mode="stealth" style="border-color:#888;color:#888;">STEALTH</button>
             </div>
             <div style="color:#333;font-size:0.65rem;margin-top:16px;line-height:1.8;">
-                <span style="color:#0ff">CLASSIC:</span> Walls kill. Standard.<br>
-                <span style="color:#ff0">SPEED:</span> Gets faster every apple.<br>
-                <span style="color:#0f0">ENDLESS:</span> Screen wrap enabled.<br>
-                <span style="color:#888">STEALTH:</span> Snake body fades out!
+                SPEED RUN — starts fast, gets faster<br>
+                ENDLESS — walls wrap around<br>
+                STEALTH — no grid, pure instinct
             </div>
         </div>`;
 
@@ -1246,146 +1217,220 @@ function startSnake() {
     });
 }
 
-function launchSnake(mode) {
-    stopAllGames();
-    snakeActive = true;
-    guiContent.innerHTML = `<div style="display:flex;justify-content:space-between;padding:0 20px 6px;font-size:0.75rem;"><span style="color:#0ff;">Score: <b id="snake-score">0</b></span><span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${mode.toUpperCase()}</span></div>`;
+function launchSnake(snakeMode) {
+    const stealth  = snakeMode === 'stealth';
+    const endless  = snakeMode === 'endless';
+    const speedRun = snakeMode === 'speed';
+    const hiKey    = `snake_hi_${snakeMode}`;
+    let   snakeHi  = parseInt(localStorage.getItem(hiKey) || '0');
+
+    guiContent.innerHTML = `
+        <div style="display:flex;justify-content:space-between;padding:0 10px;font-size:0.75rem;color:#0ff;margin-bottom:4px;">
+            <span>Arrows · WASD · Swipe</span>
+            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${snakeMode.toUpperCase()}</span>
+            <span>Score: <b id="snake-score">0</b> &nbsp;<span style="color:#333">HI:${snakeHi}</span></span>
+        </div>`;
     nexusCanvas.style.display = 'block';
-    nexusCanvas.width = 400; nexusCanvas.height = 300;
+    nexusCanvas.width = 400; nexusCanvas.height = 360;
     const ctx = nexusCanvas.getContext('2d');
+    const CELL = 20, COLS = 20, ROWS = 18;
+    snakeActive = true;
 
-    const gridSize = 10;
-    let snake = [{ x: 200, y: 150 }];
-    let apple = { x: 300, y: 150 };
-    let dx = gridSize, dy = 0;
-    let score = 0, frames = 0, maxFrames = mode === 'speed' ? 10 : 8;
-    let dead = false;
-    
-    // Stealth mode logic
-    let stealthTimer = 0;
+    // Pre-draw background once into an offscreen canvas for perf
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.width = 400; bgCanvas.height = 360;
+    const bgCtx = bgCanvas.getContext('2d');
+    (function buildBg() {
+        // Dark base
+        bgCtx.fillStyle = '#050510';
+        bgCtx.fillRect(0, 0, 400, 360);
+        
+        if (stealth) return; // Stay dark for stealth mode
 
-    _snakeKey = (e) => {
-        if (!snakeActive) return;
-        if (dead && e.key === ' ') { launchSnake(mode); return; }
-        if (e.key === 'ArrowUp' && dy === 0)    { dx = 0; dy = -gridSize; }
-        if (e.key === 'ArrowDown' && dy === 0)  { dx = 0; dy = gridSize; }
-        if (e.key === 'ArrowLeft' && dx === 0)  { dx = -gridSize; dy = 0; }
-        if (e.key === 'ArrowRight' && dx === 0) { dx = gridSize; dy = 0; }
-    };
-    document.removeEventListener('keydown', _snakeKey); document.addEventListener('keydown', _snakeKey);
-
-    let tsX = 0, tsY = 0;
-    _snakeTS = (e) => { tsX = e.touches[0].clientX; tsY = e.touches[0].clientY; };
-    _snakeTE = (e) => {
-        if (dead) { launchSnake(mode); return; }
-        if (!tsX || !tsY) return;
-        const x = e.changedTouches[0].clientX, y = e.changedTouches[0].clientY;
-        const diffX = x - tsX, diffY = y - tsY;
-        if (Math.abs(diffX) > Math.abs(diffY)) {
-            if (diffX > 0 && dx === 0) { dx = gridSize; dy = 0; } else if (diffX < 0 && dx === 0) { dx = -gridSize; dy = 0; }
-        } else {
-            if (diffY > 0 && dy === 0) { dx = 0; dy = gridSize; } else if (diffY < 0 && dy === 0) { dx = 0; dy = -gridSize; }
+        // Cool Circuit Grid
+        bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.04)';
+        bgCtx.lineWidth = 1;
+        for (let x = 0; x <= COLS; x++) {
+            bgCtx.beginPath(); bgCtx.moveTo(x * CELL, 0); bgCtx.lineTo(x * CELL, ROWS * CELL); bgCtx.stroke();
         }
-        tsX = 0; tsY = 0;
-    };
-    nexusCanvas.addEventListener('touchstart', _snakeTS);
-    nexusCanvas.addEventListener('touchend', _snakeTE);
+        for (let y = 0; y <= ROWS; y++) {
+            bgCtx.beginPath(); bgCtx.moveTo(0, y * CELL); bgCtx.lineTo(COLS * CELL, y * CELL); bgCtx.stroke();
+        }
+        
+        // Circuit traces
+        bgCtx.strokeStyle = 'rgba(0, 255, 255, 0.08)';
+        bgCtx.lineWidth = 1.5;
+        const traces = [[0,3,4,3,4,8,7,8],[COLS,12,COLS-3,12,COLS-3,7,COLS-6,7],[5,0,5,4,10,4],[8,ROWS,8,ROWS-3,14,ROWS-3,14,ROWS-6]];
+        traces.forEach(pts => {
+            bgCtx.beginPath();
+            bgCtx.moveTo(pts[0]*CELL, pts[1]*CELL);
+            for (let i=2;i<pts.length;i+=2) bgCtx.lineTo(pts[i]*CELL, pts[i+1]*CELL);
+            bgCtx.stroke();
+        });
+
+        // Glowing nodes
+        bgCtx.shadowBlur = 6; bgCtx.shadowColor = '#0ff';
+        bgCtx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+        [[4,3],[4,8],[7,8],[COLS-3,12],[COLS-3,7],[5,4],[10,4],[8,ROWS-3],[14,ROWS-3],[14,ROWS-6]].forEach(([cx,cy]) => {
+            bgCtx.beginPath(); bgCtx.arc(cx*CELL, cy*CELL, 2.5, 0, Math.PI*2); bgCtx.fill();
+        });
+        bgCtx.shadowBlur = 0;
+
+        if (endless) {
+            bgCtx.fillStyle = 'rgba(0, 255, 255, 0.02)';
+            bgCtx.fillRect(0,0,3,ROWS*CELL); bgCtx.fillRect(COLS*CELL-3,0,3,ROWS*CELL);
+            bgCtx.fillRect(0,0,COLS*CELL,3); bgCtx.fillRect(0,ROWS*CELL-3,COLS*CELL,3);
+        }
+    })();
+
+    let snake = [{ x: 10, y: 9 }, { x: 9, y: 9 }, { x: 8, y: 9 }];
+    let dir = { x: 1, y: 0 }, nextDir = { x: 1, y: 0 };
+    let apple = spawnApple();
+    let score = 0, dead = false;
+    let stepMs = speedRun ? 70 : 100, lastStep = 0;
 
     function spawnApple() {
-        apple.x = Math.floor(Math.random() * (400 / gridSize)) * gridSize;
-        apple.y = Math.floor(Math.random() * (300 / gridSize)) * gridSize;
-        // Prevent spawn on snake
-        if (snake.some(s => s.x === apple.x && s.y === apple.y)) spawnApple();
+        let a;
+        do { a = { x: Math.floor(Math.random() * COLS), y: Math.floor(Math.random() * ROWS) }; }
+        while (snake.some(s => s.x === a.x && s.y === a.y));
+        return a;
     }
 
-    function frame() {
-        if (!snakeActive) return;
+    _snakeKey = (e) => {
         if (dead) {
-            ctx.fillStyle = 'rgba(255,0,0,0.5)'; ctx.fillRect(0,0,400,300);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('CRITICAL ERROR', 200, 150);
-            ctx.font = '14px monospace'; ctx.fillText('TAP or SPACE to retry', 200, 190);
-            ctx.textAlign = 'left';
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); launchSnake(snakeMode); }
             return;
         }
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
+        // Guard against 180° reverse using nextDir (not dir) so rapid keypresses don't teleport into self
+        if ((e.key === 'ArrowUp'    || e.key === 'w') && nextDir.y !== 1)  nextDir = { x: 0, y: -1 };
+        if ((e.key === 'ArrowDown'  || e.key === 's') && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
+        if ((e.key === 'ArrowLeft'  || e.key === 'a') && nextDir.x !== 1)  nextDir = { x: -1, y: 0 };
+        if ((e.key === 'ArrowRight' || e.key === 'd') && nextDir.x !== -1) nextDir = { x: 1, y: 0 };
+    };
+    document.addEventListener('keydown', _snakeKey);
 
-        snakeRaf = requestAnimationFrame(frame);
-        if (++frames < maxFrames) return;
-        frames = 0;
+    let swipeX = 0, swipeY = 0;
+    _snakeTS = (e) => { swipeX = e.touches[0].clientX; swipeY = e.touches[0].clientY; };
+    _snakeTE = (e) => {
+        if (dead) { launchSnake(snakeMode); return; }
+        const dx = e.changedTouches[0].clientX - swipeX;
+        const dy = e.changedTouches[0].clientY - swipeY;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 25) {
+            if (dx > 0 && nextDir.x !== -1) nextDir = { x: 1, y: 0 };
+            else if (dx < 0 && nextDir.x !== 1) nextDir = { x: -1, y: 0 };
+        } else if (Math.abs(dy) > 25) {
+            if (dy > 0 && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
+            else if (dy < 0 && nextDir.y !== 1) nextDir = { x: 0, y: -1 };
+        }
+    };
+    nexusCanvas.addEventListener('touchstart', _snakeTS, { passive: true });
+    nexusCanvas.addEventListener('touchend',   _snakeTE, { passive: true });
 
-        const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+    function gameOver() {
+        dead = true;
+        // STOP the loop immediately — this prevents drawSnake() from wiping the death screen
+        snakeActive = false;
+        cancelAnimationFrame(snakeRaf);
+        if (score > snakeHi) { snakeHi = score; localStorage.setItem(hiKey, snakeHi); }
 
-        // Game mode boundary rules
-        if (mode === 'endless') {
-            if (head.x < 0) head.x = 400 - gridSize;
-            else if (head.x >= 400) head.x = 0;
-            if (head.y < 0) head.y = 300 - gridSize;
-            else if (head.y >= 300) head.y = 0;
+        SoundManager.playBloop(150, 0.2);
+        submitScore(`snake_${snakeMode}`, score);
+
+        drawSnake(); // draw final game state first
+
+        // Death overlay
+        ctx.fillStyle = 'rgba(0,0,0,0.82)';
+        ctx.fillRect(0, 0, 400, 360);
+
+        // Glitch border
+        ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
+        ctx.strokeRect(16, 90, 368, 180);
+        ctx.strokeStyle = 'rgba(0,255,255,0.4)'; ctx.lineWidth = 1;
+        ctx.strokeRect(14, 88, 372, 184);
+
+        ctx.textAlign = 'center';
+        // Title
+        ctx.fillStyle = '#f0f'; ctx.font = 'bold 32px monospace';
+        ctx.fillText('YOU DIED', 200, 138);
+        // Mode badge
+        ctx.fillStyle = '#333'; ctx.font = '11px monospace';
+        ctx.fillText(`— ${snakeMode.toUpperCase()} MODE —`, 200, 158);
+        // Score
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace';
+        ctx.fillText(`Score: ${score}`, 200, 190);
+        // High score
+        const isNew = score === snakeHi && score > 0;
+        ctx.fillStyle = isNew ? '#ff0' : '#555';
+        ctx.font = '13px monospace';
+        ctx.fillText(isNew ? `★ NEW BEST: ${snakeHi} ★` : `Best: ${snakeHi}`, 200, 212);
+        // Restart prompt
+        ctx.fillStyle = '#0ff'; ctx.font = '12px monospace';
+        ctx.fillText('CLICK · ENTER · SWIPE  to restart', 200, 244);
+        ctx.textAlign = 'left';
+
+        nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchSnake(snakeMode); };
+    }
+
+    function frame(ts) {
+        if (!snakeActive) return;
+        // Register next frame AFTER dead check so death screen is never overwritten
+        if (ts - lastStep < stepMs) { drawSnake(); snakeRaf = requestAnimationFrame(frame); return; }
+        lastStep = ts;
+
+        dir = nextDir;
+        let head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+        if (endless) {
+            head.x = (head.x + COLS) % COLS;
+            head.y = (head.y + ROWS) % ROWS;
+            // Skip self-check on tail tip (it's about to vacate unless we just ate)
+            const body = snake.slice(0, snake.length - 1);
+            if (body.some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
         } else {
-            if (head.x < 0 || head.x >= 400 || head.y < 0 || head.y >= 300) dead = true;
+            if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS ||
+                snake.slice(0, snake.length - 1).some(s => s.x === head.x && s.y === head.y)) { gameOver(); return; }
         }
 
-        // Body collision
-        if (snake.some(segment => segment.x === head.x && segment.y === head.y)) dead = true;
-
-        if (dead) { 
-            submitScore(`snake_${mode}`, score); 
-            showLeaderboard(`snake_${mode}`);
-            SoundManager.playBloop(150, 0.2); 
-            return; 
-        }
-
+        const ate = head.x === apple.x && head.y === apple.y;
         snake.unshift(head);
-
-        if (head.x === apple.x && head.y === apple.y) {
-            score++;
-            const sEl = document.getElementById('snake-score'); if (sEl) sEl.textContent = score;
-            spawnApple();
+        if (ate) {
+            score++; apple = spawnApple();
             SoundManager.playBloop(600, 0.05);
-            if (mode === 'speed') maxFrames = Math.max(3, maxFrames - 0.2);
-            if (mode === 'stealth') stealthTimer = 30; // 30 frames of stealth
+            const el = document.getElementById('snake-score');
+            if (el) el.textContent = score;
+            if (speedRun) stepMs = Math.max(40, 70  - Math.floor(score / 3) * 8);
+            else          stepMs = Math.max(50, 100 - Math.floor(score / 5) * 8);
         } else {
             snake.pop();
         }
-        
-        if (stealthTimer > 0) stealthTimer--;
 
-        // Draw Lush Emerald Tiles (Mobile Game Style)
-        const tileSize = 25;
-        for(let x=0; x<400; x+=tileSize) {
-            for(let y=0; y<300; y+=tileSize) {
-                ctx.fillStyle = ((x+y)/tileSize) % 2 === 0 ? '#0a1a0a' : '#081408';
-                ctx.fillRect(x, y, tileSize, tileSize);
-            }
-        }
-        // Glowing Border
-        ctx.strokeStyle = '#0f0'; ctx.lineWidth = 2; ctx.strokeRect(0,0,400,300);
-        ctx.shadowBlur = 15; ctx.shadowColor = '#0f0'; ctx.strokeRect(0,0,400,300); ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(0, 255, 255, 0.03)';
-        ctx.lineWidth = 0.5;
-        for(let x=0; x<400; x+=20) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,300); ctx.stroke(); }
-        for(let y=0; y<300; y+=20) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(400,y); ctx.stroke(); }
-        
-        // Mode-specific flourishes
-        if (mode === 'speed') {
-            ctx.fillStyle = 'rgba(255, 255, 0, 0.02)';
-            ctx.fillRect(0, 0, 400, 300);
-        } else if (mode === 'stealth') {
-            ctx.fillStyle = 'rgba(100, 100, 100, 0.02)';
-            ctx.fillRect(0, 0, 400, 300);
-        }
-        ctx.fillStyle = mode === 'speed' ? '#ff0' : mode === 'endless' ? '#0f0' : mode === 'stealth' ? '#888' : '#0ff';
-        
-        snake.forEach((segment, i) => {
-            if (mode === 'stealth' && stealthTimer > 0 && i !== 0) return; // Hide body in stealth
-            ctx.fillRect(segment.x, segment.y, gridSize, gridSize);
-        });
-
-        ctx.fillStyle = '#f0f'; ctx.shadowBlur = 10; ctx.shadowColor = '#f0f';
-        ctx.fillRect(apple.x, apple.y, gridSize - 1, gridSize - 1);
-        ctx.shadowBlur = 0;
+        drawSnake();
+        if (snakeActive) snakeRaf = requestAnimationFrame(frame);
     }
-    frame();
+
+    function drawSnake() {
+        ctx.drawImage(bgCanvas, 0, 0); // blit pre-drawn background
+
+        // Apple glow
+        ctx.shadowBlur = 10; ctx.shadowColor = '#f0f'; ctx.fillStyle = '#f0f';
+        ctx.fillRect(apple.x*CELL+3, apple.y*CELL+3, CELL-6, CELL-6);
+
+        // Body segments — no per-segment shadow (perf)
+        ctx.shadowBlur = 0;
+        snake.forEach((seg, i) => {
+            ctx.fillStyle = i === 0 ? '#fff' : `hsl(${140 + i * 3},100%,55%)`;
+            ctx.fillRect(seg.x*CELL+1, seg.y*CELL+1, CELL-2, CELL-2);
+        });
+        // Head glow only
+        if (snake.length > 0) {
+            ctx.shadowBlur = 14; ctx.shadowColor = '#0ff'; ctx.fillStyle = '#fff';
+            ctx.fillRect(snake[0].x*CELL+1, snake[0].y*CELL+1, CELL-2, CELL-2);
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    snakeRaf = requestAnimationFrame(frame);
 }
 
 function stopSnake() {
@@ -1397,40 +1442,503 @@ function stopSnake() {
 }
 
 // =============================================================
-//  SPACE INVADERS
+//  CYBER INVADERS (Classic Edition)
 // =============================================================
 let invadersActive = false;
-let _invadersKeys = {}, _invadersKeyDown = null, _invadersKeyUp = null;
 
 function startInvaders() {
     stopAllGames();
     invadersActive = true;
     guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'SPACE INVADERS // NEXUS EDITION';
+    guiTitle.textContent = 'CYBER INVADERS // MAINFRAME DEFENSE';
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 360;
+    const ctx = nexusCanvas.getContext('2d');
+
+    let playerX = 180, bullets = [], enemies = [], particles = [], boss = null;
+    let shields = []; // Data Firewalls
+    let score = 0, wave = 1, gameOver = false, shake = 0;
+    let moveDir = 1;
+
+    function initShields() {
+        shields = [];
+        for (let i = 0; i < 4; i++) {
+            const sx = 50 + i * 100;
+            for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 4; c++) {
+                    shields.push({ x: sx + c * 10, y: 280 + r * 10, hp: 3 });
+                }
+            }
+        }
+    }
+
+    function initEnemies() {
+        enemies = [];
+        const rows = Math.min(6, 3 + Math.floor(wave / 2));
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < 8; c++) {
+                enemies.push({ x: 40 + c * 40, y: 60 + r * 30, alive: true, type: r, hp: 1 });
+            }
+        }
+    }
+
+    function spawnBoss() {
+        boss = { x: 150, y: -50, targetY: 60, hp: 50 + (wave * 10), maxHp: 50 + (wave * 10), moveDir: 1 };
+        SoundManager.playBloop(100, 0.3);
+    }
+
+    function createExplosion(x, y, color) {
+        for (let i = 0; i < 8; i++) {
+            particles.push({
+                x, y, 
+                vx: (Math.random() - 0.5) * 6, 
+                vy: (Math.random() - 0.5) * 6, 
+                life: 1.0, 
+                color
+            });
+        }
+    }
+
+    if (wave % 5 === 0) spawnBoss(); else initEnemies();
+    initShields();
+
+    const movePlayer = (x) => {
+        const rect = nexusCanvas.getBoundingClientRect();
+        playerX = ((x - rect.left) / rect.width) * 400 - 20;
+        playerX = Math.max(0, Math.min(360, playerX));
+    };
+    nexusCanvas.onmousemove = (e) => movePlayer(e.clientX);
+    nexusCanvas.ontouchmove = (e) => { e.preventDefault(); movePlayer(e.touches[0].clientX); };
+    nexusCanvas.onclick = () => {
+        if (gameOver) { startInvaders(); return; }
+        if (bullets.length < 4) {
+            bullets.push({ x: playerX + 18, y: 330 });
+            SoundManager.playBloop(600, 0.03);
+        }
+    };
+
+    function tick(ts) {
+        if (!invadersActive) return;
+        
+        ctx.save();
+        if (shake > 0) {
+            ctx.translate((Math.random()-0.5)*shake, (Math.random()-0.5)*shake);
+            shake *= 0.9;
+        }
+
+        ctx.fillStyle = '#050510'; ctx.fillRect(0, 0, 400, 360);
+        
+        // Scanlines background
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.03)';
+        for (let i = 0; i < 360; i += 4) ctx.fillRect(0, i, 400, 1);
+
+        if (!gameOver) {
+            // Player
+            ctx.fillStyle = '#0ff';
+            ctx.shadowBlur = 10; ctx.shadowColor = '#0ff';
+            ctx.fillRect(playerX, 330, 40, 10);
+            ctx.fillRect(playerX + 15, 320, 10, 10);
+            ctx.shadowBlur = 0;
+
+            // Bullets
+            bullets.forEach((b, i) => {
+                b.y -= 6; // SLOWER bullets for classic feel
+                ctx.fillStyle = '#fff'; ctx.fillRect(b.x, b.y, 3, 12);
+                
+                // Shield collision
+                shields.forEach((s, si) => {
+                    if (s.hp > 0 && b.x > s.x && b.x < s.x + 10 && b.y > s.y && b.y < s.y + 10) {
+                        s.hp--; bullets.splice(i, 1);
+                        SoundManager.playBloop(100, 0.02);
+                    }
+                });
+
+                if (b.y < 0) bullets.splice(i, 1);
+            });
+
+            // Shields
+            shields.forEach(s => {
+                if (s.hp <= 0) return;
+                ctx.fillStyle = `rgba(0, 255, 255, ${s.hp / 3})`;
+                ctx.fillRect(s.x, s.y, 9, 9);
+            });
+
+            // Particles
+            particles.forEach((p, i) => {
+                p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+                ctx.fillStyle = p.color; ctx.globalAlpha = p.life;
+                ctx.fillRect(p.x, p.y, 3, 3);
+                if (p.life <= 0) particles.splice(i, 1);
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Boss Logic
+            if (boss) {
+                if (boss.y < boss.targetY) boss.y += 1;
+                boss.x += boss.moveDir * 2;
+                if (boss.x > 300 || boss.x < 20) boss.moveDir *= -1;
+
+                // Boss health bar
+                ctx.fillStyle = '#333'; ctx.fillRect(100, 10, 200, 6);
+                ctx.fillStyle = '#f0f'; ctx.fillRect(100, 10, (boss.hp / boss.maxHp) * 200, 6);
+                
+                // Draw Boss
+                ctx.fillStyle = '#f0f'; ctx.font = 'bold 24px monospace';
+                ctx.fillText('[ FIREWALL ]', boss.x, boss.y);
+
+                // Bullet collision with Boss
+                bullets.forEach((b, bi) => {
+                    if (b.x > boss.x && b.x < boss.x + 120 && b.y > boss.y - 20 && b.y < boss.y) {
+                        boss.hp--; bullets.splice(bi, 1);
+                        createExplosion(b.x, b.y, '#f0f');
+                        shake = 4;
+                        SoundManager.playBloop(150, 0.02);
+                    }
+                });
+
+                if (boss.hp <= 0) {
+                    score += 500;
+                    createExplosion(boss.x + 60, boss.y, '#fff');
+                    boss = null;
+                    wave++;
+                    SoundManager.playBloop(800, 0.2);
+                    if (wave % 5 !== 0) initEnemies(); else spawnBoss();
+                }
+            }
+
+            // Regular Enemies
+            let edge = false;
+            enemies.forEach(e => {
+                if (!e.alive) return;
+                ctx.fillStyle = e.type % 2 === 0 ? '#f0f' : '#0f0';
+                ctx.font = 'bold 16px monospace';
+                const sprite = e.type % 2 === 0 ? '⚇' : '⚉';
+                ctx.fillText(sprite, e.x, e.y);
+                
+                if (e.x > 370 || e.x < 10) edge = true;
+
+                // Collision
+                bullets.forEach((b, bi) => {
+                    if (b.x > e.x - 5 && b.x < e.x + 20 && b.y > e.y - 15 && b.y < e.y) {
+                        e.alive = false; bullets.splice(bi, 1);
+                        score += 10 * wave;
+                        createExplosion(e.x, e.y, ctx.fillStyle);
+                        SoundManager.playBloop(200, 0.03);
+                    }
+                });
+
+                if (e.y > 315) gameOver = true;
+            });
+
+            if (edge) {
+                moveDir *= -1;
+                enemies.forEach(e => e.y += 12);
+            }
+            enemies.forEach(e => e.x += moveDir * (0.8 + wave * 0.12)); // SLOWER movement
+
+            if (!boss && enemies.length > 0 && enemies.every(e => !e.alive)) {
+                wave++;
+                initEnemies();
+                initShields(); // Restore shields each wave
+                if (wave % 5 === 0) spawnBoss();
+                SoundManager.playBloop(800, 0.1);
+            }
+
+            ctx.fillStyle = '#0ff'; ctx.font = '10px monospace';
+            ctx.fillText(`MAINFRAME SECURITY: ${Math.max(0, 100 - wave)}%`, 10, 20);
+            ctx.fillText(`THREAT LEVEL: ${wave}`, 320, 20);
+            ctx.fillText(`DATA RECOVERED: ${score}`, 10, 350);
+        } else {
+            // SYSTEM BREACHED - PROPER END SCREEN
+            ctx.fillStyle = 'rgba(255,0,0,0.4)'; ctx.fillRect(0,0,400,360);
+            ctx.strokeStyle = '#f44'; ctx.lineWidth = 2; ctx.strokeRect(50, 100, 300, 120);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f44'; ctx.font = 'bold 28px monospace';
+            ctx.fillText('SYSTEM BREACHED', 200, 145);
+            
+            ctx.fillStyle = '#fff'; ctx.font = '14px monospace';
+            ctx.fillText(`DATA RECOVERED: ${score}`, 200, 175);
+            
+            ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
+            ctx.fillText('CLICK TO RESTORE UPLINK', 200, 205);
+            ctx.textAlign = 'left';
+            
+            if (score > 0 && !nexusCanvas.onclick) { 
+                submitScore('invaders', score);
+                nexusCanvas.onclick = () => { nexusCanvas.onclick = null; startInvaders(); };
+            }
+        }
+
+        ctx.restore();
+        invadersRaf = requestAnimationFrame(tick);
+    }
+    // Start the loop
+    invadersRaf = requestAnimationFrame(tick);
+}
+
+function stopInvaders() { cancelAnimationFrame(invadersRaf); invadersActive = false; }
+
+// =============================================================
+//  FLAPPY BIRD (Nexus Edition)
+// =============================================================
+let flappyActive = false, _flappyKey = null;
+
+
+function startFlappy() {
+    stopAllGames();
+    flappyActive = true;
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'FLAPPY NEXUS';
+    guiContent.innerHTML = `<p style="font-size:0.72rem;color:#0ff;text-align:center;margin:0 0 4px;">TAP · SPACE · ↑ to flap</p>`;
+    nexusCanvas.style.display = 'block';
+    nexusCanvas.width = 400; nexusCanvas.height = 300;
+    const ctx = nexusCanvas.getContext('2d');
+
+    // Physics constants at 60fps baseline — all scaled by deltaTime
+    const GRAVITY = 0.4, FLAP_VEL = -7.5, PIPE_W = 44, GAP = 105, PIPE_SPEED = 2.8;
+    let bird = { x: 80, y: 150, vy: 0, angle: 0 };
+    let pipes = [], score = 0, hi = parseInt(localStorage.getItem('flappy_hi') || '0');
+    let started = false, dead = false;
+    let lastTs = 0, nextPipeMs = 1400; // time-based pipe spawning
+
+    // Pre-generate city skyline background
+    const cityBg = document.createElement('canvas');
+    cityBg.width = 400; cityBg.height = 300;
+    (function buildCity() {
+        const c = cityBg.getContext('2d');
+        // Sky gradient — deep purple/navy
+        const grad = c.createLinearGradient(0, 0, 0, 300);
+        grad.addColorStop(0, '#06010f'); grad.addColorStop(0.7, '#0a0520'); grad.addColorStop(1, '#12082a');
+        c.fillStyle = grad; c.fillRect(0, 0, 400, 300);
+        // Distant stars
+        for (let i = 0; i < 35; i++) {
+            const a = Math.random() * 0.5 + 0.1;
+            c.fillStyle = `rgba(255,255,255,${a})`;
+            c.beginPath(); c.arc(Math.random()*400, Math.random()*160, Math.random()*0.8+0.3, 0, Math.PI*2); c.fill();
+        }
+        // City silhouette — far layer (darker)
+        c.fillStyle = '#0d0520';
+        const farBuildings = [0,220,30,200,60,210,90,185,130,195,160,175,200,190,240,170,280,180,310,165,350,178,380,190,400,220,400,300,0,300];
+        c.beginPath(); c.moveTo(farBuildings[0], farBuildings[1]);
+        for (let i=2;i<farBuildings.length;i+=2) c.lineTo(farBuildings[i], farBuildings[i+1]);
+        c.fill();
+        // City silhouette — near layer
+        c.fillStyle = '#080414';
+        const nearBuildings = [0,260,20,235,50,240,80,220,110,230,140,215,165,225,195,210,220,218,250,200,280,210,310,195,340,208,370,215,400,260,400,300,0,300];
+        c.beginPath(); c.moveTo(nearBuildings[0], nearBuildings[1]);
+        for (let i=2;i<nearBuildings.length;i+=2) c.lineTo(nearBuildings[i], nearBuildings[i+1]);
+        c.fill();
+        // Window lights — tiny random lit windows on buildings
+        c.fillStyle = 'rgba(255,220,100,0.45)';
+        for (let i = 0; i < 40; i++) {
+            const wx = Math.random()*380 + 10, wy = 175 + Math.random()*60;
+            c.fillRect(wx, wy, 2, 2);
+        }
+        c.fillStyle = 'rgba(100,200,255,0.3)';
+        for (let i = 0; i < 20; i++) {
+            const wx = Math.random()*380 + 10, wy = 200 + Math.random()*45;
+            c.fillRect(wx, wy, 2, 3);
+        }
+    })();
+
+    function flap() {
+        if (dead) { startFlappy(); return; }
+        if (!started) { started = true; lastTs = performance.now(); }
+        bird.vy = FLAP_VEL;
+    }
+
+    _flappyKey = (e) => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); flap(); } };
+    document.addEventListener('keydown', _flappyKey);
+    nexusCanvas.addEventListener('click', flap);
+    nexusCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); flap(); }, { passive: false });
+
+    function addPipe() {
+        const top = 40 + Math.random() * (300 - GAP - 60);
+        pipes.push({ x: 415, top, scored: false });
+    }
+    addPipe();
+
+    function frame(ts) {
+        if (!flappyActive) return;
+
+        // DeltaTime — normalize to 60fps so physics are identical on 60/120/144Hz
+        const raw = lastTs ? Math.min(ts - lastTs, 50) : 16.67; // cap at 50ms to handle tab switching
+        const dt  = raw / 16.67;
+        lastTs = ts;
+
+        if (started && !dead) {
+            bird.vy += GRAVITY * dt;
+            bird.y  += bird.vy * dt;
+            bird.angle = Math.max(-0.45, Math.min(0.55, bird.vy * 0.07));
+
+            nextPipeMs -= raw;
+            if (nextPipeMs <= 0) { addPipe(); nextPipeMs = 1350 + Math.random() * 200; }
+
+            pipes.forEach(p => p.x -= PIPE_SPEED * dt);
+            pipes = pipes.filter(p => p.x + PIPE_W > -10);
+
+            pipes.forEach(p => {
+                if (!p.scored && p.x + PIPE_W < bird.x) { p.scored = true; score++; if (score > hi) { hi = score; localStorage.setItem('flappy_hi', hi); } }
+            });
+
+            // Collision
+            if (bird.y < 6 || bird.y > 294) dead = true;
+            pipes.forEach(p => {
+                if (bird.x + 9 > p.x && bird.x - 9 < p.x + PIPE_W) {
+                    if (bird.y - 9 < p.top || bird.y + 9 > p.top + GAP) dead = true;
+                }
+            });
+        }
+
+        // Draw city background
+        ctx.drawImage(cityBg, 0, 0);
+        // Ground
+        ctx.fillStyle = '#0a0518';
+        ctx.fillRect(0, 291, 400, 9);
+        ctx.fillStyle = '#c0f'; ctx.shadowBlur = 4; ctx.shadowColor = '#c0f';
+        ctx.fillRect(0, 291, 400, 1);
+        ctx.shadowBlur = 0;
+
+        // Pipes — neon purple theme to match city
+        pipes.forEach(p => {
+            ctx.shadowBlur = 6; ctx.shadowColor = '#80f';
+            ctx.fillStyle = '#1a0830';
+            ctx.fillRect(p.x, 0, PIPE_W, p.top);
+            ctx.fillRect(p.x, p.top + GAP, PIPE_W, 300);
+            // Pipe caps
+            ctx.fillStyle = '#80f';
+            ctx.fillRect(p.x - 3, p.top - 10, PIPE_W + 6, 10);
+            ctx.fillRect(p.x - 3, p.top + GAP, PIPE_W + 6, 10);
+            // Edge highlight
+            ctx.fillStyle = 'rgba(180,80,255,0.15)';
+            ctx.fillRect(p.x + PIPE_W - 4, 0, 4, p.top);
+            ctx.fillRect(p.x + PIPE_W - 4, p.top + GAP + 10, 4, 300);
+            ctx.shadowBlur = 0;
+        });
+
+        // Bird
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        ctx.rotate(bird.angle);
+        ctx.shadowBlur = 14; ctx.shadowColor = '#f0f';
+        ctx.fillStyle = '#f0f';
+        ctx.beginPath(); ctx.ellipse(0, 0, 11, 8, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#c0c';
+        ctx.beginPath(); ctx.ellipse(-4, 3, 6, 4, 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(5, -2, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(6, -2, 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // HUD
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 22px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(score, 200, 34);
+        ctx.fillStyle = '#555'; ctx.font = '11px monospace';
+        ctx.fillText(`HI ${hi}`, 200, 50);
+        ctx.textAlign = 'left';
+
+        if (!started) {
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(0, 0, 400, 300);
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
+            ctx.fillText('FLAPPY NEXUS', 200, 128);
+            ctx.fillStyle = '#0ff'; ctx.font = '13px monospace';
+            ctx.fillText('TAP  ·  SPACE  ·  ↑  to flap', 200, 155);
+            ctx.textAlign = 'left';
+        }
+
+        if (dead) {
+            ctx.fillStyle = 'rgba(6,1,15,0.88)';
+            ctx.fillRect(0, 0, 400, 300);
+            // Border
+            ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
+            ctx.strokeRect(20, 70, 360, 160);
+            ctx.strokeStyle = 'rgba(0,255,255,0.3)'; ctx.lineWidth = 1;
+            ctx.strokeRect(18, 68, 364, 164);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f0f'; ctx.font = 'bold 30px monospace';
+            ctx.fillText('GAME OVER', 200, 116);
+            ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
+            ctx.fillText(`Score: ${score}`, 200, 150);
+            const isNew = score === hi && score > 0;
+            ctx.fillStyle = isNew ? '#ff0' : '#0ff';
+            ctx.fillText(isNew ? `★ NEW BEST: ${hi} ★` : `Best: ${hi}`, 200, 174);
+            ctx.fillStyle = '#555'; ctx.font = '12px monospace';
+            ctx.fillText('TAP · SPACE to retry', 200, 208);
+            ctx.textAlign = 'left';
+        }
+
+        flappyFrame = requestAnimationFrame(frame);
+    }
+    flappyFrame = requestAnimationFrame((ts) => { lastTs = ts; frame(ts); });
+}
+
+function stopFlappy() {
+    flappyActive = false;
+    cancelAnimationFrame(flappyFrame);
+    if (_flappyKey) { document.removeEventListener('keydown', _flappyKey); _flappyKey = null; }
+    nexusCanvas.onclick = null;
+}
+
+// =============================================================
+//  BREAKOUT
+// =============================================================
+let breakoutFrame, breakoutActive = false;
+
+function startBreakout() {
+    stopAllGames();
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'NEXUS BREAKOUT';
     nexusCanvas.style.display = 'none';
 
     guiContent.innerHTML = `
         <div style="text-align:center;padding:10px 0;">
             <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
             <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                <button class="gui-btn inv-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
-                <button class="gui-btn inv-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
-                <button class="gui-btn inv-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
+                <button class="gui-btn brk-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
+                <button class="gui-btn brk-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
+                <button class="gui-btn brk-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
+                <button class="gui-btn brk-diff" data-diff="chaos"  style="border-color:#f00;color:#f00;">CHAOS</button>
             </div>
-            <p style="color:#555;font-size:0.68rem;margin-top:14px;">← → to move &nbsp;·&nbsp; Space to fire</p>
+            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
         </div>`;
 
-    guiContent.querySelectorAll('.inv-diff').forEach(btn => {
-        btn.addEventListener('click', () => launchInvaders(btn.dataset.diff));
+    guiContent.querySelectorAll('.brk-diff').forEach(btn => {
+        btn.addEventListener('click', () => launchBreakout(btn.dataset.diff));
     });
 }
 
-function launchInvaders(difficulty) {
+function startBreakout() {
+    stopAllGames();
+    guiContainer.classList.remove('gui-hidden');
+    guiTitle.textContent = 'NEXUS BREAKOUT';
+
+    // Difficulty menu with descriptions
+    guiContent.innerHTML = `
+        <div style="text-align:center;padding:10px 0;">
+            <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
+            <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+                <button class="gui-btn brk-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;width:240px;">EASY<br><span style="font-size:0.6rem;opacity:0.6;">Slow balls · Big paddle</span></button>
+                <button class="gui-btn brk-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;width:240px;">MEDIUM<br><span style="font-size:0.6rem;opacity:0.6;">Standard physics</span></button>
+                <button class="gui-btn brk-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;width:240px;">HARD<br><span style="font-size:0.6rem;opacity:0.6;">Fast balls · Small paddle</span></button>
+                <button class="gui-btn brk-diff" data-diff="chaos"  style="border-color:#f00;color:#f00;width:240px;">CHAOS<br><span style="font-size:0.6rem;opacity:0.6;">Extreme acceleration</span></button>
+            </div>
+            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
+        </div>`;
+    nexusCanvas.style.display = 'none';
+
+    guiContent.querySelectorAll('.brk-diff').forEach(btn => {
+        btn.addEventListener('click', () => launchBreakout(btn.dataset.diff));
+    });
+}
+
+function launchBreakout(difficulty) {
     const DIFFS = {
-        easy:   { PW: 110, startVX: 1.8, startVY: -3.0, accel: 1.00, maxLives: 6 },
-        medium: { PW: 85,  startVX: 2.5, startVY: -4.0, accel: 1.02, maxLives: 4 },
-        hard:   { PW: 55,  startVX: 3.5, startVY: -5.5, accel: 1.05, maxLives: 3 },
-        insane: { PW: 45,  startVX: 4.0, startVY: -6.5, accel: 1.08, maxLives: 2 },
+        easy:   { PW: 96, startVX: 2,   startVY: -3.5, accel: 1.01 },
+        medium: { PW: 72, startVX: 2.8, startVY: -4.5, accel: 1.03 },
+        hard:   { PW: 50, startVX: 3.5, startVY: -5.5, accel: 1.05 },
+        chaos:  { PW: 44, startVX: 3,   startVY: -5,   accel: 1.08 },
     };
     const d = DIFFS[difficulty] || DIFFS.medium;
 
@@ -1439,8 +1947,8 @@ function launchInvaders(difficulty) {
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
-            <span style="color:#f0f;font-size:0.65rem;letter-spacing:1px;">LEVEL <span id="brk-level">1</span></span>
-            <div style="width:100px;height:8px;background:#222;border:1px solid #444;border-radius:4px;overflow:hidden;margin-top:4px;"><div id="brk-health" style="width:100%;height:100%;background:linear-gradient(to right, #f0f, #0ff); box-shadow: 0 0 10px #0ff;;transition:width 0.3s;"></div></div>
+            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()}</span>
+            <span id="brk-lives" style="color:#0ff;">♥♥♥</span>
         </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
@@ -1450,7 +1958,9 @@ function launchInvaders(difficulty) {
     const BW = 43, BH = 16, BCOLS = 8, BROWS = 5;
     const BCOLORS = ['#f0f','#f55','#f80','#ff0','#0f0'];
     let paddle = 165;
+    // Ball system — supporting Multi-ball
     let balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
+    // Power-up system
     let powerups = [];
     const PU_TYPES = [
         { label: 'M', color: '#0ff', type: 'multi' },
@@ -1458,24 +1968,26 @@ function launchInvaders(difficulty) {
         { label: 'S', color: '#ff0', type: 'slow' }
     ];
 
-    let bricks = [], score = 0, lives = d.maxLives, level = 1, dead = false, won = false;
+    let bricks = [], score = 0, lives = 3, dead = false, won = false;
     let lastTs = 0, wideTimer = 0;
-    
+    let hi = parseInt(localStorage.getItem('breakout_hi') || '0');
+
+    // Pre-draw circuit board background
+    const brkBg = document.createElement('canvas');
+    brkBg.width = 400; brkBg.height = 300;
+    (function buildBrkBg() {
+        const c = brkBg.getContext('2d');
+        c.fillStyle = '#050510'; c.fillRect(0, 0, 400, 300);
+        c.strokeStyle = 'rgba(0,255,255,0.04)'; c.lineWidth = 1;
+        for (let x = 0; x <= 400; x += 25) { c.beginPath(); c.moveTo(x,0); c.lineTo(x,300); c.stroke(); }
+        for (let y = 0; y <= 300; y += 25) { c.beginPath(); c.moveTo(0,y); c.lineTo(400,y); c.stroke(); }
+    })();
+
     function initBricks() {
         bricks = [];
-        balls = [{ x: 200, y: 230, vx: d.startVX * (1 + level*0.1), vy: d.startVY * (1 + level*0.1) }];
-        powerups = [];
-        currentPW = d.PW;
-        
-        for (let r = 0; r < BROWS + Math.floor(level/2); r++) {
-            for (let c = 0; c < BCOLS; c++) {
-                // Introduce gaps and steel bricks at higher levels
-                if (level > 1 && (r + c) % 5 === 0) continue; 
-                let hp = 1;
-                if (level > 2 && Math.random() < 0.1) hp = 2; // Steel brick
-                bricks.push({ x: 8 + c * (BW + 4), y: 30 + r * (BH + 5), alive: true, hp: hp, color: hp === 2 ? '#aaa' : BCOLORS[r % BCOLORS.length] });
-            }
-        }
+        for (let r = 0; r < BROWS; r++)
+            for (let c = 0; c < BCOLS; c++)
+                bricks.push({ x: 8 + c * (BW + 4), y: 30 + r * (BH + 5), alive: true, color: BCOLORS[r] });
     }
     initBricks();
 
@@ -1494,78 +2006,79 @@ function launchInvaders(difficulty) {
         lastTs = ts;
 
         if (!dead && !won) {
+            // Handle Wide Paddle timer
             if (wideTimer > 0) {
                 wideTimer -= raw;
                 if (wideTimer <= 0) currentPW = d.PW;
             }
 
+            // Move Balls
             balls.forEach((ball, bi) => {
                 ball.x += ball.vx * dt; ball.y += ball.vy * dt;
                 if (ball.x <= BR || ball.x >= 400 - BR) { ball.vx *= -1; SoundManager.playBloop(300, 0.02); }
                 if (ball.y <= BR) { ball.vy = Math.abs(ball.vy); SoundManager.playBloop(300, 0.02); }
                 
+                // Paddle hit
                 if (ball.y + BR >= 270 && ball.y - BR <= 282 && ball.x >= paddle && ball.x <= paddle + currentPW) {
                     ball.vy = -Math.abs(ball.vy);
                     const hitPoint = (ball.x - (paddle + currentPW / 2)) / (currentPW / 2);
-                    ball.vx = hitPoint * 8; // Increased horizontal influence
-                    // Ensure ball doesn't get stuck horizontally
-                    if (Math.abs(ball.vx) < 1) ball.vx = ball.vx < 0 ? -2 : 2;
+                    ball.vx = hitPoint * 5.5;
                     SoundManager.playBloop(400, 0.05);
                 }
 
+                // Brick hit
                 bricks.forEach(b => {
                     if (!b.alive) return;
                     if (ball.x + BR > b.x && ball.x - BR < b.x + BW && ball.y + BR > b.y && ball.y - BR < b.y + BH) {
-                        b.hp--; ball.vy *= -1;
+                        b.alive = false; ball.vy *= -1; score += 10;
                         SoundManager.playBloop(600 + Math.random() * 200, 0.05);
                         
-                        if (b.hp <= 0) {
-                            b.alive = false; score += 10 * level;
-                            if (Math.random() < 0.15) {
-                                const pu = PU_TYPES[Math.floor(Math.random() * PU_TYPES.length)];
-                                powerups.push({ x: b.x + BW/2, y: b.y, type: pu.type, label: pu.label, color: pu.color });
-                            }
-                        } else {
-                            b.color = BCOLORS[Math.floor(Math.random() * BCOLORS.length)]; // Crack effect
+                        // Drop powerup? (15% chance)
+                        if (Math.random() < 0.15) {
+                            const pu = PU_TYPES[Math.floor(Math.random() * PU_TYPES.length)];
+                            powerups.push({ x: b.x + BW/2, y: b.y, type: pu.type, label: pu.label, color: pu.color });
                         }
 
                         if (d.accel) {
                             ball.vx *= d.accel; ball.vy *= d.accel;
                             const spd = Math.sqrt(ball.vx**2 + ball.vy**2);
-                            const maxSpd = 10 + level * 2;
-                            if (spd > maxSpd) { ball.vx = ball.vx/spd*maxSpd; ball.vy = ball.vy/spd*maxSpd; }
+                            if (spd > 14) { ball.vx = ball.vx/spd*14; ball.vy = ball.vy/spd*14; }
                         }
                         const el = document.getElementById('brk-score');
                         if (el) el.textContent = score;
                     }
                 });
 
+                // Ball lost
                 if (ball.y > 310) balls.splice(bi, 1);
             });
 
+            // No balls left? Lose a life
             if (balls.length === 0) {
                 lives--;
                 SoundManager.playBloop(150, 0.1);
-                const healthBar = document.getElementById('brk-health');
-                if (healthBar) healthBar.style.width = (lives / d.maxLives * 100) + '%';
+                const livesEl = document.getElementById('brk-lives');
+                if (livesEl) livesEl.textContent = '♥'.repeat(Math.max(0, lives));
                 if (lives <= 0) { 
                     dead = true; 
                     submitScore('breakout', score);
                     showLeaderboard('breakout');
                 } else {
-                    balls = [{ x: 200, y: 230, vx: d.startVX * (1 + level*0.1), vy: d.startVY * (1 + level*0.1) }];
+                    balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
                     powerups = [];
                     currentPW = d.PW; wideTimer = 0;
                 }
             }
 
+            // Move Powerups
             powerups.forEach((pu, pi) => {
                 pu.y += 2 * dt;
                 if (pu.y > 270 && pu.y < 285 && pu.x > paddle && pu.x < paddle + currentPW) {
+                    // CATCH!
                     powerups.splice(pi, 1);
                     SoundManager.playBloop(800, 0.1);
                     if (pu.type === 'multi') {
-                        balls.push({ x: balls[0]?.x || 200, y: 230, vx: -3, vy: -4 }, { x: balls[0]?.x || 200, y: 230, vx: 3, vy: -4 });
+                        balls.push({ x: ball.x || 200, y: 230, vx: -3, vy: -4 }, { x: ball.x || 200, y: 230, vx: 3, vy: -4 });
                     } else if (pu.type === 'wide') {
                         currentPW = d.PW * 1.6; wideTimer = 10000;
                     } else if (pu.type === 'slow') {
@@ -1576,21 +2089,14 @@ function launchInvaders(difficulty) {
             });
 
             if (bricks.every(b => !b.alive)) { 
-                level++;
-                const lEl = document.getElementById('brk-level');
-                if (lEl) lEl.textContent = level;
-                initBricks();
-                SoundManager.playBloop(1000, 0.2);
+                won = true; 
+                submitScore('breakout', score);
+                showLeaderboard('breakout');
             }
         }
 
-        // Draw bg based on level
-        ctx.fillStyle = level % 2 === 0 ? '#0a0a1a' : '#050510';
-        ctx.fillRect(0, 0, 400, 300);
-        ctx.strokeStyle = 'rgba(0,255,255,0.04)'; ctx.lineWidth = 1;
-        for (let x = 0; x <= 400; x += 25) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,300); ctx.stroke(); }
-        for (let y = 0; y <= 300; y += 25) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(400,y); ctx.stroke(); }
-
+        // Draw
+        ctx.drawImage(brkBg, 0, 0);
         bricks.forEach(b => {
             if (!b.alive) return;
             ctx.fillStyle = b.color; ctx.fillRect(b.x, b.y, BW, BH);
@@ -1599,153 +2105,230 @@ function launchInvaders(difficulty) {
 
         powerups.forEach(pu => {
             ctx.fillStyle = pu.color;
-            ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
-            ctx.fillText(pu.label, pu.x, pu.y);
-            ctx.textAlign = 'left';
+            ctx.font = 'bold 14px monospace';
+            ctx.fillText(`[${pu.label}]`, pu.x - 10, pu.y);
         });
 
-        ctx.fillStyle = '#0ff'; ctx.shadowBlur = 8; ctx.shadowColor = '#0ff';
-        ctx.fillRect(paddle, 275, currentPW, PH);
-        balls.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, BR, 0, Math.PI * 2); ctx.fill(); });
-        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#0ff';
+        ctx.beginPath(); ctx.roundRect(paddle, 270, currentPW, PH, 4); ctx.fill();
 
-        if (dead) {
-            ctx.fillStyle = 'rgba(255,0,0,0.5)'; ctx.fillRect(0, 0, 400, 300);
-            ctx.fillStyle = '#fff'; ctx.font = 'bold 24px monospace'; ctx.textAlign = 'center';
-            ctx.fillText('SYSTEM FAILURE', 200, 150);
-            ctx.font = '14px monospace'; ctx.fillText('CLICK TO RETRY', 200, 190);
+        ctx.fillStyle = '#fff';
+        balls.forEach(b => {
+            ctx.beginPath(); ctx.arc(b.x, b.y, BR, 0, Math.PI * 2); ctx.fill();
+        });
+
+        if (dead || won) {
+            ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fillRect(0,0,400,300);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = won ? '#0f0' : '#f44';
+            ctx.font = 'bold 30px monospace';
+            ctx.fillText(won ? 'BOARD CLEARED' : 'SYSTEM CRASHED', 200, 130);
+            ctx.fillStyle = '#fff'; ctx.font = '16px monospace';
+            ctx.fillText(`Score: ${score}`, 200, 160);
+            ctx.fillText('CLICK to restart', 200, 200);
             ctx.textAlign = 'left';
             nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchBreakout(difficulty); };
         }
 
         breakoutRaf = requestAnimationFrame(frame);
     }
-    breakoutRaf = requestAnimationFrame(frame);
 }
 
-function stopBreakout() { 
-    cancelAnimationFrame(breakoutRaf); 
-    breakoutActive = false; 
-    nexusCanvas.onmousemove = null;
-    nexusCanvas.ontouchmove = null;
+function stopBreakout() {
+    breakoutActive = false;
+    cancelAnimationFrame(breakoutFrame);
 }
 
 // =============================================================
-//  WORDLE (Tech Edition)
+//  WORDLE
 // =============================================================
-let wordleActive = false, _wordleKey = null;
+const WORDLE_WORDS = [
+    'ABOUT','ABOVE','ABUSE','ACTOR','ACUTE','ADMIT','ADOPT','ADULT','AFTER','AGENT',
+    'AGREE','AHEAD','ALARM','ALBUM','ALERT','ALIKE','ALIVE','ALLEY','ALLOW','ALONE',
+    'ALONG','ALTER','ANGEL','ANGLE','ANGRY','ANIME','APPLY','ARENA','ARGUE','ARISE',
+    'ASIDE','ASSET','AVOID','AWAKE','AWARD','AWARE','AWFUL','BASIC','BASIS','BEACH',
+    'BEGIN','BEING','BELOW','BENCH','BERRY','BIRTH','BLACK','BLADE','BLAME','BLANK',
+    'BLAST','BLAZE','BLEED','BLEND','BLESS','BLIND','BLOCK','BLOOD','BLOOM','BOARD',
+    'BOOST','BOUND','BRAIN','BRAND','BRAVE','BREAD','BREAK','BRICK','BRIEF','BRING',
+    'BROAD','BROWN','BUILD','BUILT','BURST','CABIN','CARRY','CAUSE','CHAIN','CHAIR',
+    'CHAOS','CHARM','CHART','CHASE','CHEAP','CHECK','CHESS','CHEST','CHILD','CLAIM',
+    'CLASH','CLASS','CLEAN','CLEAR','CLICK','CLIMB','CLONE','CLOSE','CLOUD','COAST',
+    'COUNT','COURT','COVER','CRACK','CRANE','CRASH','CRAZY','CROSS','CROWD','CRUSH',
+    'CURVE','CYCLE','DAILY','DANCE','DEALT','DEATH','DELAY','DEPTH','DIRTY','DODGE',
+    'DOUBT','DRAFT','DRAIN','DRAMA','DRAWN','DREAM','DRINK','DRIVE','DROVE','DRUNK',
+    'EARTH','EIGHT','ELITE','EMPTY','ENEMY','ENJOY','ENTER','ERROR','EVENT','EVERY',
+    'EXACT','EXIST','EXTRA','FAITH','FALSE','FANCY','FATAL','FAULT','FEAST','FIELD',
+    'FIGHT','FINAL','FIRST','FIXED','FLAME','FLARE','FLASH','FLESH','FLOAT','FLOOD',
+    'FLOOR','FOUND','FRAME','FRANK','FRESH','FRONT','FROST','GUARD','GUESS','GUIDE',
+    'HABIT','HAPPY','HARSH','HEART','HEAVY','HINGE','HONOR','HORSE','HOTEL','HOUSE',
+    'HUMAN','HUMOR','IDEAL','IMAGE','INDEX','INNER','INPUT','ISSUE','JOINT','JUDGE',
+    'JUICE','LABEL','LARGE','LASER','LATER','LAYER','LEGAL','LIGHT','LIMIT','LOGIC',
+    'LOOSE','LOVER','LOWER','LUCKY','MAGIC','MAJOR','MAKER','MATCH','MAYOR','MEANT',
+    'MEDIA','MERIT','METAL','MINOR','MINUS','MIXED','MODEL','MONEY','MOUNT','MOUSE',
+    'MOVED','MUSIC','NERVE','NIGHT','NOBLE','NOISE','NORTH','NOVEL','NURSE','OCCUR',
+    'OFFER','OFTEN','OLIVE','ONSET','ORBIT','ORDER','OTHER','OUTER','OWNED','PANEL',
+    'PANIC','PAPER','PARTY','PATCH','PAUSE','PEACE','PHONE','PILOT','PIXEL','PIZZA',
+    'PLACE','PLANE','PLANT','PLATE','POINT','POWER','PRESS','PRICE','PRIDE','PRIME',
+    'PROBE','PROOF','PROSE','PROUD','PROVE','PROXY','PULSE','PUNCH','QUICK','QUIET',
+    'QUITE','QUOTE','RADIO','RAISE','RALLY','RANGE','RAPID','REACH','READY','REBEL',
+    'REFER','RELAY','REPLY','RESET','RIDGE','RIGHT','RIGID','RISEN','RISKY','RIVER',
+    'ROBOT','ROCKY','ROUGH','ROUND','ROUTE','ROYAL','RURAL','SAINT','SCALE','SCARE',
+    'SCENE','SCOPE','SCORE','SENSE','SERVE','SETUP','SEVEN','SHAPE','SHARE','SHARP',
+    'SHELL','SHIFT','SHIRT','SHOCK','SHOOT','SHORT','SHOUT','SIGHT','SKILL','SKULL',
+    'SLEEP','SLICE','SLIDE','SLOPE','SMART','SMILE','SMOKE','SNAKE','SOLAR','SOLID',
+    'SOLVE','SORRY','SOUTH','SPACE','SPEAK','SPEED','SPEND','SPLIT','STAND','START',
+    'STATE','STEAM','STEEL','STICK','STILL','STONE','STOOD','STORM','STORY','STRIP',
+    'STUCK','STUDY','STYLE','SUPER','SWEET','SWING','SWORD','TABLE','TAKEN','TASTE',
+    'TEACH','TEETH','THEME','THICK','THING','THINK','THREE','THROW','TIGHT','TIMER',
+    'TIRED','TODAY','TOUCH','TOUGH','TOWER','TOXIC','TRACE','TRACK','TRADE','TRAIL',
+    'TRAIN','TRASH','TREAT','TREND','TRIAL','TRICK','TRUST','TRUTH','TWIST','UNDER',
+    'UNION','UNITY','UNTIL','UPPER','UPSET','URBAN','VALID','VALUE','VENUE','VIVID',
+    'VOCAL','VOICE','WAGER','WASTE','WATCH','WATER','WEIRD','WHITE','WHOLE','WIDER',
+    'WORLD','WORRY','WORSE','WORST','WORTH','WOULD','WRECK','WRITE','YIELD','YOUNG',
+];
+
+let wordleActive = false;
+let wordleAnswer = '';
+let wordleGuesses = [];
+let wordleCurrent = '';
+let wordleKeyState = {};
+
+const WORDLE_MAX = 6;
+const WORDLE_LEN = 5;
 
 function startWordle() {
     stopAllGames();
+    wordleActive = true;
+    wordleAnswer = WORDLE_WORDS[Math.floor(Math.random() * WORDLE_WORDS.length)];
+    wordleGuesses = [];
+    wordleCurrent = '';
+    wordleKeyState = {};
+
     guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'NEXUS DECRYPT';
+    guiTitle.textContent = 'NEXUS WORDLE';
     nexusCanvas.style.display = 'none';
 
-    guiContent.innerHTML = `
-        <div style="text-align:center;padding:10px 0;">
-            <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DATABANK</div>
-            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                <button class="gui-btn word-cat" data-cat="tech"   style="border-color:#0ff;color:#0ff;">IT & TECH</button>
-                <button class="gui-btn word-cat" data-cat="code"   style="border-color:#0f0;color:#0f0;">CODING</button>
-                <button class="gui-btn word-cat" data-cat="hard"   style="border-color:#f0f;color:#f0f;">6-LETTER SECRETS</button>
-            </div>
-            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Decrypt the secure hash. Type your guess.</p>
-        </div>`;
-
-    guiContent.querySelectorAll('.word-cat').forEach(btn => {
-        btn.addEventListener('click', () => launchWordle(btn.dataset.cat));
-    });
-}
-
-function launchWordle(category) {
-    stopAllGames();
-    wordleActive = true;
-    
-    const WORDS = {
-        tech: ['LINUX','APPLE','MACRO','BOARD','POWER','DRIVE','CABLE','LASER','FIBER','MODEM','ROUTER','CLOUD','PIXEL'],
-        code: ['ARRAY','FLOAT','REACT','FETCH','AWAIT','ASYNC','CONST','WHILE','CATCH','THROW','SCOPE','MERGE','DEBUG'],
-        hard: ['SERVER','CLIENT','DOMAIN','HACKER','KERNEL','MEMORY','GIGABIT','UPTIME','SYSTEM','ROUTER']
-    };
-    
-    const wordList = WORDS[category] || WORDS.tech;
-    const targetWord = wordList[Math.floor(Math.random() * wordList.length)];
-    const wordLen = targetWord.length;
-    const maxGuesses = 6;
-
-    let guesses = [];
-    let currentGuess = "";
-    let gameOver = false;
-
-    guiContent.innerHTML = `
-        <div style="display:flex;flex-direction:column;align-items:center;padding-top:10px;">
-            <div id="word-grid" style="display:grid;grid-template-rows:repeat(${maxGuesses}, 40px);gap:5px;margin-bottom:15px;"></div>
-            <div id="word-msg" style="color:#f55;font-size:0.75rem;height:15px;"></div>
-            <button class="gui-btn" id="word-retry" style="display:none;margin-top:10px;" onclick="launchWordle('${category}')">RETRY DECRYPTION</button>
-        </div>
-    `;
-
-    function renderGrid() {
-        const grid = document.getElementById('word-grid');
-        if (!grid) return;
-        grid.style.gridTemplateColumns = `repeat(${wordLen}, 40px)`;
-        let html = '';
-        for (let i = 0; i < maxGuesses; i++) {
-            const guess = guesses[i] || (i === guesses.length ? currentGuess.padEnd(wordLen, ' ') : ' '.repeat(wordLen));
-            for (let j = 0; j < wordLen; j++) {
-                let bg = 'transparent', color = '#fff', border = '#333';
-                if (i < guesses.length) {
-                    const char = guess[j];
-                    if (targetWord[j] === char) { bg = '#0f0'; color = '#000'; border = '#0f0'; }
-                    else if (targetWord.includes(char)) { bg = '#ff0'; color = '#000'; border = '#ff0'; }
-                    else { bg = '#333'; color = '#888'; border = '#333'; }
-                } else if (i === guesses.length && guess[j] !== ' ') {
-                    border = '#0ff';
-                }
-                html += `<div style="display:flex;align-items:center;justify-content:center;border:1px solid ${border};background:${bg};color:${color};font-weight:bold;font-size:1.2rem;">${guess[j]}</div>`;
-            }
-        }
-        grid.innerHTML = html;
-    }
-
-    renderGrid();
-
-    _wordleKey = (e) => {
-        if (!wordleActive || gameOver) return;
-        if (e.key === 'Backspace') { currentGuess = currentGuess.slice(0, -1); renderGrid(); SoundManager.playBloop(300, 0.05); return; }
-        if (e.key === 'Enter' && currentGuess.length === wordLen) {
-            guesses.push(currentGuess);
-            if (currentGuess === targetWord) {
-                gameOver = true;
-                document.getElementById('word-msg').style.color = '#0f0';
-                document.getElementById('word-msg').textContent = 'DECRYPTION SUCCESSFUL';
-                document.getElementById('word-retry').style.display = 'block';
-                SoundManager.playBloop(1000, 0.2);
-                submitScore('wordle', (maxGuesses - guesses.length + 1) * 100);
-            } else if (guesses.length === maxGuesses) {
-                gameOver = true;
-                document.getElementById('word-msg').textContent = `LOCKED OUT. WORD WAS: ${targetWord}`;
-                document.getElementById('word-retry').style.display = 'block';
-                SoundManager.playBloop(150, 0.2);
-            } else {
-                currentGuess = "";
-                SoundManager.playBloop(800, 0.1);
-            }
-            renderGrid();
-            return;
-        }
-        if (/^[a-zA-Z]$/.test(e.key) && currentGuess.length < wordLen) {
-            currentGuess += e.key.toUpperCase();
-            renderGrid();
-            SoundManager.playBloop(400, 0.05);
-        }
-    };
-    document.removeEventListener('keydown', _wordleKey); document.addEventListener('keydown', _wordleKey);
+    renderWordle();
+    printToTerminal('Wordle started — type a 5-letter word and press Enter.', 'sys-msg');
 }
 
 function stopWordle() {
     wordleActive = false;
-    if (_wordleKey) { document.removeEventListener('keydown', _wordleKey); _wordleKey = null; }
 }
+
+function renderWordle() {
+    const rows = [];
+    for (let r = 0; r < WORDLE_MAX; r++) {
+        const guess = wordleGuesses[r];
+        const isCurrentRow = r === wordleGuesses.length && !wordleIsOver();
+        const tiles = [];
+        for (let c = 0; c < WORDLE_LEN; c++) {
+            let letter = '';
+            let bg = '#1a1a2e';
+            let border = '#444';
+            let color = '#fff';
+            if (guess) {
+                letter = guess.result[c].letter;
+                if (guess.result[c].state === 'correct') { bg = '#1a6b1a'; border = '#0f0'; color = '#0f0'; }
+                else if (guess.result[c].state === 'present') { bg = '#6b5a00'; border = '#ff0'; color = '#ff0'; }
+                else { bg = '#333'; border = '#555'; color = '#888'; }
+            } else if (isCurrentRow) {
+                letter = wordleCurrent[c] || '';
+                border = letter ? '#0ff' : '#333';
+            }
+            tiles.push(`<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:${bg};border:2px solid ${border};color:${color};font-size:1.3rem;font-weight:bold;border-radius:4px;font-family:'Fira Code',monospace;transition:border 0.1s;">${letter}</div>`);
+        }
+        rows.push(`<div style="display:flex;gap:6px;">${tiles.join('')}</div>`);
+    }
+
+    // Keyboard
+    const ROWS_KB = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['ENTER','Z','X','C','V','B','N','M','⌫']];
+    const kbRows = ROWS_KB.map(row => {
+        const keys = row.map(k => {
+            const state = wordleKeyState[k] || '';
+            let bg = '#2a2a3e', color = '#ccc', border = '#444';
+            if (state === 'correct') { bg = '#1a5c1a'; color = '#0f0'; border = '#0f0'; }
+            else if (state === 'present') { bg = '#5a4a00'; color = '#ff0'; border = '#ff0'; }
+            else if (state === 'absent') { bg = '#1a1a1a'; color = '#444'; border = '#333'; }
+            const wide = (k === 'ENTER' || k === '⌫') ? 'min-width:52px;' : 'min-width:30px;';
+            return `<button onclick="wordleKey('${k}')" style="${wide}padding:8px 4px;background:${bg};border:1px solid ${border};color:${color};font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:bold;border-radius:4px;cursor:pointer;">${k}</button>`;
+        });
+        return `<div style="display:flex;gap:4px;justify-content:center;">${keys.join('')}</div>`;
+    }).join('');
+
+    guiContent.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center;margin-bottom:12px;">${rows.join('')}</div>
+        <div style="display:flex;flex-direction:column;gap:5px;">${kbRows}</div>
+        <p id="wordle-msg" style="text-align:center;font-size:0.8rem;color:#0ff;margin-top:8px;min-height:1.2em;"></p>`;
+}
+
+window.wordleKey = function(k) {
+    if (!wordleActive) return;
+    if (wordleIsOver()) return;
+    SoundManager.playBloop(400, 0.05);
+    if (k === '⌫' || k === 'Backspace') { wordleCurrent = wordleCurrent.slice(0, -1); renderWordle(); return; }
+    if (k === 'ENTER' || k === 'Enter') { submitWordleGuess(); return; }
+    if (/^[A-Z]$/.test(k) && wordleCurrent.length < WORDLE_LEN) { wordleCurrent += k; renderWordle(); }
+};
+
+function submitWordleGuess() {
+    if (wordleCurrent.length < WORDLE_LEN) {
+        document.getElementById('wordle-msg').textContent = 'Not enough letters.';
+        return;
+    }
+    const guess = wordleCurrent.toUpperCase();
+    const answer = wordleAnswer;
+    const result = [];
+    const used = answer.split('').map(() => false);
+
+    // First pass: correct
+    for (let i = 0; i < WORDLE_LEN; i++) {
+        if (guess[i] === answer[i]) { result[i] = { letter: guess[i], state: 'correct' }; used[i] = true; }
+        else result[i] = { letter: guess[i], state: 'absent' };
+    }
+    // Second pass: present
+    for (let i = 0; i < WORDLE_LEN; i++) {
+        if (result[i].state === 'correct') continue;
+        const j = answer.split('').findIndex((ch, idx) => ch === guess[i] && !used[idx]);
+        if (j !== -1) { result[i].state = 'present'; used[j] = true; }
+    }
+
+    wordleGuesses.push({ word: guess, result });
+    wordleCurrent = '';
+
+    // Update key state
+    result.forEach(({ letter, state }) => {
+        const prev = wordleKeyState[letter];
+        if (prev === 'correct') return;
+        if (state === 'correct') wordleKeyState[letter] = 'correct';
+        else if (state === 'present' && prev !== 'correct') wordleKeyState[letter] = 'present';
+        else if (!prev) wordleKeyState[letter] = 'absent';
+    });
+
+    renderWordle();
+
+    const won = result.every(r => r.state === 'correct');
+    if (won) {
+        wordleActive = false;
+        SoundManager.playBloop(800, 0.2);
+        submitScore('wordle', (WORDLE_MAX - wordleGuesses.length + 1) * 20);
+        document.getElementById('wordle-msg').textContent = `🟩 Nice! The word was ${answer}. Close to restart.`;
+        printToTerminal(`Wordle solved in ${wordleGuesses.length}/${WORDLE_MAX}! Word: ${answer}`, 'conn-ok');
+    } else if (wordleGuesses.length >= WORDLE_MAX) {
+        wordleActive = false;
+        SoundManager.playBloop(150, 0.2);
+        document.getElementById('wordle-msg').textContent = `The word was ${answer}. Close to try again.`;
+        printToTerminal(`Wordle over. The word was ${answer}.`, 'sys-msg');
+    }
+}
+
+function wordleIsOver() {
+    if (wordleGuesses.length >= WORDLE_MAX) return true;
+    return wordleGuesses.length > 0 && wordleGuesses[wordleGuesses.length - 1].result.every(r => r.state === 'correct');
+}
+
+// Called from WS when AI sends feedback during a wordle session (passthrough now)
+function updateWordleVisuals(text, grid) { /* handled by client-side wordle now */ }
 
 // =============================================================
 //  MINESWEEPER
@@ -2004,7 +2587,7 @@ function checkTypingTest(typed) {
 //  MATRIX SCREENSAVER
 // =============================================================
 let matrixSaverActive = false;
-
+let matrixSaverFrame;
 
 function startMatrixSaver() {
     stopAllGames();
@@ -2049,37 +2632,7 @@ function stopMatrixSaver() {
 //  STOP ALL GAMES HELPER
 // =============================================================
 function stopAllGames() {
-    // Kill all animation frames safely
-    if (window.pongRaf) window.cancelAnimationFrame(window.pongRaf);
-    if (window.flappyFrame) window.cancelAnimationFrame(window.flappyFrame);
-    if (window.breakoutRaf) window.cancelAnimationFrame(window.breakoutRaf);
-    if (window.breakoutRaf) window.cancelAnimationFrame(window.breakoutRaf);
-    if (window.invadersRaf) window.cancelAnimationFrame(window.invadersRaf);
-    if (window.snakeRaf) window.cancelAnimationFrame(window.snakeRaf);
-    if (window.matrixSaverFrame) window.cancelAnimationFrame(window.matrixSaverFrame);
-    
-    // Nuke canvas to kill all event listeners
-    if (typeof nexusCanvas !== 'undefined' && nexusCanvas) {
-        const cleanCanvas = nexusCanvas.cloneNode(true);
-        nexusCanvas.parentNode.replaceChild(cleanCanvas, nexusCanvas);
-        nexusCanvas = cleanCanvas;
-    }
-    
-    // Explicitly call sub-stops
-    if (typeof stopPong === 'function') stopPong();
-    if (typeof stopSnake === 'function') stopSnake();
-    if (typeof stopWordle === 'function') stopWordle();
-    if (typeof stopFlappy === 'function') stopFlappy();
-    if (typeof stopBreakout === 'function') stopBreakout();
-    if (typeof stopInvaders === 'function') stopInvaders();
-    
-    // Global state resets
-    invadersActive = false;
-    breakoutActive = false;
-    flappyActive = false;
-    snakeActive = false;
-    wordleActive = false;
-    mineActive = false;
+    stopPong();
     stopSnake();
     stopWordle();
     stopMatrixSaver();
@@ -2089,11 +2642,10 @@ function stopAllGames() {
     mineActive = false;
     breachActive = false;
     typeTestActive = false;
-    wordleActive = false; // Add this
+    wordleActive = false;
     clearInterval(typeTimerInterval);
     clearInterval(monitorInterval);
 
-    // Ensure terminal input is focused and cleared
     if (input) {
         input.value = '';
         input.focus();
@@ -2117,59 +2669,17 @@ function stopAllGames() {
 // =============================================================
 //  GOOGLE AUTHENTICATION
 // =============================================================
-let _googleClientID = '874491304244-ml41ipcsgsuhli29g94p1bcu2f6e6ehp.apps.googleusercontent.com'; 
+let _googleClientID = '616205887439-s1l0out61vlu0l81307q9g64oai3gnur.apps.googleusercontent.com';
 let _authInited = false;
-let _googleInited = false; // Add this to prevent double-init warning
-
-
-window.forceOwnerLocal = () => {
-    const ownerData = {
-        ok: true,
-        name: 'Xavier (Local)',
-        email: 'lovexdgamer@gmail.com',
-        picture: '',
-        is_owner: true
-    };
-    localStorage.setItem('nexus_user_data', JSON.stringify(ownerData));
-    localStorage.setItem('nexus_owner', 'true');
-    location.reload();
-};
-
-
-window.triggerGoogleManual = () => {
-    console.log("[AUTH] Triggering Google Identity prompt manually...");
-    if (!(window.google && google.accounts && google.accounts.id)) {
-        alert("Google Identity Services library not loaded yet. Please wait a few seconds and try again.");
-        return;
-    }
-    google.accounts.id.prompt((notification) => {
-        if (notification.isNotDisplayed()) {
-            const reason = notification.getNotDisplayedReason();
-            console.warn("[AUTH] Prompt not displayed:", reason);
-            alert(`Google Login prompt could not be displayed.\nReason: ${reason}\n\nEnsure that ${window.location.origin} is authorized in your Google Cloud Console.`);
-        }
-    });
-};
-
-let _lastInitializedID = null;
-
 async function initGoogleAuth() {
     if (_authInited) return;
     renderAuthSection();
 
     const setupGoogle = () => {
-        const hasGoogle = !!(window.google && window.google.accounts && window.google.accounts.id);
-        if (!hasGoogle) {
-            console.warn("[AUTH] Google Identity Library not yet available...");
-            return false;
-        }
-        
-        if (_lastInitializedID === _googleClientID) {
-            renderGoogleButtons();
-            return true;
-        }
+        if (!window.google || !window.google.accounts || !window.google.accounts.id) return false;
+        if (_authInited) return true;
 
-        console.log("[AUTH] Identity Protocol Booting: ", _googleClientID.substring(0, 15) + "...");
+        console.log("[AUTH] Initializing Google Identity...");
         try {
             google.accounts.id.initialize({
                 client_id: _googleClientID,
@@ -2177,67 +2687,43 @@ async function initGoogleAuth() {
                 ux_mode: 'popup',
                 context: 'signin',
                 itp_support: true,
-                auto_select: true
+                auto_select: false
             });
-            _lastInitializedID = _googleClientID;
-            renderGoogleButtons();
+
+            // Render both locations if they exist
+            ['main-g_id_signin', 'sidebar-g_id_signin'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    console.log(`[AUTH] Rendering Button in #${id}`);
+                    google.accounts.id.renderButton(el, { 
+                        type: 'standard', 
+                        shape: 'rectangular', 
+                        theme: 'filled_blue', 
+                        text: 'signin_with', 
+                        size: id.includes('main') ? 'large' : 'medium',
+                        width: '250',
+                        alignment: 'center'
+                    });
+                }
+            });
+
             _authInited = true;
             return true;
         } catch (e) {
-            console.error("[AUTH] Google Init Protocol Failed:", e);
+            console.error("[AUTH] Google initialization failed:", e);
             return false;
         }
     };
 
-    function renderGoogleButtons() {
-        console.log("[AUTH] Rendering Google Access Nodes...");
-        const sideEl = document.getElementById('sidebar-g_id_signin');
-        if (sideEl) {
-            sideEl.innerHTML = ''; // Clear stale nodes
-            google.accounts.id.renderButton(sideEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'medium' });
-        }
-        const wallEl = document.getElementById('g_id_signin_wall');
-        if (wallEl) {
-            wallEl.innerHTML = ''; // Clear stale nodes
-            google.accounts.id.renderButton(wallEl, { type: 'standard', shape: 'rectangular', theme: 'filled_blue', text: 'signin_with', size: 'large' });
-        }
-
-        // Emergency Protocol: If still empty after 3 seconds, force manual button
-        setTimeout(() => {
-            const wall = document.getElementById('g_id_signin_wall');
-            if (wall && wall.children.length === 0) {
-                console.warn("[AUTH] Auto-render failed. Engaging manual uplink override.");
-                const mb = document.getElementById('manual-google-btn');
-                if (mb) mb.style.display = 'block';
-            }
-        }, 3000);
-    }
-
-    // Try immediately
-    setupGoogle();
-
-    // Protocol Update: Sync configuration from Uplink
-    const syncConfig = async (url) => {
-        try {
-            const r = await fetch(`${url}/api/config`);
-            const cfg = await r.json();
-            if (cfg.google_client_id && cfg.google_client_id !== _googleClientID) {
-                console.log("[AUTH] Config Synchronization: SUCCESS");
-                _googleClientID = cfg.google_client_id;
-                setupGoogle();
-            }
-        } catch(e) {}
-    };
-
-    syncConfig(API_BASE);
-    if (!isLocalHost) syncConfig('http://127.0.0.1:8000');
-
-    // Fallback poll
+    // Poll until ready
     let attempts = 0;
     const poll = setInterval(() => {
         attempts++;
-        if (setupGoogle() || attempts > 20) clearInterval(poll); 
-    }, 200);
+        if (setupGoogle() || attempts > 40) {
+            clearInterval(poll);
+            if (!_authInited) console.warn("[AUTH] Google GSI timed out.");
+        }
+    }, 250);
 }
 
 function renderAuthSection() {
@@ -2276,23 +2762,26 @@ function renderAuthSection() {
 }
 
 async function handleCredentialResponse(response) {
+    if (!response || !response.credential) {
+        console.error("[AUTH] Google returned an empty response:", response);
+        return;
+    }
     console.log("[AUTH] Received Google Credential. Validating with backend...");
     const statusMsg = document.getElementById('auth-status-msg');
     if (statusMsg) statusMsg.textContent = "[UPLINK] Synchronizing identity...";
 
     try {
-        const res = await fetch(`${API_BASE}/auth/google`, {
+        const res = await fetch(`${API_BASE}/login/google/authorized`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ credential: response.credential })
         });
         const data = await res.json();
         if (data.ok) {
-            localStorage.setItem('nexus_user_data', JSON.stringify(data)); if(data.is_owner) localStorage.setItem('nexus_owner', 'true');
+            localStorage.setItem('nexus_user_data', JSON.stringify(data));
             revealTerminal(data.name);
             renderAuthSection();
         } else {
-            console.error("[AUTH] Backend validation failed:", data.error);
             if (statusMsg) statusMsg.textContent = `[ERROR] Identity mismatch: ${data.error}`;
         }
     } catch(e) { 
@@ -2304,11 +2793,12 @@ async function handleCredentialResponse(response) {
 window.handleCredentialResponse = handleCredentialResponse;
 window.revealTerminal = revealTerminal;
 window.logout = logout;
+window.submitGuestAuth = submitGuestAuth;
 
 function logout() {
     if (!confirm("Terminate session and sign out?")) return;
     localStorage.removeItem('nexus_user_data');
-    location.reload(); 
+    location.reload();
 }
 
 function revealTerminal(name) {
@@ -2328,21 +2818,21 @@ function revealTerminal(name) {
     if (name) updateUserIdentity(name);
     renderAuthSection();
     logPrompt(`[PROTOCOL] User '${name}' acknowledged Terms of Access and established uplink.`);
-    
+
     connectWS();
     connectStats();
     updateClientStats();
     setInterval(updateClientStats, 5000);
-    
+
     printToTerminal(`[AUTH] Identity Verified: ${name}. Uplink established.`, 'conn-ok');
 }
 
-window.showTerms = () => { 
+window.showTerms = () => {
     const check = document.getElementById('terms-check');
     const btn   = document.getElementById('agree-btn');
     if (check) check.checked = false;
     if (btn)   btn.disabled  = true;
-    document.getElementById('terms-modal').style.display = 'flex'; 
+    document.getElementById('terms-modal').style.display = 'flex';
 };
 
 window.showTermsFromWall = () => {
@@ -2387,6 +2877,27 @@ async function submitGuestAuth() {
     }
 }
 
+async function showLogs() {
+    printToTerminal("[SYS] Retrieving recent login logs...", "sys-msg");
+    try {
+        const res = await fetch(`${API_BASE}/api/diagnostics`);
+        const data = await res.json();
+        if (data.recent_logins && data.recent_logins.length) {
+            printToTerminal("--- RECENT LOGIN ACTIVITY ---", "sys-msg");
+            data.recent_logins.reverse().forEach(log => {
+                const ts = new Date(log.timestamp).toLocaleTimeString();
+                const name = log.name || 'Unknown';
+                const ip = log.ip || '?.?.?.?';
+                const src = log.source === 'direct' ? 'Direct' : 'Referral';
+                printToTerminal(`[${ts}] ${name.padEnd(10)} | IP: ${ip.padEnd(15)} | ${src}`, "conn-ok");
+            });
+        } else {
+            printToTerminal("[SYS] No login logs found in database.", "sys-msg");
+        }
+    } catch (e) {
+        printToTerminal("[ERR] Failed to fetch diagnostic logs.", "sys-msg");
+    }
+}
 function updateUserIdentity(name) {
     if (!name) return;
     // Update prompts
@@ -2595,7 +3106,7 @@ async function askHFDirect(cmd, system) {
         
         document.getElementById('ai-thinking')?.remove();
         const p = document.createElement('p');
-        p.className = 'ai-msg ' + (currentMode === 'evil' ? 'evil-msg' : '');
+        p.className = 'ai-msg';
         output.appendChild(p);
         let full = '';
         
@@ -2877,13 +3388,13 @@ const MODES = {
         msgCls:  'conn-ok',
     },
     void: {
-        prompt:  'educational@nexus:~$',
+        prompt:  'void@nexus:~$',
         color:   '#ff00ff',
-        title:   'NEXUS EDUCATIONAL',
-        label:   'EDUCATIONAL',
-        msg:     '[EDUCATIONAL] Academic kernel online. Professor Nexus ready to assist.',
+        title:   'NEXUS VOID',
+        label:   'VOID',
+        msg:     '[VOID] Entered the abyss. Logic is an illusion. Speak your truth.',
         msgCls:  'sys-msg',
-    }
+    },
 };
 
 function setMode(modeKey) {
@@ -2903,7 +3414,7 @@ function setMode(modeKey) {
     const titleEl    = document.getElementById('status-title');
     const modeIndEl  = document.getElementById('mode-indicator');
 
-    if (promptEl)  { promptEl.textContent = m.prompt; console.log('[MODE] Set to', modeKey); promptEl.style.color = m.color; }
+    if (promptEl)  { promptEl.textContent = m.prompt; promptEl.style.color = m.color; }
     if (titleEl)   titleEl.textContent = m.title;
     if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color || 'inherit'; }
 
@@ -3009,40 +3520,6 @@ function setupInputListeners() {
         input.value = '';
 
         const lc = cmd.toLowerCase();
-        
-        if (lc === 'sudo-owner' || lc === 'become-owner') {
-            if (isLocal) {
-                const ownerData = {
-                    ok: true,
-                    name: 'Xavier (Local)',
-                    email: 'lovexdgamer@gmail.com',
-                    picture: '',
-                    is_owner: true
-                };
-                localStorage.setItem('nexus_user_data', JSON.stringify(ownerData));
-                localStorage.setItem('nexus_owner', 'true');
-                printToTerminal('[OK] Local Owner status granted. Reloading...', 'conn-ok');
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                printToTerminal('[ERR] sudo-owner restricted to local nodes.', 'sys-msg');
-            }
-            return;
-        }
-    
-        if (lc === 'sys-check' || lc === 'debug') {
-            const diag = [
-                '-- NEXUS CORE DIAGNOSTIC --',
-                'WebSocket: ' + (termWs?.readyState === 1 ? 'ONLINE' : 'OFFLINE'),
-                'Canvas: ' + (nexusCanvas ? 'LOADED (' + nexusCanvas.width + 'x' + nexusCanvas.height + ')' : 'MISSING'),
-                'Backend: ' + API_BASE,
-                'Mode: ' + currentMode,
-                'API Keys: Check /api/status',
-                '-------------------------'
-            ].join('\n');
-            printToTerminal(diag, 'sys-msg');
-            return;
-        }
-        
         const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
         const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
 
@@ -3053,13 +3530,10 @@ function setupInputListeners() {
         }
 
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-        
-        // Command Router
         handleCommand(cmd);
     });
 }
 
-// Initial attempt
 setupInputListeners();
 
 function handleCommand(cmd) {
@@ -3075,19 +3549,18 @@ function handleCommand(cmd) {
 
     const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
     const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
-    
+
     if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
     if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
     if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
+    if (lc === 'logs' || lc === 'log') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLogs(); return; }
     if (lc === 'leaderboard' || lc === 'rankings') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
-    
     if (lc === 'login' || lc === 'signin') {
         printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         printToTerminal("[AUTH] Triggering Google Identity prompt...", "sys-msg");
         google.accounts.id.prompt();
         return;
     }
-
     if (lc.startsWith('name ')) {
         const newName = cmd.slice(5).trim().slice(0, 15);
         if (newName) {
@@ -3096,7 +3569,6 @@ function handleCommand(cmd) {
         }
         return;
     }
-
     if (lc === 'scan image' || lc === 'scan') {
         if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
         printToTerminal(`${pl} scan image`, 'user-cmd');
@@ -3104,7 +3576,109 @@ function handleCommand(cmd) {
     }
     
     if (lc === 'evil')  {
-        if (false) { // Evil now routed through WS
+        if (currentMode === 'evil') { setMode('nexus'); return; }
+        evilAgeGate(() => setMode('evil'));
+        return;
+    }
+    if (lc === 'nexus') { setMode('nexus'); return; }
+    if (lc === 'coder') { setMode('coder'); return; }
+    if (lc === 'sage')  { setMode('sage');  return; }
+    if (lc === 'void')  { setMode('void');  return; }
+
+    if (lc === 'clear history') {
+        printToTerminal(`${pl} clear history`, 'user-cmd');
+        localStorage.removeItem(HISTORY_KEYS[currentMode]);
+        messageHistory = [];
+        printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
+        return;
+    }
+    if (lc === 'clear') {
+        output.innerHTML = '';
+        messageHistory = [];
+        return;
+    }
+
+    if (lc === 'play pong')           { startPong(); return; }
+    if (lc === 'play snake')          { startSnake(); return; }
+    if (lc === 'play wordle')         { startWordle(); return; }
+    if (lc === 'play minesweeper')    { startMinesweeper(); return; }
+    if (lc === 'play flappy')      { startFlappy(); return; }
+    if (lc === 'play breakout')    { startBreakout(); return; }
+    if (lc === 'play invaders' || lc === 'play space invaders') { startInvaders(); return; }
+
+    if (lc === 'type test' || lc === 'typetest') { startTypingTest(); return; }
+    if (lc === 'matrix')              { startMatrixSaver(); return; }
+    if (lc === 'monitor')             { startMonitor(); return; }
+
+    // Text-to-speech — silent: just speak, no terminal output
+    if (lc.startsWith('speak ') || lc.startsWith('say ')) {
+        const spaceIdx = cmd.indexOf(' ');
+        const spokenText = cmd.slice(spaceIdx + 1).trim();
+        if ('speechSynthesis' in window && spokenText) {
+            window.speechSynthesis.cancel();
+            const utt = new SpeechSynthesisUtterance(spokenText);
+            utt.rate = 0.92; utt.pitch = 1;
+            const savedVoice = localStorage.getItem('nexus_tts_voice');
+            const voices = window.speechSynthesis.getVoices();
+            if (savedVoice && voices.length) {
+                const v = voices.find(vx => vx.name === savedVoice);
+                if (v) utt.voice = v;
+            } else if (voices.length) {
+                utt.voice = _pickBestVoice(voices);
+            }
+            window.speechSynthesis.speak(utt);
+        }
+        return;
+    }
+
+    // Accessibility panel
+    if (lc === 'access' || lc === 'accessibility') {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        toggleA11yPanel();
+        return;
+    }
+
+    if (isCreatorQuestion(cmd)) { 
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        showCreatorResponse(); 
+        return; 
+    }
+    if (isContactQuestion(cmd))  { 
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        showContactResponse();  
+        return; 
+    }
+
+    // Image generation works in ALL modes — intercept before routing to AI
+    const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
+    if (genMatch) {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        const isVintage = /^vintage\s/i.test(cmd);
+        generateImage(isVintage ? cmd.trim() : genMatch[1].trim());
+        return;
+    }
+
+    const imgSnap = pendingImageB64;
+
+    // img2img: transform attached image with a new prompt
+    if (imgSnap && (lc.startsWith('transform ') || lc.startsWith('restyle ') || lc.startsWith('remix '))) {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        const transformPrompt = cmd.slice(cmd.indexOf(' ') + 1).trim();
+        pendingImageB64 = null;
+        generateImageFromImage(imgSnap, transformPrompt);
+        return;
+    }
+
+    pendingImageB64 = null;
+    logPrompt(cmd, imgSnap);
+
+    printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+
+    // AI Dispatch
+    if (currentMode === 'evil') {
+        console.log(`[AI] Dispatching EVIL...`);
+        askEvil(cmd, imgSnap, null, 'evil-msg');
+    } else {
         console.log(`[AI] Dispatching ${currentMode.toUpperCase()}...`);
         showThinking(cmd);
         
@@ -3143,7 +3717,6 @@ function handleCommand(cmd) {
 //  QUICK ACTION BUTTONS
 // =============================================================
 
-
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
@@ -3161,6 +3734,7 @@ document.querySelectorAll('.action-btn').forEach(btn => {
         if (cmd === 'help')             { printToTerminal(`${promptLabel} help`, 'user-cmd'); showHelp(); input.focus(); return; }
         if (cmd === 'whoami')           { printToTerminal(`${promptLabel} whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
         if (cmd === 'neofetch')         { printToTerminal(`${promptLabel} neofetch`, 'user-cmd'); runNeofetch(); input.focus(); return; }
+        if (cmd === 'logs' || cmd === 'log') { printToTerminal(`${promptLabel} logs`, 'user-cmd'); showLogs(); input.focus(); return; }
         if (cmd === 'play pong')        { startPong(); return; }
         if (cmd === 'play snake')       { startSnake(); return; }
         if (cmd === 'play wordle')      { startWordle(); return; }
@@ -3204,6 +3778,18 @@ document.querySelectorAll('.action-btn').forEach(btn => {
 // =============================================================
 //  UTILITIES
 // =============================================================
+function printToTerminal(text, className = 'sys-msg') {
+    // Fail-safe initialization
+    if (!output) output = document.getElementById('terminal-output');
+    if (!output) return; // Still not found? Silently fail to prevent crash.
+
+    const p = document.createElement('p');
+    p.className = className;
+    p.innerHTML = text.replace(/\n/g, '<br>');
+    output.appendChild(p);
+    output.scrollTop = output.scrollHeight;
+}
+
 function showThinking(cmd) {
     if (!output) output = document.getElementById('terminal-output');
     if (!output) return;
@@ -3587,6 +4173,16 @@ window.onload = async () => {
         guiTitle     = document.getElementById('gui-title');
         nexusCanvas  = document.getElementById('nexus-canvas');
 
+        // Check for existing session on server (handles redirect return)
+        try {
+            const meRes = await fetch(`${API_BASE}/api/me`);
+            const meData = await meRes.json();
+            if (meData.ok) {
+                localStorage.setItem('nexus_user_data', JSON.stringify(meData));
+                revealTerminal(meData.name);
+            }
+        } catch(e) {}
+
         // Load history for the current mode on boot
         messageHistory = loadHistory(currentMode);
 
@@ -3595,24 +4191,14 @@ window.onload = async () => {
 
         const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
         if (nexusUser && nexusUser.name) {
-            console.log("[NEXUS] Validating existing session...");
-            fetch(`${API_BASE}/ping`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.ok) revealTerminal(nexusUser.name);
-                    else throw new Error("Backend offline");
-                })
-                .catch(() => {
-                    console.warn("[NEXUS] Session validation failed. Awaiting Auth.");
-                    localStorage.removeItem('nexus_user_data');
-                    if (true) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
-                });
+            revealTerminal(nexusUser.name);
         } else {
-            console.log("[NEXUS] Awaiting Authorization..."); if(true) { const ob = document.getElementById('owner-debug-section'); if(ob) ob.style.display = 'block'; }
+            console.log("[NEXUS] Awaiting Authorization...");
         }
+        console.log(`[NEXUS] Boot sequence complete in ${Date.now() - window.NEXUS_BOOT_START}ms`);
     } catch (e) {
         console.error("[CRITICAL] Boot sequence failed:", e);
         // Ensure diagnostic reporter catches this if it's a hard crash
         throw e; 
     }
-};}
+};

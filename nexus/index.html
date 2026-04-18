@@ -4,30 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nexus Web Terminal</title>
-    <link rel="stylesheet" href="./style.css?v=25">
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    <link rel="stylesheet" href="./style.css?v=9">
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body class="auth-locked">
+    <body class="auth-locked">
+
     <!-- Login Wall Overlay -->
     <div id="auth-screen" class="auth-overlay">
         <div class="auth-box">
             <div class="auth-header">NEXUS // CORE ACCESS</div>
             <p class="auth-desc" id="auth-status-msg">Identity synchronization required.</p>
             
-            
             <!-- Google Auth Section -->
             <div class="auth-sub-section">
                 <div class="auth-label">GOOGLE UPLINK</div>
-                <div id="g_id_signin_wall" style="min-height:40px; display:flex; justify-content:center; align-items:center;">
-                    <!-- Auto-button renders here -->
+                <div id="main-g_id_signin" style="display:flex; justify-content:center; min-height:44px; align-items:center;">
                 </div>
-                <button id="manual-google-btn" class="gui-btn" onclick="triggerGoogleManual()" style="display:none; width:100%; margin-top:5px; border-color:#4285F4; color:#4285F4; font-size:0.7rem;">
-                    <img src="https://www.google.com/favicon.ico" style="width:12px; margin-right:8px; vertical-align:middle;">
-                    MANUAL GOOGLE UPLINK
-                </button>
             </div>
-    
 
             <div class="auth-divider"><span>OR</span></div>
 
@@ -37,10 +32,6 @@
                 <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
                     <button class="gui-btn" onclick="showTermsFromWall()" style="width:100%; padding:10px;">CONTINUE AS GUEST</button>
                     <div id="wall-error" style="color:#f55; font-size:0.6rem; height:10px;"></div>
-            <div id="owner-debug-section" style="display:none; margin-top:10px;">
-                <button class="gui-btn" onclick="forceOwnerLocal()" style="border-color:#f0f; color:#f0f; width:100%; font-size:0.6rem;">DEBUG: GRANT OWNER ACCESS</button>
-            </div>
-    
                 </div>
             </div>
 
@@ -114,11 +105,12 @@
                     <button class="mode-btn" data-mode="evil" title="Unfiltered/Raw Mode">EVIL</button>
                     <button class="mode-btn" data-mode="coder" title="Technical/Code Focus">CODER</button>
                     <button class="mode-btn" data-mode="sage" title="Philosophical Mode">SAGE</button>
-                    <button class="mode-btn" data-mode="void" title="Education/Academic Mode" style="grid-column: span 2; border-color:#f0f; color:#f0f;">EDUCATIONAL</button>
+                    <button class="mode-btn" data-mode="void" title="Abyss/Cryptic Mode" style="grid-column: span 2; border-color:#f0f; color:#f0f;">VOID</button>
                 </div>
 
 
                 <div class="aside-header" style="margin-top:10px;">TOOLS</div>
+                <button class="action-btn" data-cmd="logs">Logs</button>
                 <button class="action-btn" data-cmd="leaderboard">Rankings</button>
                 <button class="action-btn" data-cmd="type test">Type Test</button>
                 <button class="action-btn" data-cmd="matrix">Matrix</button>
@@ -149,6 +141,6 @@
             </div>
         </div>
     </div>
-    <script src="terminal.js?v=25"></script>
-</body>
-</html>
+        <script src="terminal.js?fix=102"></script>
+    </body>
+    </html>
