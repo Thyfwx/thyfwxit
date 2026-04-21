@@ -1,4 +1,4 @@
-/* ── PACIFIC MASTER CORE v4.0.72 ────────────────────────────────────────────── */
+/* ── PACIFIC MASTER CORE v4.0.73 ────────────────────────────────────────────── */
 
 :root {
     --bg-color: #050510;
@@ -21,12 +21,13 @@ html, body {
     justify-content: center;
     align-items: center;
     overflow: hidden;
+    scroll-behavior: smooth;
 }
 
 .monitor {
     position: relative;
-    width: 95vw;
-    height: 95vh;
+    width: 98vw;
+    height: 96vh;
     background: radial-gradient(circle, #1a1a2e 0%, #000 100%);
     border-radius: 12px;
     box-shadow: 0 0 50px rgba(0, 255, 255, 0.15);
@@ -41,7 +42,7 @@ html, body {
     display: block;
     position: absolute;
     top: 0; left: 0; bottom: 0; right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 255, 255, 0.06));
     z-index: 15;
     background-size: 100% 4px, 3px 100%;
     pointer-events: none;
@@ -58,16 +59,16 @@ html, body {
 
 .glass-panel {
     display: grid;
-    grid-template-columns: 1fr 220px;
+    grid-template-columns: 1fr 240px; 
     grid-template-rows: 44px 1fr;
     grid-template-areas:
         "header header"
         "main aside";
+    width: 100%;
     height: 100%;
     background: rgba(5, 5, 16, 0.97);
     border: 1px solid rgba(0, 255, 255, 0.1);
     transform: translateZ(0);
-    overflow: hidden;
 }
 
 .status-bar {
@@ -80,6 +81,7 @@ html, body {
     font-weight: 600;
     font-size: 0.8rem;
     padding: 0 10px;
+    gap: 8px;
 }
 
 .status-item {
@@ -91,7 +93,7 @@ html, body {
 
 .conn-dot {
     width: 8px; height: 8px; border-radius: 50%; background: #555;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5); transition: 0.3s;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5); transition: background 0.3s;
 }
 .conn-dot.connected { background: #0f0; box-shadow: 0 0 8px #0f0; }
 
@@ -101,16 +103,16 @@ html, body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    height: 100%;
+    min-height: 0;
 }
 
 .terminal-output {
     flex-grow: 1;
     overflow-y: auto !important;
     margin-bottom: 10px;
-    padding-right: 6px;
+    padding-right: 8px;
     scrollbar-width: thin;
-    scrollbar-color: var(--txt-color) transparent;
+    scrollbar-color: var(--txt-color) rgba(0,0,0,0.2);
 }
 
 .terminal-output p {
@@ -121,7 +123,7 @@ html, body {
     font-family: var(--font-main) !important;
 }
 
-/* AI Message Styling */
+/* AI Message Styling (Forced Font) */
 .ai-msg, .shadow-msg, .coder-msg, .sage-msg, .education-msg { 
     line-height: 1.7; 
     padding-bottom: 4px; 
@@ -132,7 +134,10 @@ html, body {
     filter: brightness(1.2);
     font-family: var(--font-main) !important;
     font-size: 0.95rem;
+    letter-spacing: 0.2px;
 }
+
+.user-cmd     { color: #fff; font-weight: 600; margin-top: 16px !important; }
 
 .terminal-input-wrapper {
     display: flex;
@@ -143,9 +148,12 @@ html, body {
     flex-shrink: 0;
 }
 
+.prompt { color: var(--accent); margin-right: 6px; white-space: nowrap; font-size: 0.9rem; }
+
 #terminal-input {
     background: transparent; border: none; color: var(--txt-color);
     font-family: inherit; font-size: 16px; flex-grow: 1; outline: none;
+    caret-color: var(--txt-color); width: 0; min-width: 0;
 }
 
 .quick-actions {
@@ -154,10 +162,13 @@ html, body {
     display: flex;
     flex-direction: column;
     padding: 20px 14px;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0,0,0,0.4);
     gap: 12px;
     overflow-y: auto !important;
-    height: 100%;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) rgba(0,0,0,0.2);
+    transition: background 0.3s ease;
 }
 
 .aside-header { font-size: 0.72rem; color: var(--accent); margin-bottom: 4px; letter-spacing: 2px; }
@@ -167,7 +178,7 @@ html, body {
     padding: 9px 10px; cursor: pointer; transition: 0.2s;
     text-transform: uppercase; font-size: 0.8rem; border-radius: 3px;
 }
-.action-btn:hover { background: var(--txt-color); color: #000; }
+.action-btn:hover { background: var(--txt-color); color: #000; box-shadow: 0 0 6px var(--txt-color); }
 
 .mode-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
 .mode-btn {
@@ -175,26 +186,58 @@ html, body {
     font-family: inherit; font-size: 0.68rem; font-weight: 600; padding: 7px 4px;
     cursor: pointer; border-radius: 3px; transition: 0.15s;
 }
-.mode-btn.active { background: var(--txt-color); color: #000; }
+.mode-btn:hover { border-color: var(--txt-color); color: var(--txt-color); }
+.mode-btn.active { background: var(--txt-color); color: #000; box-shadow: 0 0 8px var(--txt-color); }
 
-.auth-user-card {
-    display: flex; align-items: center; gap: 8px; padding: 8px 2px 10px;
-    border-bottom: 1px solid #0d0d1a; margin-bottom: 10px;
-}
-.auth-avatar { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(0,255,255,0.5); }
-.auth-name  { color: #ccc; font-size: 0.66rem; font-weight: 600; }
 .auth-logout-btn {
-    background: none; border: 1px solid #f55; color: #f55 !important;
-    cursor: pointer; font-size: 1.1rem; width: 22px; height: 22px;
-    display: flex; align-items: center; justify-content: center; border-radius: 3px;
+    background: none; border: 1px solid #f55; color: #f55 !important; cursor: pointer;
+    font-size: 1.1rem; line-height: 1; flex-shrink: 0; transition: 0.2s;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    border-radius: 3px; font-weight: bold;
 }
+.auth-logout-btn:hover { background: rgba(255,0,0,0.1); color: #fff !important; }
 
 .a11y-open-btn {
     display: flex; align-items: center; justify-content: center; gap: 8px;
     width: 100%; padding: 12px 0; background: rgba(0, 255, 255, 0.08);
     border: 1px solid rgba(0, 255, 255, 0.4); border-radius: 8px;
     color: #0ff; font-family: inherit; font-size: 0.75rem; font-weight: bold;
-    cursor: pointer; transition: 0.3s; margin-top: auto;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: auto;
+}
+.a11y-open-btn:hover { background: rgba(0, 255, 255, 0.15); border-color: #0ff; transform: translateY(-1px); }
+
+@media (max-width: 700px) {
+    .monitor { width: 100vw; height: 100%; border-radius: 0; }
+    .glass-panel { grid-template-columns: 1fr; grid-template-rows: 40px 1fr auto; grid-template-areas: "header" "main" "aside"; }
+    .quick-actions { flex-direction: row; flex-wrap: wrap; padding: 10px; border-left: none; border-top: 1px solid rgba(0,255,255,0.2); height: auto; }
 }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ============================================================
+   AUTH & GUI OVERLAYS
+   ============================================================ */
+.auth-overlay {
+    position: fixed; inset: 0; background: #050510; z-index: 10000;
+    display: flex; align-items: center; justify-content: center;
+}
+.auth-box {
+    background: rgba(10, 10, 30, 0.8); border: 2px solid var(--accent);
+    padding: 40px; width: 100%; max-width: 400px; text-align: center;
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.15);
+}
+.auth-header { color: var(--accent); font-size: 1.4rem; font-weight: 600; letter-spacing: 4px; margin-bottom: 15px; }
+.auth-desc { color: #888; font-size: 0.9rem; margin-bottom: 25px; }
+.auth-sub-section { margin-bottom: 20px; }
+.auth-label { color: var(--accent); font-size: 0.65rem; letter-spacing: 2px; margin-bottom: 10px; }
+.auth-divider { position: relative; margin: 25px 0; border-bottom: 1px solid #1a1a3a; }
+.auth-divider span { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #050510; padding: 0 10px; color: #444; font-size: 0.7rem; }
+.auth-footer { color: #333; font-size: 0.6rem; letter-spacing: 1px; margin-top: 20px; }
+
+.gui-btn {
+    background: transparent; border: 1px solid var(--accent); color: var(--accent);
+    cursor: pointer; font-family: inherit; font-weight: bold; letter-spacing: 2px;
+    transition: all 0.2s ease;
+}
+.gui-btn:hover { background: var(--accent); color: #000; box-shadow: 0 0 15px var(--accent); }
