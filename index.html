@@ -3901,14 +3901,16 @@ async function _nexusCheckStatus() {
     const res  = await fetch(`${NEXUS_API}/ping`, { signal: AbortSignal.timeout(6000) });
     const ms   = Date.now() - t0;
     if (res.ok) {
-      if (dot)  { dot.style.color = '#0f0'; dot.textContent = '● ONLINE'; }
+      const data = await res.json().catch(() => ({}));
+      const ver  = data.version || '';
+      if (dot)  { dot.style.color = '#0f0'; dot.textContent = `● ONLINE${ver ? ' ' + ver : ''}`; }
       if (msEl) msEl.textContent = `PING: ${ms}ms`;
-      return { ok: true, ms };
+      return { ok: true, ms, version: ver };
     }
   } catch (_) {}
   if (dot)  { dot.style.color = '#f44'; dot.textContent = '● OFFLINE'; }
   if (msEl) msEl.textContent = 'PING: --';
-  return { ok: false, ms: null };
+  return { ok: false, ms: null, version: null };
 }
 
 function initNexusPreview() {
@@ -3928,9 +3930,9 @@ function initNexusPreview() {
 
   function step() {
     if (i >= bootWords.length) {
-      _nexusCheckStatus().then(({ ok, ms }) => {
+      _nexusCheckStatus().then(({ ok, ms, version }) => {
         if (ok) {
-          _nexusLog(logEl, '#00ff00', `[OK] Nexus AI v5.3.0 online. Latency: ${ms}ms`);
+          _nexusLog(logEl, '#00ff00', `[OK] Nexus AI ${version || 'v5.3.0'} online. Latency: ${ms}ms`);
           _nexusLog(logEl, '#0ff',    '[SYS] AI core ready — press PING or open full console.');
         } else {
           _nexusLog(logEl, '#f44',    '[ERR] Backend unreachable. Node may be cold-starting.');
