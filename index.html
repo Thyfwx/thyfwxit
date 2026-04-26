@@ -1089,15 +1089,11 @@ body.a11y-colorblind .contact-form button {
     <div style="background: var(--neon-color); color: #000; padding: 6px 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.75rem; font-weight: bold; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
       <div style="display: flex; gap: 15px;">
         <span>NODE: CENTRAL_STATION</span>
-        <span>SESSION: GUEST_OPEN</span>
+        <span id="nexus-ping-ms" style="color:#555;">PING: --ms</span>
       </div>
-      <span style="color:#0f0;">● ONLINE</span>
+      <span id="nexus-status-dot" style="color:#888;">● CHECKING</span>
     </div>
     <div id="nexus-preview-log" style="flex-grow: 1; padding: 15px; font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--neon-color); overflow-y: auto; line-height: 1.5; scroll-behavior: smooth; background: linear-gradient(180deg, #050505 0%, #000 100%);">
-      <p style="color: #00ff00;">[OK] Connection to Nexus AI v4.0 established.</p>
-      <p style="color: #555;">[SYS] Identity: GUEST_OPEN</p>
-      <p style="color: #555;">[SYS] Node: CENTRAL_STATION</p>
-      <p style="color: #0ff; margin-top: 10px;">Nexus AI is online and ready for deployment. Open the full console to access games, system tools, and unfiltered AI chat.</p>
     </div>
 
     <div style="padding: 12px 15px; border-top: 1px solid #222; display: flex; gap: 10px; background: #080808; align-items: center; justify-content: flex-end;">
@@ -3886,8 +3882,39 @@ function updateTetris(currentTime) {
   ctxTetris.lineWidth = 1;
 }
 
+const NEXUS_API = 'https://nexus-terminalnexus.onrender.com';
+
+function _nexusLog(logEl, color, text) {
+  const p = document.createElement('p');
+  p.style.cssText = `color:${color}; margin:2px 0; line-height:1.5;`;
+  p.textContent = text;
+  logEl.appendChild(p);
+  logEl.scrollTop = logEl.scrollHeight;
+  return p;
+}
+
+async function _nexusCheckStatus() {
+  const dot   = document.getElementById('nexus-status-dot');
+  const msEl  = document.getElementById('nexus-ping-ms');
+  const t0    = Date.now();
+  try {
+    const res  = await fetch(`${NEXUS_API}/ping`, { signal: AbortSignal.timeout(6000) });
+    const ms   = Date.now() - t0;
+    if (res.ok) {
+      if (dot)  { dot.style.color = '#0f0'; dot.textContent = '● ONLINE'; }
+      if (msEl) msEl.textContent = `PING: ${ms}ms`;
+      return { ok: true, ms };
+    }
+  } catch (_) {}
+  if (dot)  { dot.style.color = '#f44'; dot.textContent = '● OFFLINE'; }
+  if (msEl) msEl.textContent = 'PING: --';
+  return { ok: false, ms: null };
+}
+
 function initNexusPreview() {
   const logEl = document.getElementById('nexus-preview-log');
+  logEl.innerHTML = '';
+
   const bootWords = [
     { label: 'BOOT',  text: 'Initializing quantum uplink...' },
     { label: 'SCAN',  text: 'Probing neural pathways...' },
@@ -3898,60 +3925,71 @@ function initNexusPreview() {
     { label: 'EXEC',  text: 'Spawning AI core process...' },
   ];
   let i = 0;
-  
-  // Clear any placeholder text
-  logEl.innerHTML = '';
-  
+
   function step() {
     if (i >= bootWords.length) {
-      const p = document.createElement('p');
-      p.style.color = '#00ff00';
-      p.textContent = '[OK] Nexus AI v4.0 online. Press PING to learn more.';
-      logEl.appendChild(p);
+      _nexusCheckStatus().then(({ ok, ms }) => {
+        if (ok) {
+          _nexusLog(logEl, '#00ff00', `[OK] Nexus AI v5.3.0 online. Latency: ${ms}ms`);
+          _nexusLog(logEl, '#0ff',    '[SYS] AI core ready — press PING or open full console.');
+        } else {
+          _nexusLog(logEl, '#f44',    '[ERR] Backend unreachable. Node may be cold-starting.');
+          _nexusLog(logEl, '#555',    '[SYS] Try again in ~30s or open console directly.');
+        }
+      });
       return;
     }
     const w = bootWords[i++];
-    const p = document.createElement('p');
-    p.style.color = '#666';
-    p.textContent = `[${w.label}] ${w.text}`;
-    logEl.appendChild(p);
-    logEl.scrollTop = logEl.scrollHeight;
-    setTimeout(step, 180);
+    _nexusLog(logEl, '#444', `[${w.label}] ${w.text}`);
+    setTimeout(step, 160);
   }
   step();
 }
 
 const PING_CARDS = [
-  { color: '#0ff', text: 'Nexus AI is built and maintained by Xavier Scott — systems specialist, hardware repair tech, and homelab builder. Open the console to have a real conversation with it.' },
-  { color: '#0f0', text: 'Xavier Scott put this together. The AI, the server behind it, all of it. Ask Nexus anything — code, tech questions, random thoughts. Open the full console to start chatting.' },
-  { color: '#0ff', text: 'This terminal is Xavier Scott\'s work. He runs his own infrastructure and thought a portfolio should be interactive, not just a PDF. Hit "Open Console" to talk to the AI directly.' },
-  { color: '#0f0', text: 'Nexus AI v4.0 — live and open to everyone. No login, no limits. Xavier Scott built it so visitors could actually ask questions instead of just reading a page. Give it a try.' },
-  { color: '#0ff', text: 'Built by Xavier Scott — network infrastructure, component-level hardware repair, homelab setups. The full console has games, tools, and an AI that actually responds. Check it out.' },
-  { color: '#0f0', text: 'Xavier Scott wired this up. If you\'ve got a tech question, a weird idea, or just want to see what an AI says — open the full console and find out.' },
-  { color: '#0ff', text: 'The AI behind Nexus runs on servers Xavier Scott built and manages. It\'s open to everyone. Open the console and type anything — it\'ll respond.' },
-  { color: '#0f0', text: 'Xavier Scott made this site, the AI terminal, and everything in it. The full Nexus console has games, a speed test, system monitor, and a live AI chat. Explore it.' },
+  'Nexus AI is built and maintained by Xavier Scott — systems specialist, hardware repair tech, and homelab builder. Open the console to have a real conversation with it.',
+  'Xavier Scott built the AI, the server behind it — all of it. Ask Nexus anything: code, tech questions, random thoughts. Open the full console to start chatting.',
+  'This terminal is Xavier Scott\'s work. He runs his own infrastructure and thought a portfolio should be interactive, not just a PDF. Hit "Open Console" to talk to the AI directly.',
+  'Nexus AI v5.3.0 — live and ready. Xavier Scott built it so visitors could actually ask questions instead of just reading a page. Give it a try.',
+  'Built by Xavier Scott — network infrastructure, component-level hardware repair, homelab setups. The full console has games, tools, and an AI that actually responds.',
+  'Xavier Scott wired this up. Tech question, weird idea, or just curious what an AI says — open the full console and find out.',
 ];
 
 let _pingIdx = Math.floor(Math.random() * PING_CARDS.length);
 
 function sendNexusPing() {
   const logEl = document.getElementById('nexus-preview-log');
+  const t0    = Date.now();
 
-  const card = PING_CARDS[_pingIdx % PING_CARDS.length];
-  _pingIdx++;
+  const waiting = _nexusLog(logEl, '#555', '[PING] Sending packet to Nexus node...');
 
-  const p = document.createElement('p');
-  p.style.cssText = `color:${card.color}; margin:8px 0 4px; line-height:1.5;`;
-  p.textContent = card.text;
-  logEl.appendChild(p);
+  fetch(`${NEXUS_API}/ping`, { signal: AbortSignal.timeout(6000) })
+    .then(r => {
+      const ms = Date.now() - t0;
+      waiting.remove();
+      _nexusLog(logEl, '#00ff00', `[PONG] Response: ${ms}ms — node is live.`);
 
-  const nudge = document.createElement('p');
-  nudge.style.cssText = 'font-size:0.72rem; color:#555; margin:2px 0 10px; border-top:1px solid #1a1a1a; padding-top:6px;';
-  nudge.innerHTML = '↗ <span style="color:var(--neon-color);cursor:pointer;text-decoration:underline;" onclick="window.location.href=\'/nexus/\'">Open full console</span> to chat with Nexus AI.';
-  logEl.appendChild(nudge);
+      const text = PING_CARDS[_pingIdx % PING_CARDS.length];
+      _pingIdx++;
+      _nexusLog(logEl, '#0ff', text);
 
-  logEl.scrollTop = logEl.scrollHeight;
-  while (logEl.childNodes.length > 30) logEl.removeChild(logEl.firstChild);
+      const nudge = document.createElement('p');
+      nudge.style.cssText = 'font-size:0.72rem; color:#555; margin:4px 0 10px; border-top:1px solid #1a1a1a; padding-top:6px;';
+      nudge.innerHTML = '↗ <span style="color:var(--neon-color);cursor:pointer;text-decoration:underline;" onclick="window.location.href=\'/nexus/\'">Open full console</span> to chat with Nexus AI.';
+      logEl.appendChild(nudge);
+      logEl.scrollTop = logEl.scrollHeight;
+
+      const dot  = document.getElementById('nexus-status-dot');
+      const msEl = document.getElementById('nexus-ping-ms');
+      if (dot)  { dot.style.color = '#0f0'; dot.textContent = '● ONLINE'; }
+      if (msEl) msEl.textContent = `PING: ${ms}ms`;
+    })
+    .catch(() => {
+      waiting.remove();
+      _nexusLog(logEl, '#f44', '[PING] No response — node may be cold-starting (~30s).');
+    });
+
+  while (logEl.childNodes.length > 40) logEl.removeChild(logEl.firstChild);
 }
 
 
