@@ -2655,6 +2655,28 @@ async function _nexusCheckStatus() {
   return { ok: false, ms: null, version: null };
 }
 
+async function fetchLatestCommitStatus() {
+  const CACHE_KEY = 'nexus_commit_cache';
+  const CACHE_TTL = 20 * 60 * 1000;
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.data;
+  } catch {}
+  try {
+    const res = await fetch('https://api.github.com/repos/Thyfwx/thyfwxit/commits?per_page=1', {
+      headers: { 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!res.ok) return null;
+    const [commit] = await res.json();
+    if (!commit) return null;
+    const msg = commit.commit.message.split('\n')[0];
+    const hoursAgo = (Date.now() - new Date(commit.commit.author.date).getTime()) / 3600000;
+    const data = { msg, hoursAgo, sha: commit.sha.slice(0, 7) };
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data })); } catch {}
+    return data;
+  } catch { return null; }
+}
+
 function initNexusPreview() {
   const logEl = document.getElementById('nexus-preview-log');
   logEl.innerHTML = '';
@@ -2672,7 +2694,17 @@ function initNexusPreview() {
 
   function step() {
     if (i >= bootWords.length) {
-      _nexusCheckStatus().then(({ ok, ms, version }) => {
+      Promise.all([fetchLatestCommitStatus(), _nexusCheckStatus()]).then(([info, { ok, ms, version }]) => {
+        if (info) {
+          const age = info.hoursAgo < 1
+            ? 'just now'
+            : info.hoursAgo < 24
+              ? `${Math.round(info.hoursAgo)}h ago`
+              : `${Math.round(info.hoursAgo / 24)}d ago`;
+          const label = info.hoursAgo < 6  ? '[ACTIVE]' : info.hoursAgo < 48 ? '[DEV]' : '[LOG]';
+          const color = info.hoursAgo < 6  ? '#00ff88' : info.hoursAgo < 48  ? '#ff9100' : '#555';
+          _nexusLog(logEl, color, `${label} ${info.msg} · ${age}`);
+        }
         if (ok) {
           _nexusLog(logEl, '#00ff00', `[OK] Nexus AI ${version || 'v5.3.0'} online. Latency: ${ms}ms`);
           _nexusLog(logEl, '#0ff',    '[SYS] AI core ready — press PING or open full console.');
