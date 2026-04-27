@@ -62,15 +62,15 @@
 <header id="mainHeader" tabindex="0">
   <p class="header-name">Xavier Scott</p>
   <h1 id="mainTitle">Systems Specialist &amp; Software Builder</h1>
-  <p class="header-sub">Self-Taught &nbsp;·&nbsp; Hardware Repair &nbsp;·&nbsp; Home Lab &nbsp;·&nbsp; Always Curious</p>
+  <p class="header-sub">Self-Taught &nbsp;·&nbsp; Software Builder &nbsp;·&nbsp; Hardware Repair &nbsp;·&nbsp; Home Lab</p>
 </header>
 
 <!-- About -->
 <section id="about" data-accent="cyan">
   <h2>About Me</h2>
-  <p>Started the same way a lot of people do — a slow family computer, school machines, and an overwhelming curiosity about what was actually going on inside them. That curiosity turned into years of hands-on work: building PCs from scratch, bringing old and sluggish computers back to life, recovering data from machines that wouldn't boot, and unlocking Android phones and locked devices that people thought were gone for good.</p>
-  <p style="margin-top: 14px;">At heart, software is where it all comes together. Everything on this site — the three games, the live infrastructure monitor, the accessibility system, the mod menu hidden behind a keyboard code — is hand-written in pure HTML, CSS, and JavaScript. No frameworks. The <a href="/nexus/" style="color: var(--neon-color);">Nexus AI Terminal</a> was a side project that grew out of working alongside AI tools and wanting to build something interactive rather than just another static page. That's the approach: learn by building real things, get into whatever it takes, and figure out the rest along the way.</p>
-  <p style="margin-top: 14px; color: #888; font-size: 0.9em;">Self-taught across the board. Still learning — and that's the point.</p>
+  <p>Started out with a tablet — loved playing Android games, then started poking around in the settings, watching tech videos. Got genuinely curious. My family had this one old computer running Windows 7. That thing was slow, it was old, but it still ran and still got everything done. Something about that was just amazing to me.</p>
+  <p style="margin-top: 14px;">That curiosity never stopped. Self-taught across the board — unlocking Android phones, getting into locked Windows machines people thought were gone for good, building PCs, bringing slow machines back to life. Software is really where it all connects for me. If it's tech, I can figure it out.</p>
+  <p style="margin-top: 14px;">The <a href="/nexus/" style="color: var(--neon-color);">Nexus AI Terminal</a> started as a side project just to see what I could actually do with AI. It grew into something real. Everything on this site — the three games, the live infrastructure monitor, the mod menu hidden behind a keyboard code — written by hand. No frameworks, no shortcuts. Just building things and seeing what's possible.</p>
 </section>
 
 <!-- Projects -->
@@ -79,71 +79,100 @@
   <div class="project-grid">
 
     <div class="project-card">
-      <h3><b>Proxmox Home Lab</b></h3>
-      <p>Built and runs a personal home lab server on Proxmox VE — managing multiple VMs and containers: Home Assistant for smart home automation, a Docker host with Portainer and Scrypted for camera management, Cloudflare DDNS, and Nginx Proxy Manager as the network gateway with SSL.</p>
-      <div class="card-tags">
-        <span class="card-tag">Proxmox VE</span>
-        <span class="card-tag">Linux</span>
-        <span class="card-tag">Docker</span>
-        <span class="card-tag">Portainer</span>
-        <span class="card-tag">Nginx</span>
+      <div class="card-bar">
+        <span class="card-dot" style="background:#00ff88;box-shadow:0 0 6px #00ff88;"></span>
+        <h3>Proxmox Home Lab</h3>
+      </div>
+      <div class="card-body">
+        <p>Running Proxmox at home with a full stack on it — AdGuard for DNS-level ad blocking (saves more battery than you'd think), WireGuard VPN, Uptime Kuma, Docker, Nginx Proxy Manager, Home Assistant, and OpenMediaVault. Still adding things.</p>
+        <div class="card-tags">
+          <span class="card-tag">Proxmox VE</span>
+          <span class="card-tag">Docker</span>
+          <span class="card-tag">AdGuard</span>
+          <span class="card-tag">Linux</span>
+        </div>
       </div>
     </div>
 
     <div class="project-card">
-      <h3><b>Nexus AI Terminal</b></h3>
-      <p>A custom AI-powered terminal interface built from scratch in pure vanilla JavaScript. Real-time WebSocket backend, multiple AI modes, live system stats, and built-in games. Started as a side project while working with AI tools — turned into a full deployed application.</p>
-      <div class="card-tags">
-        <span class="card-tag">JavaScript</span>
-        <span class="card-tag">WebSocket</span>
-        <span class="card-tag">AI</span>
-        <span class="card-tag">Python</span>
+      <div class="card-bar">
+        <span class="card-dot" style="background:#ff00ff;box-shadow:0 0 6px #ff00ff;"></span>
+        <h3>Nexus AI Terminal</h3>
       </div>
-      <a class="card-link" href="/nexus/" aria-label="Open Nexus AI Terminal">Open Console ↗</a>
-    </div>
-
-    <div class="project-card">
-      <h3><b>PC Builds &amp; Recovery</b></h3>
-      <p>Builds custom PCs from the ground up and specializes in bringing old or painfully slow machines back to full speed. Also handles locked computer recovery, data retrieval from unbootable drives, and OS-level repair — if someone thinks a machine is dead, it's worth a second look.</p>
-      <div class="card-tags">
-        <span class="card-tag">Windows</span>
-        <span class="card-tag">macOS</span>
-        <span class="card-tag">Hardware</span>
-        <span class="card-tag">Recovery</span>
+      <div class="card-body">
+        <p>Built this just to see how far I could take AI. It grew. Custom terminal interface, multiple AI modes, live system stats, games built right into it. Still actively working on it.</p>
+        <div class="card-tags">
+          <span class="card-tag">JavaScript</span>
+          <span class="card-tag">WebSocket</span>
+          <span class="card-tag">AI</span>
+          <span class="card-tag">Python</span>
+        </div>
+        <a class="card-link" href="/nexus/" aria-label="Open Nexus AI Terminal">Open Console ↗</a>
       </div>
     </div>
 
     <div class="project-card">
-      <h3><b>MacBook &amp; Mobile Repair</b></h3>
-      <p>6+ years repairing MacBooks, iPhones, and Android devices at the component level. Liquid damage recovery, battery replacement, thermal management, Android unlocking, and Apple silicon diagnostics. Using personal MacBook, desktop, and iPhone as daily machines keeps the knowledge current.</p>
-      <div class="card-tags">
-        <span class="card-tag">MacBook</span>
-        <span class="card-tag">iPhone</span>
-        <span class="card-tag">Android</span>
-        <span class="card-tag">Component Repair</span>
+      <div class="card-bar">
+        <span class="card-dot" style="background:#ff9100;box-shadow:0 0 6px #ff9100;"></span>
+        <h3>PC Builds &amp; Recovery</h3>
+      </div>
+      <div class="card-body">
+        <p>Locked Windows machine, won't boot, unbearably slow — bring it to me. Been doing this long enough that pretty much nothing surprises me anymore. Full builds too, from scratch.</p>
+        <div class="card-tags">
+          <span class="card-tag">Windows</span>
+          <span class="card-tag">Hardware</span>
+          <span class="card-tag">Recovery</span>
+          <span class="card-tag">OS Repair</span>
+        </div>
       </div>
     </div>
 
     <div class="project-card">
-      <h3><b>Smart Home Automation</b></h3>
-      <p>Home Assistant running on a dedicated Proxmox VM, integrated with Scrypted for camera management. Automations monitor network devices, trigger alerts when services go offline, and control smart devices across platforms — all managed locally with no cloud dependency.</p>
-      <div class="card-tags">
-        <span class="card-tag">Home Assistant</span>
-        <span class="card-tag">Scrypted</span>
-        <span class="card-tag">Automations</span>
-        <span class="card-tag">IoT</span>
+      <div class="card-bar">
+        <span class="card-dot" style="background:#00e5ff;box-shadow:0 0 6px #00e5ff;"></span>
+        <h3>MacBook &amp; Mobile Repair</h3>
+      </div>
+      <div class="card-body">
+        <p>6+ years doing component-level repairs on MacBooks, iPhones, and Android devices. Liquid damage, batteries, Apple silicon diagnostics, Android unlocking. Daily driving both keeps the knowledge current.</p>
+        <div class="card-tags">
+          <span class="card-tag">MacBook</span>
+          <span class="card-tag">iPhone</span>
+          <span class="card-tag">Android</span>
+          <span class="card-tag">Component Repair</span>
+        </div>
       </div>
     </div>
 
     <div class="project-card">
-      <h3><b>This Portfolio Site</b></h3>
-      <p>Written entirely in pure HTML, CSS, and JavaScript — no frameworks, no build tools, no dependencies. Three playable canvas games, live infrastructure monitoring, matrix rain, a full accessibility system, and a mod menu hidden behind a keyboard code. Deployed via Cloudflare Pages.</p>
-      <div class="card-tags">
-        <span class="card-tag">HTML/CSS/JS</span>
-        <span class="card-tag">Canvas</span>
-        <span class="card-tag">Cloudflare</span>
+      <div class="card-bar">
+        <span class="card-dot" style="background:#ffcc00;box-shadow:0 0 6px #ffcc00;"></span>
+        <h3>Smart Home Automation</h3>
       </div>
-      <a class="card-link" href="https://github.com/Thyfwx/thyfwxit" target="_blank" rel="noopener" aria-label="View source on GitHub">GitHub ↗</a>
+      <div class="card-body">
+        <p>Home Assistant on a dedicated Proxmox VM, Scrypted handling the cameras. Automations monitoring services, triggering alerts, controlling devices across platforms. All local, no cloud.</p>
+        <div class="card-tags">
+          <span class="card-tag">Home Assistant</span>
+          <span class="card-tag">Scrypted</span>
+          <span class="card-tag">Automations</span>
+          <span class="card-tag">IoT</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="project-card">
+      <div class="card-bar">
+        <span class="card-dot" style="background:#bb88ff;box-shadow:0 0 6px #bb88ff;"></span>
+        <h3>This Portfolio Site</h3>
+      </div>
+      <div class="card-body">
+        <p>Written from scratch — three playable games, live infrastructure status, full accessibility system, and a mod menu hidden behind a keyboard code. Pure HTML, CSS, and JavaScript. Deployed on Cloudflare Pages.</p>
+        <div class="card-tags">
+          <span class="card-tag">HTML/CSS/JS</span>
+          <span class="card-tag">Canvas</span>
+          <span class="card-tag">Cloudflare</span>
+        </div>
+        <a class="card-link" href="https://github.com/Thyfwx/thyfwxit" target="_blank" rel="noopener" aria-label="View source on GitHub">GitHub ↗</a>
+      </div>
     </div>
 
   </div>
@@ -160,13 +189,13 @@
 <section id="skills" data-accent="cyan">
   <h2>Technical Skills</h2>
   <ul>
-    <li><b>Software Development</b>: Vanilla <b>JavaScript</b>, <b>HTML &amp; CSS</b> — building full applications from scratch without frameworks. The Nexus terminal and this site are both proof of concept.</li>
-    <li><b>PC Building &amp; Repair</b>: Builds custom desktops, revives old and slow machines, handles component-level diagnosis and replacement across <b>Windows</b> and <b>macOS</b>.</li>
-    <li><b>Device Recovery</b>: Locked computer access, <b>Android unlocking</b>, data recovery from unbootable drives, and OS reinstallation without losing data where possible.</li>
-    <li><b>MacBook &amp; Mobile</b>: 6+ years of hands-on repair — liquid damage, battery swaps, thermal compound, <b>Apple silicon</b> diagnostics, and <b>iPhone</b> component-level work.</li>
-    <li><b>Home Lab</b>: Runs <b>Proxmox VE</b> with multiple VMs and containers — Home Assistant, Docker, Nginx Proxy Manager, and Cloudflare DDNS. Still building and learning.</li>
-    <li><b>Networking (working knowledge)</b>: <b>AdGuard Home</b> DNS filtering, <b>WireGuard VPN</b>, reverse proxy with SSL — understands the fundamentals and applies them in the lab. Still deepening this area.</li>
-    <li><b>AI &amp; Automation</b>: Works daily with AI tools as a core part of the build process. Home automation via <b>Home Assistant</b> and <b>Scrypted</b> camera integration.</li>
+    <li><b>Software</b>: Vanilla <b>JavaScript</b>, <b>HTML &amp; CSS</b> — building real applications without frameworks. Nexus and this site are both proof of that.</li>
+    <li><b>Windows &amp; PC</b>: Unlocking locked machines, optimizing slow ones, full builds from scratch, OS repair without data loss. This is where I'm most comfortable.</li>
+    <li><b>Android Unlocking</b>: Getting Android phones unlocked and running right. Done it enough times that it's second nature.</li>
+    <li><b>MacBook &amp; iPhone Repair</b>: 6+ years hands-on — liquid damage, battery swaps, component-level work, <b>Apple silicon</b> diagnostics. Daily driver on both keeps it current.</li>
+    <li><b>Home Lab</b>: <b>Proxmox VE</b> running AdGuard, WireGuard VPN, Uptime Kuma, Docker, Nginx Proxy Manager, Home Assistant, and OpenMediaVault. Still adding to it.</li>
+    <li><b>Networking</b>: DNS filtering, VPN, reverse proxy with SSL — know enough to build and run it all in the lab. Still learning the deeper stuff.</li>
+    <li><b>AI &amp; Automation</b>: Using AI as a real part of the workflow, not just a chatbot. Home automation running locally through <b>Home Assistant</b> and <b>Scrypted</b>.</li>
   </ul>
 </section>
 
