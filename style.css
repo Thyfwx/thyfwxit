@@ -45,7 +45,6 @@ body {
   max-width: 800px;
   margin: 0 auto;
   padding: 40px 20px;
-  padding-top: 80px;
   background-color: var(--bg-color);
   color: var(--text-color);
   transition: background-color 0.8s ease, color 0.8s ease;
@@ -290,7 +289,6 @@ footer {
 
   body {
     padding: 20px 15px;
-    padding-top: 40px;
   }
 
   h1 { font-size: 1.6rem; }
@@ -1026,57 +1024,7 @@ body.a11y-colorblind .contact-form button {
 }
 
 /* ── Sticky Navigation ── */
-#siteNav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 9999;
-  background: rgba(10,10,10,0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255,0,255,0.25);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 4px;
-  padding: 10px 16px;
-  flex-wrap: wrap;
-}
-#siteNav a {
-  color: #777;
-  text-decoration: none;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.73rem;
-  padding: 5px 11px;
-  border-radius: 4px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  transition: color 0.2s, background 0.2s;
-  white-space: nowrap;
-}
-#siteNav a:hover {
-  color: var(--neon-color);
-  background: rgba(255,0,255,0.12);
-}
-body.a11y-contrast #siteNav {
-  background: #fff !important;
-  border-bottom: 2px solid #000 !important;
-}
-body.a11y-contrast #siteNav a { color: #000 !important; }
-body.a11y-contrast #siteNav a:hover { background: #eee !important; }
-
 /* ── Header identity ── */
-.header-name {
-  font-family: 'Fira Code', 'Share Tech Mono', monospace;
-  font-size: 2.2rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin: 0 0 8px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  transition: color 0.3s;
-}
 .header-sub {
   font-size: 0.8rem;
   color: #666;
@@ -1084,12 +1032,25 @@ body.a11y-contrast #siteNav a:hover { background: #eee !important; }
   letter-spacing: 1px;
   margin: 6px 0 0;
 }
-header:hover .header-name,
-header:focus .header-name {
-  color: var(--neon-color);
+body.a11y-contrast .header-sub { color: #333 !important; }
+
+/* ── Active project badge ── */
+.card-active-badge {
+  margin-left: auto;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 1.5px;
+  color: #0f0;
+  border: 1px solid #0f0;
+  border-radius: 3px;
+  padding: 1px 6px;
+  animation: activePulse 2s ease-in-out infinite;
+  white-space: nowrap;
 }
-body.a11y-contrast .header-name { color: #000 !important; }
-body.a11y-contrast .header-sub  { color: #333 !important; }
+@keyframes activePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(0,255,0,0.4); }
+  50%       { opacity: 0.6; box-shadow: none; }
+}
 
 /* ── Section accent colors ── */
 section[data-accent] {

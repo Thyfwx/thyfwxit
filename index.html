@@ -22,17 +22,6 @@
 
 <a class="skip-link" href="#mainHeader">Skip to main content</a>
 
-<!-- Sticky Navigation -->
-<nav id="siteNav" aria-label="Site navigation">
-  <a href="#mainHeader">Home</a>
-  <a href="#about">About</a>
-  <a href="#projects">Projects</a>
-  <a href="#skills">Skills</a>
-  <a href="#systemStatus">Status</a>
-  <a href="#gameArea">Arcade</a>
-  <a href="#contact">Contact</a>
-</nav>
-
 <!-- Accessibility Button -->
 <div id="a11yBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open Help &amp; Accessibility Menu" title="Open Help &amp; Accessibility Menu">
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="white" aria-hidden="true" focusable="false">
@@ -60,7 +49,6 @@
 
 <!-- Header -->
 <header id="mainHeader" tabindex="0">
-  <p class="header-name">Xavier Scott</p>
   <h1 id="mainTitle">Systems Specialist &amp; Software Builder</h1>
   <p class="header-sub">Self-Taught &nbsp;·&nbsp; Software Builder &nbsp;·&nbsp; Hardware Repair &nbsp;·&nbsp; Home Lab</p>
 </header>
@@ -75,13 +63,14 @@
 
 <!-- Projects -->
 <section id="projects">
-  <h2>Project Showcase</h2>
+  <h2>Projects</h2>
   <div class="project-grid">
 
-    <div class="project-card">
+    <div class="project-card" data-active="true">
       <div class="card-bar">
         <span class="card-dot" style="background:#00ff88;box-shadow:0 0 6px #00ff88;"></span>
         <h3>Proxmox Home Lab</h3>
+        <span class="card-active-badge">ONGOING</span>
       </div>
       <div class="card-body">
         <p>Running Proxmox at home with a full stack on it — AdGuard for DNS-level ad blocking (saves more battery than you'd think), WireGuard VPN, Uptime Kuma, Docker, Nginx Proxy Manager, Home Assistant, and OpenMediaVault. Still adding things.</p>
@@ -94,10 +83,11 @@
       </div>
     </div>
 
-    <div class="project-card">
+    <div class="project-card" data-active="true">
       <div class="card-bar">
         <span class="card-dot" style="background:#ff00ff;box-shadow:0 0 6px #ff00ff;"></span>
         <h3>Nexus AI Terminal</h3>
+        <span class="card-active-badge">IN PROGRESS</span>
       </div>
       <div class="card-body">
         <p>Built this just to see how far I could take AI. It grew. Custom terminal interface, multiple AI modes, live system stats, games built right into it. Still actively working on it.</p>
@@ -201,7 +191,7 @@
 <!-- Live Status -->
 <section id="systemStatus" data-accent="green">
   <h2>Live Infrastructure Status</h2>
-  <p>Monitoring critical node uptime across local and remote environments.</p>
+  <p>Live uptime monitoring via Uptime Kuma. Requires <code style="font-size:0.8em;color:#666;">uptime.thyfwxit.com</code> to be publicly proxied through Nginx Proxy Manager.</p>
   <div class="status-grid">
     <div class="status-item"><span class="status-dot status-loading" id="status-proxmox"></span> Proxmox VE</div>
     <div class="status-item"><span class="status-dot status-loading" id="status-omv"></span> OpenMediaVault</div>
@@ -233,7 +223,7 @@
 
 <!-- Contact -->
 <section id="contact" data-accent="orange">
-  <h2>Request Service</h2>
+  <h2>Get in Touch</h2>
   <form id="secureContactForm" class="contact-form" action="https://formspree.io/f/xbdzjbyo" method="POST" aria-label="Service request form">
     <label for="formName" class="sr-only">Your Name</label>
     <input type="text" name="name" id="formName" placeholder="Your Name" required autocomplete="name">
