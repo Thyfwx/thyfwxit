@@ -1145,22 +1145,8 @@ body.a11y-contrast .card-link { color: #000 !important; }
 
 /* project grid stays at 2 cols */
 
-/* ── Tech tip transition + next button ── */
-#techTipText { transition: opacity 0.2s ease; }
-#nextTipBtn {
-  background: none;
-  border: 1px solid #444;
-  color: #666;
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 0.72rem;
-  padding: 4px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  margin-top: 10px;
-  letter-spacing: 0.5px;
-  transition: border-color 0.2s, color 0.2s;
-}
-#nextTipBtn:hover { border-color: var(--neon-color); color: var(--neon-color); }
+/* ── Tech tip ── */
+#techTipText { line-height: 1.7; }
 
 /* ── Form success state ── */
 #formSuccess {

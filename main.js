@@ -2823,7 +2823,7 @@ function sendNexusPing() {
   });
 })();
 
-// ── Next tech tip button ──
+// ── Daily tech tip (rotates by calendar day) ──
 (function() {
   const tips = [
     "Applying fresh <b>thermal paste</b> every few years prevents processor throttling and extends hardware life — one of the easiest performance wins on any machine.",
@@ -2865,20 +2865,34 @@ function sendNexusPing() {
     "<b>Cloudflare Tunnel</b> lets you expose a local service to the internet without opening any router ports. No port forwarding needed.",
     "When a phone won't charge, try a different cable first. It's the cable 70% of the time.",
     "If you inherit a slow old PC, check if it has an <b>HDD instead of an SSD</b>. Swapping the drive is the single biggest speed upgrade possible.",
-    "Keep a spare <b>bootable USB</b> with Windows, macOS recovery, and a Linux live environment. When something breaks, you'll already have the tools."
+    "Keep a spare <b>bootable USB</b> with Windows, macOS recovery, and a Linux live environment. When something breaks, you'll already have the tools.",
+    "On <b>Android</b>, enabling Developer Options and USB debugging opens the phone up to ADB — useful for unlocking, sideloading, and deep diagnostics.",
+    "Check <b>Windows Event Viewer</b> under System and Application logs before assuming a crash is random. The error code is usually sitting right there.",
+    "A <b>reflow</b> (gentle controlled heat on a GPU or logic board) can temporarily revive solder joints that have cracked from thermal expansion over the years.",
+    "In <b>Home Assistant</b>, the Logbook and History tabs are your best friends for figuring out why an automation triggered at the wrong time.",
+    "<b>Uptime Kuma</b> sends push notifications the moment a service goes down — way faster than noticing it yourself.",
+    "Before reinstalling Windows, run <b>DISM /Online /Cleanup-Image /RestoreHealth</b> — it fixes corruption that SFC can't touch on its own.",
+    "When a laptop battery swells, stop using it immediately. A swollen cell can rupture. It's not just a battery replacement at that point — it needs to be handled carefully.",
+    "On <b>macOS</b>, Activity Monitor sorted by CPU or Memory will immediately show you what's slowing things down. Most people never open it.",
+    "If a charger gets unusually hot to the touch, replace it. Heat that extreme means something inside is working way harder than it should be.",
+    "<b>WireGuard</b> is faster and simpler than OpenVPN for personal VPN use — smaller attack surface, less config, and noticeably lower latency.",
+    "Before you wipe a phone, check if Google or iCloud backup actually ran recently. A lot of people assume it did. It didn't.",
+    "On <b>Docker</b>, always pin your image versions in compose files — <code>image: nginx:1.25</code> not <code>image: nginx:latest</code>. Latest will break you eventually.",
+    "An old laptop with a dead battery can still run fine as a desktop if you keep it plugged in — the hardware underneath is often totally fine.",
+    "<b>Cloudflare Pages</b> deploys on every push to your connected GitHub branch. No manual steps needed once it's set up.",
+    "If <b>Home Assistant</b> automations start acting weird after an update, check the Breaking Changes section in the release notes first.",
+    "Your <b>router's DNS</b> setting is the easiest place to apply AdGuard — change it once and every device on the network benefits.",
+    "On <b>Windows</b>, Task Scheduler can run scripts at startup, login, or on a timer without needing any third-party software.",
+    "Dust is the hidden killer in older PCs. A can of compressed air once or twice a year keeps temperatures 10–15°C lower.",
+    "The <b>iPhone</b> Diagnostics app (dial *#06# or check Settings → Privacy → Analytics) gives you real hardware data Apple doesn't advertise.",
+    "In <b>Proxmox</b>, assigning specific CPU cores to VMs using CPU affinity prevents noisy-neighbor issues when you're running several VMs under load.",
+    "If a device won't show up in <b>ADB</b>, it's almost always the USB cable. Use a data cable, not a charge-only one.",
+    "A fresh <b>Windows install</b> on an SSD takes under 20 minutes. If a repair is taking longer than that to diagnose, a clean install might be the faster path."
   ];
-  let idx = 0;
   document.addEventListener('DOMContentLoaded', () => {
-    const el  = document.getElementById('techTipText');
-    const btn = document.getElementById('nextTipBtn');
-    if (!el || !btn) return;
-    const curr = el.innerHTML;
-    const found = tips.findIndex(t => t === curr);
-    if (found >= 0) idx = found;
-    btn.addEventListener('click', () => {
-      idx = (idx + 1) % tips.length;
-      el.style.opacity = '0';
-      setTimeout(() => { el.innerHTML = tips[idx]; el.style.opacity = '1'; }, 200);
-    });
+    const el = document.getElementById('techTipText');
+    if (!el) return;
+    const dayIdx = Math.floor(Date.now() / 86400000) % tips.length;
+    el.innerHTML = tips[dayIdx];
   });
 })();
