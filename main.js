@@ -2655,6 +2655,9 @@ async function _nexusCheckStatus() {
   return { ok: false, ms: null, version: null };
 }
 
+// ── Update this whenever you switch what you're actively building ──
+const NEXUS_BUILD_STATUS = 'v5.3.x — command modules, AI mode improvements, UI polish';
+
 function initNexusPreview() {
   const logEl = document.getElementById('nexus-preview-log');
   logEl.innerHTML = '';
@@ -2672,6 +2675,7 @@ function initNexusPreview() {
 
   function step() {
     if (i >= bootWords.length) {
+      _nexusLog(logEl, '#ff9100', `[DEV] Currently working on: ${NEXUS_BUILD_STATUS}`);
       _nexusCheckStatus().then(({ ok, ms, version }) => {
         if (ok) {
           _nexusLog(logEl, '#00ff00', `[OK] Nexus AI ${version || 'v5.3.0'} online. Latency: ${ms}ms`);

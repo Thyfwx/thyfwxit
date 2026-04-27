@@ -1052,6 +1052,40 @@ body.a11y-contrast .header-sub { color: #333 !important; }
   50%       { opacity: 0.6; box-shadow: none; }
 }
 
+/* ── Lab stack overview ── */
+.lab-stack {
+  margin-top: 18px;
+  border-top: 1px solid #1e1e1e;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.lab-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 0.83rem;
+  line-height: 1.4;
+}
+.lab-name {
+  font-family: 'Share Tech Mono', monospace;
+  color: #00ff88;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  min-width: 160px;
+  flex-shrink: 0;
+}
+.lab-desc {
+  color: #777;
+  font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+  .lab-row { flex-direction: column; gap: 2px; }
+  .lab-name { min-width: unset; }
+}
+
 /* ── Section accent colors ── */
 section[data-accent] {
   border-top: 2px solid var(--section-accent, var(--neon-color));

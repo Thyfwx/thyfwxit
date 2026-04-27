@@ -171,7 +171,7 @@
 <!-- Tech Tip -->
 <section>
   <h2><span class="pulse-indicator">●</span> Tech Tip of the Day</h2>
-  <p id="techTipText"></p>
+  <p id="techTipText">When a phone won't charge, try a different cable first. It's the cable 70% of the time.</p>
 </section>
 
 <!-- Skills -->
@@ -190,15 +190,57 @@
 
 <!-- Live Status -->
 <section id="systemStatus" data-accent="green">
-  <h2>Live Infrastructure Status</h2>
-  <p>Live uptime monitoring via Uptime Kuma. Requires <code style="font-size:0.8em;color:#666;">uptime.thyfwxit.com</code> to be publicly proxied through Nginx Proxy Manager.</p>
+  <h2>Live Infrastructure</h2>
   <div class="status-grid">
     <div class="status-item"><span class="status-dot status-loading" id="status-proxmox"></span> Proxmox VE</div>
     <div class="status-item"><span class="status-dot status-loading" id="status-omv"></span> OpenMediaVault</div>
     <div class="status-item"><span class="status-dot status-loading" id="status-adguard"></span> AdGuard Home</div>
     <div class="status-item"><span class="status-dot status-loading" id="status-ha"></span> Home Assistant</div>
   </div>
-  <p id="statusTimestamp" style="font-size: 0.75em; color: #666; margin-top: 10px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
+  <p id="statusTimestamp" style="font-size: 0.75em; color: #555; margin-top: 8px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
+
+  <div class="lab-stack">
+    <div class="lab-row">
+      <span class="lab-name">Proxmox VE</span>
+      <span class="lab-desc">Bare-metal hypervisor running all VMs and containers</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">AdGuard Home</span>
+      <span class="lab-desc">DNS-level ad &amp; tracker blocking across every device on the network</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">WireGuard VPN</span>
+      <span class="lab-desc">Encrypted tunnel for secure remote access into the home network</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">Docker + Portainer</span>
+      <span class="lab-desc">Container management on a dedicated Debian host</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">Nginx Proxy Manager</span>
+      <span class="lab-desc">Reverse proxy gateway with SSL for all internal services</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">Home Assistant</span>
+      <span class="lab-desc">Smart home automation running locally on its own Proxmox VM</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">Scrypted</span>
+      <span class="lab-desc">Camera bridge — connects feeds to HomeKit, Google Home, and Alexa</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">OpenMediaVault</span>
+      <span class="lab-desc">Network-attached storage for local file management and backups</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">Uptime Kuma</span>
+      <span class="lab-desc">Internal uptime monitoring — tracks all services and sends alerts</span>
+    </div>
+    <div class="lab-row">
+      <span class="lab-name">Cloudflare DDNS</span>
+      <span class="lab-desc">Keeps the domain pointed at the home IP automatically</span>
+    </div>
+  </div>
 </section>
 
 <!-- Nexus Live Preview -->
