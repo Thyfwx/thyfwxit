@@ -199,47 +199,11 @@
   </div>
   <p id="statusTimestamp" style="font-size: 0.75em; color: #555; margin-top: 8px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
 
-  <div class="lab-stack">
-    <div class="lab-row">
-      <span class="lab-name">Proxmox VE</span>
-      <span class="lab-desc">Bare-metal hypervisor running all VMs and containers</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">AdGuard Home</span>
-      <span class="lab-desc">DNS-level ad &amp; tracker blocking across every device on the network</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">WireGuard VPN</span>
-      <span class="lab-desc">Encrypted tunnel for secure remote access into the home network</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">Docker + Portainer</span>
-      <span class="lab-desc">Container management on a dedicated Debian host</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">Nginx Proxy Manager</span>
-      <span class="lab-desc">Reverse proxy gateway with SSL for all internal services</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">Home Assistant</span>
-      <span class="lab-desc">Smart home automation running locally on its own Proxmox VM</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">Scrypted</span>
-      <span class="lab-desc">Camera bridge — connects feeds to HomeKit, Google Home, and Alexa</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">OpenMediaVault</span>
-      <span class="lab-desc">Network-attached storage for local file management and backups</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">Uptime Kuma</span>
-      <span class="lab-desc">Internal uptime monitoring — tracks all services and sends alerts</span>
-    </div>
-    <div class="lab-row">
-      <span class="lab-name">Cloudflare DDNS</span>
-      <span class="lab-desc">Keeps the domain pointed at the home IP automatically</span>
-    </div>
+  <div class="status-details">
+    <div class="status-detail-row"><b>Proxmox VE</b> — Main hypervisor. Everything else — VMs, containers, storage — runs on this one node.</div>
+    <div class="status-detail-row"><b>OpenMediaVault</b> — Network storage VM. Handles local file management and backups.</div>
+    <div class="status-detail-row"><b>AdGuard Home</b> — DNS-level ad and tracker blocking for every device on the network. No installs on each device needed.</div>
+    <div class="status-detail-row"><b>Home Assistant</b> — Local smart home automation on a dedicated Proxmox VM. No cloud, runs entirely on the home lab.</div>
   </div>
 </section>
 
@@ -332,15 +296,13 @@
     <div>
       <p id="commitMessage" style="margin:0; font-family:'Courier New',monospace; color:var(--text-color); font-size:0.95em;">Loading latest commit…</p>
       <p id="commitMeta" style="margin:4px 0 0; font-size:0.78em; color:#888;"></p>
+      <a href="https://github.com/Thyfwx" target="_blank" rel="noopener" style="display:inline-block; margin-top:10px; font-size:0.78em; color:#555; text-decoration:none; font-family:'Share Tech Mono',monospace; transition:color 0.2s;" onmouseover="this.style.color='var(--neon-color)'" onmouseout="this.style.color='#555'">github.com/Thyfwx &#x2197;</a>
     </div>
   </div>
 </section>
 
 <footer>
   <p class="copyright">&#169; <span id="footerYear">2026</span> Xavier Scott. All systems operational.</p>
-  <p style="font-size:0.78em; margin-top:6px;">
-    <a href="https://github.com/Thyfwx" target="_blank" rel="noopener" style="color:#555; text-decoration:none; font-family:'Share Tech Mono',monospace; transition:color 0.2s;" onmouseover="this.style.color='var(--neon-color)'" onmouseout="this.style.color='#555'">github.com/Thyfwx &#x2197;</a>
-  </p>
 </footer>
 
 <div id="gameAnnouncer" aria-live="polite" aria-atomic="true" class="sr-only"></div>

@@ -1052,38 +1052,25 @@ body.a11y-contrast .header-sub { color: #333 !important; }
   50%       { opacity: 0.6; box-shadow: none; }
 }
 
-/* ── Lab stack overview ── */
-.lab-stack {
-  margin-top: 18px;
+/* ── Infrastructure service details ── */
+.status-details {
+  margin-top: 16px;
   border-top: 1px solid #1e1e1e;
-  padding-top: 14px;
+  padding-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
-.lab-row {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+.status-detail-row {
   font-size: 0.83rem;
-  line-height: 1.4;
-}
-.lab-name {
-  font-family: 'Share Tech Mono', monospace;
-  color: #00ff88;
-  font-size: 0.78rem;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
-  min-width: 160px;
-  flex-shrink: 0;
-}
-.lab-desc {
   color: #777;
-  font-size: 0.8rem;
+  line-height: 1.5;
 }
-@media (max-width: 600px) {
-  .lab-row { flex-direction: column; gap: 2px; }
-  .lab-name { min-width: unset; }
+.status-detail-row b {
+  color: #aaa;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
 }
 
 /* ── Section accent colors ── */
