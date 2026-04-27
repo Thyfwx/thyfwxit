@@ -2655,6 +2655,12 @@ async function _nexusCheckStatus() {
   return { ok: false, ms: null, version: null };
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROTECTED — DO NOT REMOVE OR MODIFY
+// Live GitHub commit status for the Nexus preview boot sequence.
+// Shows [ACTIVE]/[DEV]/[LOG] + latest commit message to visitors.
+// This is a core feature. It must survive all future edits.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function fetchLatestCommitStatus() {
   const CACHE_KEY = 'nexus_commit_cache';
   const CACHE_TTL = 20 * 60 * 1000;
