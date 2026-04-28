@@ -361,8 +361,15 @@
 
   <div id="tab-runner" class="mod-tab-content">
     <div class="mod-row">
-      <label>Base Speed (<span id="speedVal">5.0</span>)</label>
+      <label style="color:#aaa;">Base Speed (<span id="speedVal">5.0</span>)</label>
       <input type="range" id="modSpeed" min="1" max="20" step="0.5" value="5.0">
+    </div>
+    <div class="mod-row">
+      <label style="color:#ff69b4;">Rainbow Mode</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="modDiscoRunner">
+        <span class="toggle-slider"></span>
+      </label>
     </div>
     <div class="mod-row">
       <label style="color:#0ff;">Jetpack Mode</label>
@@ -379,23 +386,30 @@
       </label>
     </div>
     <div class="mod-row">
-      <label>God Mode (Invincible)</label>
+      <label style="color:#ffcc00;">God Mode (Invincible)</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modGodMode">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#ff0;">Freeze Obstacles</label>
+      <label style="color:#88ddff;">Freeze Obstacles</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modFreezeObs">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label>Tiny Mode (Small Hitbox)</label>
+      <label style="color:#00ff88;">Tiny Mode (Small Hitbox)</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTinyMode">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="mod-row">
+      <label style="color:#ff8800;">Auto-Jump Bot</label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="modRunnerBot">
         <span class="toggle-slider"></span>
       </label>
     </div>

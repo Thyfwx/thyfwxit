@@ -711,6 +711,7 @@ canvas {
   max-height: 90vh;
   flex-direction: column;
   transition: border-color 0.3s, box-shadow 0.3s;
+  will-change: transform;
 }
 
 #modMenuHeader {

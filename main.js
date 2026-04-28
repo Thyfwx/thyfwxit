@@ -698,33 +698,28 @@ let dragOffsetX = 0;
 let dragOffsetY = 0;
 
 if (dragHeader && dragMenu) {
-  dragHeader.addEventListener("mousedown", (e) => {
+  function initDrag(clientX, clientY) {
     isDraggingMenu = true;
     const rect = dragMenu.getBoundingClientRect();
-    dragOffsetX = e.clientX - rect.left;
-    dragOffsetY = e.clientY - rect.top;
+    dragOffsetX = clientX - rect.left;
+    dragOffsetY = clientY - rect.top;
     dragMenu.style.margin = "0";
-  });
-
-  dragHeader.addEventListener("touchstart", (e) => {
-    isDraggingMenu = true;
-    const rect = dragMenu.getBoundingClientRect();
-    dragOffsetX = e.touches[0].clientX - rect.left;
-    dragOffsetY = e.touches[0].clientY - rect.top;
-    dragMenu.style.margin = "0";
-  }, { passive: false });
+    dragMenu.style.left = "0";
+    dragMenu.style.top = "0";
+    dragMenu.style.transform = `translate(${rect.left}px,${rect.top}px)`;
+  }
+  dragHeader.addEventListener("mousedown", (e) => initDrag(e.clientX, e.clientY));
+  dragHeader.addEventListener("touchstart", (e) => initDrag(e.touches[0].clientX, e.touches[0].clientY), { passive: false });
 }
 
 document.addEventListener("mousemove", (e) => {
   if (!isDraggingMenu) return;
-  dragMenu.style.left = `${e.clientX - dragOffsetX}px`;
-  dragMenu.style.top = `${e.clientY - dragOffsetY}px`;
+  dragMenu.style.transform = `translate(${e.clientX - dragOffsetX}px,${e.clientY - dragOffsetY}px)`;
 });
 
 document.addEventListener("touchmove", (e) => {
   if (!isDraggingMenu) return;
-  dragMenu.style.left = `${e.touches[0].clientX - dragOffsetX}px`;
-  dragMenu.style.top = `${e.touches[0].clientY - dragOffsetY}px`;
+  dragMenu.style.transform = `translate(${e.touches[0].clientX - dragOffsetX}px,${e.touches[0].clientY - dragOffsetY}px)`;
 }, { passive: false });
 
 document.addEventListener("mouseup", () => { isDraggingMenu = false; });
@@ -850,8 +845,12 @@ document.getElementById('modRunnerBot')?.addEventListener('change', (e) => {
   runnerAutoBot = e.target.checked;
 });
 
-document.getElementById('modInfiniteJump')?.addEventListener('change', (e) => {
-  runnerInfiniteJump = e.target.checked;
+document.getElementById('modDiscoRunner')?.addEventListener('change', (e) => {
+  runnerDiscoActive = e.target.checked;
+});
+
+document.getElementById('modRunnerBot')?.addEventListener('change', (e) => {
+  runnerAutoBot = e.target.checked;
 });
 
 document.getElementById('modJetpack')?.addEventListener('change', (e) => {
@@ -911,8 +910,11 @@ document.getElementById('modRunnerReset')?.addEventListener('click', () => {
   document.getElementById('modTinyMode').checked = false;
   runnerTiny = false;
 
+  document.getElementById('modDiscoRunner').checked = false;
+  runnerDiscoActive = false;
+
+  document.getElementById('modRunnerBot').checked = false;
   runnerAutoBot = false;
-  runnerInfiniteJump = false;
 });
 
 document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => {
@@ -1778,6 +1780,15 @@ function updateRunner(currentTime) {
       else if (r < 0.60) oType = 'tall';
       else if (r < 0.80) oType = 'wide';
       runnerObstacles.push({ x: 400, passed: false, type: oType });
+    }
+
+    if (runnerAutoBot && playerY >= RUNNER_FLOOR_Y - 1) {
+      const airFrames = 2 * currentJumpPower / currentGravity;
+      const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX);
+      if (threat && threat.x <= playerX + currentSpeed * airFrames * 0.7) {
+        velocity = -currentJumpPower;
+        isJumping = true;
+      }
     }
 
     for (let i = 0; i < runnerObstacles.length; i++) {
