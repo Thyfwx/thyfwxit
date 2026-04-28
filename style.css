@@ -698,9 +698,7 @@ canvas {
   top: 10%;
   left: 50%;
   margin-left: -170px;
-  background: rgba(10,10,10,0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(10,10,10,0.97);
   border: 2px solid var(--neon-color);
   padding: 0;
   z-index: 10000;
@@ -1146,3 +1144,22 @@ body.a11y-contrast .card-link { color: #000 !important; }
   margin-bottom: 8px;
 }
 #formSuccess p { color: #aaa; font-size: 0.9rem; }
+
+/* ── Accessibility: Word Spacing ── */
+body.a11y-word-space p,
+body.a11y-word-space li,
+body.a11y-word-space label,
+body.a11y-word-space button,
+body.a11y-word-space input,
+body.a11y-word-space textarea,
+body.a11y-word-space select { word-spacing: 0.18em; letter-spacing: 0.03em; }
+
+/* ── Accessibility: Pause Background ── */
+body.a11y-no-bg #matrixCanvas { display: none !important; }
+body.a11y-no-bg #kawaiiOv     { display: none !important; }
+
+/* ── Game Themes ── */
+#gameScreenWrapper.theme-neon   { border: 2px solid #00ff00; box-shadow: 0 0 24px #00ff0033, inset 0 0 12px #00ff0011; }
+#gameScreenWrapper.theme-red    { border: 2px solid #ff2200; box-shadow: 0 0 24px #ff220033, inset 0 0 12px #ff220011; }
+#gameScreenWrapper.theme-purple { border: 2px solid #aa00ff; box-shadow: 0 0 24px #aa00ff33, inset 0 0 12px #aa00ff11; }
+#gameScreenWrapper.theme-blue   { border: 2px solid #0088ff; box-shadow: 0 0 24px #0088ff33, inset 0 0 12px #0088ff11; }

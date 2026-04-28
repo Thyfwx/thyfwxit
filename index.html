@@ -40,6 +40,8 @@
     <button class="a11y-opt" id="a11yContrastToggle"   data-class="a11y-contrast">High Contrast</button>
     <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind">Colorblind Mode</button>
     <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus">Focus Indicators</button>
+    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space">Word Spacing</button>
+    <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg">Pause Background</button>
   </div>
   <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; margin-top:8px; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
 </div>
@@ -332,7 +334,7 @@
     </div>
 
     <div class="mod-row">
-      <label>Screen Shake</label>
+      <label style="color:#ff8800;">Screen Shake</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modShakeToggle" checked>
         <span class="toggle-slider"></span>
@@ -353,6 +355,17 @@
         <input type="checkbox" id="modMatrixRain">
         <span class="toggle-slider"></span>
       </label>
+    </div>
+
+    <div class="mod-row" style="margin-top:10px;">
+      <label style="color:#aaa;">Game Theme</label>
+      <select id="modGameTheme" style="background:#111; color:#fff; border:1px solid #444; padding:4px 6px; border-radius:3px; font-size:0.8em;">
+        <option value="">Default</option>
+        <option value="theme-neon">Neon Green</option>
+        <option value="theme-red">Cyber Red</option>
+        <option value="theme-purple">Deep Purple</option>
+        <option value="theme-blue">Galaxy Blue</option>
+      </select>
     </div>
 
     <button id="resetProgressBtn" class="nuke-btn" style="background:#ff8800; color:#000; margin-top:20px;">RESET ALL PROGRESS</button>
@@ -422,50 +435,50 @@
 
   <div id="tab-tetris" class="mod-tab-content">
     <div class="mod-row">
-      <label>Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
+      <label style="color:#aaa;">Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
       <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
     </div>
     <div class="mod-row">
-      <label>Score Multiplier (<span id="tetrisMultVal">1</span>x)</label>
+      <label style="color:#ffcc00;">Score Multiplier (<span id="tetrisMultVal">1</span>x)</label>
       <input type="range" id="modTetrisMult" min="1" max="50" step="1" value="1">
     </div>
     <div class="mod-row">
-      <label>Rainbow Blocks</label>
+      <label style="color:#ff69b4;">Rainbow Blocks</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTetrisRainbow">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label>Ghost Piece Mode</label>
+      <label style="color:#88ddff;">Ghost Piece Mode</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTetrisGhost">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label>God Mode (Never Lose)</label>
+      <label style="color:#ffcc00;">God Mode (Never Lose)</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTetrisGodMode">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label>Slow Motion</label>
+      <label style="color:#00ff88;">Slow Motion</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTetrisSlow">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label>Piece Lock (Freeze Drop)</label>
+      <label style="color:#0ff;">Piece Lock (Freeze Drop)</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTetrisLock">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
-      <label>Set Score</label>
+      <label style="color:#f0f;">Set Score</label>
       <div style="display:flex;gap:6px;width:100%;">
         <input type="number" id="modTetrisScoreSet" min="0" value="0" style="background:#111;color:#0ff;border:1px solid #0ff;padding:4px 6px;border-radius:3px;width:80px;font-size:0.85em;">
         <button id="modTetrisScoreBtn" style="background:#0ff;color:#000;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.85em;">SET</button>
@@ -479,7 +492,7 @@
 
   <div id="tab-target" class="mod-tab-content">
     <div class="mod-row">
-      <label>Difficulty</label>
+      <label style="color:#aaa;">Difficulty</label>
       <select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
         <option value="8">Easy (8 Misses)</option>
         <option value="6" selected>Normal (6 Misses)</option>
@@ -487,7 +500,7 @@
       </select>
     </div>
     <div class="mod-row">
-      <label>Target Size (<span id="targetSizeVal">30</span>)</label>
+      <label style="color:#aaa;">Target Size (<span id="targetSizeVal">30</span>)</label>
       <input type="range" id="modTargetSize" min="10" max="100" step="5" value="30">
     </div>
     <div class="mod-row">
@@ -498,14 +511,14 @@
       </label>
     </div>
     <div class="mod-row">
-      <label>Time Freeze (Infinite)</label>
+      <label style="color:#88ddff;">Time Freeze (Infinite Lives)</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modTargetFreeze">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label>Aimbot (Auto-Shoot)</label>
+      <label style="color:#0ff;">Aimbot (Auto-Shoot)</label>
       <label class="toggle-switch">
         <input type="checkbox" id="modAimbot">
         <span class="toggle-slider"></span>

@@ -849,10 +849,6 @@ document.getElementById('modDiscoRunner')?.addEventListener('change', (e) => {
   runnerDiscoActive = e.target.checked;
 });
 
-document.getElementById('modRunnerBot')?.addEventListener('change', (e) => {
-  runnerAutoBot = e.target.checked;
-});
-
 document.getElementById('modJetpack')?.addEventListener('change', (e) => {
   runnerJetpack = e.target.checked;
 });
@@ -915,6 +911,12 @@ document.getElementById('modRunnerReset')?.addEventListener('click', () => {
 
   document.getElementById('modRunnerBot').checked = false;
   runnerAutoBot = false;
+});
+
+document.getElementById('modGameTheme')?.addEventListener('change', (e) => {
+  const wrapper = document.getElementById('gameScreenWrapper');
+  wrapper.classList.remove('theme-neon', 'theme-red', 'theme-purple', 'theme-blue');
+  if (e.target.value) wrapper.classList.add(e.target.value);
 });
 
 document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => {
@@ -1784,8 +1786,8 @@ function updateRunner(currentTime) {
 
     if (runnerAutoBot && playerY >= RUNNER_FLOOR_Y - 1) {
       const airFrames = 2 * currentJumpPower / currentGravity;
-      const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX);
-      if (threat && threat.x <= playerX + currentSpeed * airFrames * 0.7) {
+      const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX - 30);
+      if (threat && threat.x <= playerX + currentSpeed * airFrames * 0.55) {
         velocity = -currentJumpPower;
         isJumping = true;
       }
