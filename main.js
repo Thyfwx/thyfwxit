@@ -41,6 +41,7 @@ try {
 
 let shakeEnabled = true;
 let matrixRainEnabled = false;
+let matrixSurgeFrames = 0;
 
 const runnerCrashMessages = ["CONNECTION LOST", "SYSTEM HALTED", "GRAVITY WINS", "FATAL COLLISION", "NETWORK OFFLINE"];
 const targetCrashMessages = ["TARGET ESCAPED", "MISSION FAILED", "TOO SLOW", "SIGNAL LOST"];
@@ -53,15 +54,12 @@ let currentBaseSpeed = 5.0;
 let runnerGodMode = false;
 let runnerAutoBot = false;
 let runnerJetpack = false;
-let runnerNoClip = false;
 let runnerInfiniteJump = false;
 let runnerFreezeObs = false;
 let runnerTiny = false;
 let playerX = 20;
 let runnerLeftHeld = false;
 let runnerRightHeld = false;
-let runnerUpHeld = false;
-let runnerDownHeld = false;
 let keySpaceHeld = false;
 let isJumping = false;
 let velocity = 0;
@@ -274,6 +272,12 @@ function resizeMatrix() {
 window.addEventListener('resize', resizeMatrix);
 if (mCanvas && mCtx) resizeMatrix();
 
+if (mCanvas) {
+  mCanvas.addEventListener('click', () => {
+    if (matrixRainEnabled) matrixSurgeFrames = 40;
+  });
+}
+
 function drawMatrix(currentTime) {
   if (!mCtx || !matrixRainEnabled || isReducedMotion() || document.hidden) {
     matrixDrawActive = false;
@@ -296,19 +300,21 @@ function drawMatrix(currentTime) {
   const hue = kawaiiActive ? 330 : 120;
   mCtx.font = "bold " + fontSize + "px monospace";
 
-  mCtx.shadowBlur = kawaiiActive ? 6 : 4;
-  mCtx.shadowColor = kawaiiActive ? "#ff69b4" : "#00ff66";
+  const surging = matrixSurgeFrames > 0;
+  if (surging) matrixSurgeFrames--;
+  const brightBoost = surging ? 0.4 : 0;
+
   for (let i = 0; i < drops.length; i++) {
     const text = matrixChars[Math.floor(Math.random() * matrixChars.length)];
-    const alpha = 0.5 + Math.random() * 0.5;
-    mCtx.fillStyle = kawaiiActive ? `hsla(${hue}, 100%, 75%, ${alpha})` : `hsla(${hue}, 100%, 50%, ${alpha})`;
+    const alpha = (0.5 + Math.random() * 0.5 + brightBoost);
+    const lightness = surging ? 75 : 50;
+    mCtx.fillStyle = kawaiiActive ? `hsla(${hue}, 100%, ${lightness}%, ${Math.min(alpha, 1)})` : `hsla(${hue}, 100%, ${lightness}%, ${Math.min(alpha, 1)})`;
     if (drops[i] > 0) {
       mCtx.fillText(text, i * fontSize, drops[i] * fontSize);
     }
-    if (drops[i] * fontSize > cssH && Math.random() > 0.975) drops[i] = 0;
+    if (drops[i] * fontSize > cssH && Math.random() > (surging ? 0.90 : 0.975)) drops[i] = 0;
     drops[i]++;
   }
-  mCtx.shadowBlur = 0;
 }
 
 function triggerShake() {
@@ -853,11 +859,6 @@ document.getElementById('modJetpack')?.addEventListener('change', (e) => {
   runnerJetpack = e.target.checked;
 });
 
-document.getElementById('modNoClip')?.addEventListener('change', (e) => {
-  runnerNoClip = e.target.checked;
-  if (!runnerNoClip) { playerX = 20; runnerLeftHeld = false; runnerRightHeld = false; runnerUpHeld = false; runnerDownHeld = false; }
-});
-
 document.getElementById('modFreezeObs')?.addEventListener('change', (e) => {
   runnerFreezeObs = e.target.checked;
 });
@@ -891,14 +892,22 @@ document.getElementById('modRunnerReset')?.addEventListener('click', () => {
   currentBaseSpeed = 5.0;
   document.getElementById('speedVal').innerText = '5.0';
 
+  if (document.getElementById('modGravity')) {
+    document.getElementById('modGravity').value = 0.85;
+    document.getElementById('gravVal').innerText = '0.85';
+  }
+  if (document.getElementById('modJump')) {
+    document.getElementById('modJump').value = 11.5;
+    document.getElementById('jumpVal').innerText = '11.5';
+  }
+
   document.getElementById('modGodMode').checked = false;
   runnerGodMode = false;
 
   document.getElementById('modJetpack').checked = false;
   runnerJetpack = false;
 
-  document.getElementById('modNoClip').checked = false;
-  runnerNoClip = false; playerX = 20; runnerLeftHeld = false; runnerRightHeld = false; runnerUpHeld = false; runnerDownHeld = false;
+  playerX = 20; runnerLeftHeld = false; runnerRightHeld = false;
 
   document.getElementById('modFreezeObs').checked = false;
   runnerFreezeObs = false;
@@ -911,12 +920,6 @@ document.getElementById('modRunnerReset')?.addEventListener('click', () => {
 
   document.getElementById('modRunnerBot').checked = false;
   runnerAutoBot = false;
-});
-
-document.getElementById('modGameTheme')?.addEventListener('change', (e) => {
-  const wrapper = document.getElementById('gameScreenWrapper');
-  wrapper.classList.remove('theme-neon', 'theme-red', 'theme-purple', 'theme-blue');
-  if (e.target.value) wrapper.classList.add(e.target.value);
 });
 
 document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => {
@@ -1358,7 +1361,8 @@ function jump() {
 }
 
 window.addEventListener("keydown", function(e) {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  const inModMenu = e.target.closest && e.target.closest('#modMenu');
+  if (!inModMenu && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT')) return;
 
   if (e.code === 'Escape') {
     document.getElementById('modMenu').style.display = 'none';
@@ -1446,15 +1450,8 @@ window.addEventListener("keydown", function(e) {
       if (!e.repeat) startTargetGame();
     }
   } else {
-    if (runnerNoClip) {
-      if (e.code === "ArrowLeft"  || e.code === "KeyA") runnerLeftHeld  = true;
-      if (e.code === "ArrowRight" || e.code === "KeyD") runnerRightHeld = true;
-      if (e.code === "ArrowUp"    || e.code === "KeyW") runnerUpHeld    = true;
-      if (e.code === "ArrowDown"  || e.code === "KeyS") runnerDownHeld  = true;
-    } else {
-      if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
-        if (!e.repeat) jump();
-      }
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
+      if (!e.repeat) jump();
     }
   }
 }, { passive: false });
@@ -1463,8 +1460,6 @@ window.addEventListener("keyup", e => {
   if (e.code === 'Space' || e.key === " ") keySpaceHeld = false;
   if (e.code === "ArrowLeft"  || e.code === "KeyA") runnerLeftHeld  = false;
   if (e.code === "ArrowRight" || e.code === "KeyD") runnerRightHeld = false;
-  if (e.code === "ArrowUp"    || e.code === "KeyW") runnerUpHeld    = false;
-  if (e.code === "ArrowDown"  || e.code === "KeyS") runnerDownHeld  = false;
 });
 
 if (canvas) {
@@ -1739,36 +1734,26 @@ function updateRunner(currentTime) {
   }
 
   if (gameStarted && !gameOver) {
-    if (runnerNoClip) {
-      velocity = 0;
+    if (runnerJetpack && keySpaceHeld) {
+      velocity -= 1.5;
+      if (velocity < -currentJumpPower) velocity = -currentJumpPower;
+      isJumping = true;
+    } else if (isJumping && !runnerJetpack && !keySpaceHeld && !runnerAutoBot) {
+      if (velocity < -4) velocity = -4;
+    }
+
+    velocity += currentGravity;
+    playerY += velocity;
+
+    if (!runnerJetpack && playerY < RUNNER_MIN_Y) {
+      playerY = RUNNER_MIN_Y;
+      if (velocity < 0) velocity = 0;
+    }
+
+    if (playerY >= RUNNER_FLOOR_Y) {
+      playerY = RUNNER_FLOOR_Y;
       isJumping = false;
-      const nc = currentSpeed + 4;
-      if (runnerLeftHeld)  playerX -= nc;
-      if (runnerRightHeld) playerX += nc;
-      if (runnerUpHeld)    playerY -= nc;
-      if (runnerDownHeld)  playerY += nc;
-    } else {
-      if (runnerJetpack && keySpaceHeld) {
-        velocity -= 1.5;
-        if (velocity < -currentJumpPower) velocity = -currentJumpPower;
-        isJumping = true;
-      } else if (isJumping && !runnerJetpack && !keySpaceHeld && !runnerAutoBot) {
-        if (velocity < -4) velocity = -4;
-      }
-
-      velocity += currentGravity;
-      playerY += velocity;
-
-      if (!runnerJetpack && playerY < RUNNER_MIN_Y) {
-        playerY = RUNNER_MIN_Y;
-        if (velocity < 0) velocity = 0;
-      }
-
-      if (playerY >= RUNNER_FLOOR_Y) {
-        playerY = RUNNER_FLOOR_Y;
-        isJumping = false;
-        velocity = 0;
-      }
+      velocity = 0;
     }
 
     currentSpeed = currentBaseSpeed + (score / 8);
@@ -1786,10 +1771,18 @@ function updateRunner(currentTime) {
 
     if (runnerAutoBot && playerY >= RUNNER_FLOOR_Y - 1) {
       const airFrames = 2 * currentJumpPower / currentGravity;
-      const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX - 30);
-      if (threat && threat.x <= playerX + currentSpeed * airFrames * 0.55) {
-        velocity = -currentJumpPower;
-        isJumping = true;
+      const jumpReach = currentSpeed * airFrames;
+      const pw = runnerTiny ? 8 : 20;
+      const flyingInPath = runnerObstacles.some(o =>
+        !o.passed && o.type === 'flying' &&
+        o.x > playerX - pw && o.x < playerX + pw + jumpReach
+      );
+      if (!flyingInPath) {
+        const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX - 30);
+        if (threat && threat.x <= playerX + currentSpeed * airFrames * 0.55) {
+          velocity = -currentJumpPower;
+          isJumping = true;
+        }
       }
     }
 
@@ -1816,7 +1809,7 @@ function updateRunner(currentTime) {
         oy = 145; ow = 16; oh = 25;
       }
 
-      if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode && !runnerNoClip) {
+      if (px < ox + ow && px + pw > ox && py < oy + oh && py + ph > oy && !runnerGodMode) {
         if (!gameOver) {
           gameOver = true;
           runnerDeathTime = Date.now();
@@ -1907,7 +1900,17 @@ function updateRunner(currentTime) {
 
   if (!gameStarted) {
     ctx.textAlign = "center";
-    ctx.fillText("Tap or Press Space to Start", 200, 100);
+    const titleColor = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : gameNeonColor);
+    ctx.fillStyle = titleColor;
+    ctx.font = "bold 26px 'Courier New', monospace";
+    ctx.fillText(kawaiiActive ? "✦ KAWAII RUNNER ✦" : "CYBER RUNNER", 200, 65);
+    ctx.fillStyle = canvasTextColor;
+    ctx.font = "11px 'Courier New', monospace";
+    ctx.fillText("Dodge obstacles. Survive the grid.", 200, 85);
+    const pulse = Math.floor(Date.now() / 400) % 2 === 0;
+    ctx.fillStyle = pulse ? titleColor : canvasTextColor;
+    ctx.font = "bold 13px 'Courier New', monospace";
+    ctx.fillText("[ SPACE ] or Tap to Start", 200, 115);
     ctx.textAlign = "left";
   } else if (gameOver) {
     ctx.fillStyle = isContrast ? "#000000" : (kawaiiActive ? "#ff1493" : "#ff0000");
@@ -2089,6 +2092,20 @@ function updateTargetGame(currentTime) {
       ctxTarget.moveTo(i, 0);
       ctxTarget.lineTo(i, 200);
       ctxTarget.stroke();
+    }
+
+    if (!isContrast) {
+      const scopeColor = kawaiiActive ? 'rgba(255,20,147,0.08)' : 'rgba(0,255,0,0.07)';
+      ctxTarget.strokeStyle = scopeColor;
+      ctxTarget.lineWidth = 1;
+      for (let r = 30; r <= 170; r += 35) {
+        ctxTarget.beginPath();
+        ctxTarget.arc(200, 100, r, 0, Math.PI * 2);
+        ctxTarget.stroke();
+      }
+      ctxTarget.strokeStyle = kawaiiActive ? 'rgba(255,20,147,0.12)' : 'rgba(0,255,0,0.10)';
+      ctxTarget.beginPath(); ctxTarget.moveTo(200, 0); ctxTarget.lineTo(200, 200); ctxTarget.stroke();
+      ctxTarget.beginPath(); ctxTarget.moveTo(0, 100); ctxTarget.lineTo(400, 100); ctxTarget.stroke();
     }
   }
 
@@ -2444,6 +2461,15 @@ function updateTetris(currentTime) {
       }
       ctxTetris.fillRect(star.x, star.y, star.s, star.s);
     });
+
+    ctxTetris.strokeStyle = kawaiiActive ? 'rgba(255,20,147,0.07)' : 'rgba(0,255,255,0.06)';
+    ctxTetris.lineWidth = 0.5;
+    for (let x = 100; x <= 300; x += 20) {
+      ctxTetris.beginPath(); ctxTetris.moveTo(x, 0); ctxTetris.lineTo(x, 400); ctxTetris.stroke();
+    }
+    for (let y = 0; y <= 400; y += 20) {
+      ctxTetris.beginPath(); ctxTetris.moveTo(100, y); ctxTetris.lineTo(300, y); ctxTetris.stroke();
+    }
   }
 
   if (tetrisGameOver) {

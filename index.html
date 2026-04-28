@@ -33,15 +33,15 @@
 <div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
   <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility</h3>
   <div class="a11y-grid">
-    <button class="a11y-opt" id="a11yFontToggle"       data-class="a11y-font">Readable Font</button>
-    <button class="a11y-opt" id="a11yTextToggle"       data-class="a11y-large-text">Large Text</button>
-    <button class="a11y-opt" id="a11ySpaceToggle"      data-class="a11y-spaced">Spaced Text</button>
-    <button class="a11y-opt" id="a11yAnimToggle"       data-class="a11y-no-anim">Reduce Motion</button>
-    <button class="a11y-opt" id="a11yContrastToggle"   data-class="a11y-contrast">High Contrast</button>
-    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind">Colorblind Mode</button>
-    <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus">Focus Indicators</button>
-    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space">Word Spacing</button>
-    <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg">Pause Background</button>
+    <button class="a11y-opt" id="a11yFontToggle"       data-class="a11y-font"       title="Switches body text to a clean serif font (Georgia) that is easier to read for long passages">Readable Font</button>
+    <button class="a11y-opt" id="a11yTextToggle"       data-class="a11y-large-text" title="Increases base font size across the page for easier reading">Large Text</button>
+    <button class="a11y-opt" id="a11ySpaceToggle"      data-class="a11y-spaced"     title="Adds extra line height and letter spacing to reduce text density">Spaced Text</button>
+    <button class="a11y-opt" id="a11yAnimToggle"       data-class="a11y-no-anim"    title="Disables all CSS animations and transitions, including game visual effects. Also stops matrix rain.">Reduce Motion</button>
+    <button class="a11y-opt" id="a11yContrastToggle"   data-class="a11y-contrast"   title="Switches to a high contrast black-and-white mode. All colors are replaced with pure black or white.">High Contrast</button>
+    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind" title="Adjusts the color palette to avoid red/green combinations that are hard to distinguish for colorblind users">Colorblind Mode</button>
+    <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus" title="Makes keyboard focus outlines visible and strong — useful if you navigate with a keyboard or switch device">Focus Indicators</button>
+    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space"  title="Adds extra word spacing and slight letter tracking — helps with dyslexia and dense text">Word Spacing</button>
+    <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg"            title="Hides the matrix rain canvas background — useful if motion in the background is distracting">Pause Background</button>
   </div>
   <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; margin-top:8px; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
 </div>
@@ -324,48 +324,37 @@
   </div>
 
   <div id="tab-system" class="mod-tab-content active">
-    <button class="nuke-btn" style="background:#222; color:var(--neon-color); border:1px solid var(--neon-color); margin-top:5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
-    <button class="nuke-btn" style="background:#222; color:#ff0000; border:1px solid #ff0000; margin-top:5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
-    <button class="nuke-btn" style="background:#222; color:cyan; border:1px solid cyan; margin-top:5px; margin-bottom:15px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
+    <button class="nuke-btn" title="Switch to the Cyber Runner endless runner game" style="background:#222; color:var(--neon-color); border:1px solid var(--neon-color); margin-top:5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
+    <button class="nuke-btn" title="Switch to the Matrix Target Simulator shooting game" style="background:#222; color:#ff0000; border:1px solid #ff0000; margin-top:5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
+    <button class="nuke-btn" title="Switch to Tetris" style="background:#222; color:cyan; border:1px solid cyan; margin-top:5px; margin-bottom:15px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
 
     <div class="mod-row">
-      <label style="color:#ff69b4;font-family:serif;">&#9825; UwU Kawaii Mode</label>
-      <button id="kawaiiToggle" style="background:linear-gradient(135deg,#ff69b4,#ffb6c1);color:#fff;border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-weight:bold;font-size:0.85em;letter-spacing:1px;">OFF</button>
+      <label style="color:#ff69b4;font-family:serif;" title="Toggle pink kawaii aesthetic — changes colors, fonts, and effects site-wide">&#9825; UwU Kawaii Mode</label>
+      <button id="kawaiiToggle" title="Toggle pink kawaii aesthetic" style="background:linear-gradient(135deg,#ff69b4,#ffb6c1);color:#fff;border:none;border-radius:20px;padding:4px 12px;cursor:pointer;font-weight:bold;font-size:0.85em;letter-spacing:1px;">OFF</button>
     </div>
 
     <div class="mod-row">
-      <label style="color:#ff8800;">Screen Shake</label>
-      <label class="toggle-switch">
+      <label style="color:#ff8800;" title="Shake the screen when you die or score in a game. Turn off if you find it distracting.">Screen Shake</label>
+      <label class="toggle-switch" title="Toggle screen shake on game events">
         <input type="checkbox" id="modShakeToggle" checked>
         <span class="toggle-slider"></span>
       </label>
     </div>
 
     <div class="mod-row">
-      <label style="color:#ffcc00;">CRT Scanlines</label>
-      <label class="toggle-switch">
+      <label style="color:#ffcc00;" title="Overlays a retro CRT scanline effect over the whole page. Pure aesthetics.">CRT Scanlines</label>
+      <label class="toggle-switch" title="Toggle CRT scanline overlay">
         <input type="checkbox" id="modCrtToggle">
         <span class="toggle-slider"></span>
       </label>
     </div>
 
     <div class="mod-row">
-      <label style="color:#0f0;">Matrix Rain</label>
-      <label class="toggle-switch">
+      <label style="color:#0f0;" title="Enables the falling green characters animation in the background. Click the background to trigger a surge. Disable to improve performance.">Matrix Rain</label>
+      <label class="toggle-switch" title="Toggle matrix rain background animation — click the background to surge it">
         <input type="checkbox" id="modMatrixRain">
         <span class="toggle-slider"></span>
       </label>
-    </div>
-
-    <div class="mod-row" style="margin-top:10px;">
-      <label style="color:#aaa;">Game Theme</label>
-      <select id="modGameTheme" style="background:#111; color:#fff; border:1px solid #444; padding:4px 6px; border-radius:3px; font-size:0.8em;">
-        <option value="">Default</option>
-        <option value="theme-neon">Neon Green</option>
-        <option value="theme-red">Cyber Red</option>
-        <option value="theme-purple">Deep Purple</option>
-        <option value="theme-blue">Galaxy Blue</option>
-      </select>
     </div>
 
     <button id="resetProgressBtn" class="nuke-btn" style="background:#ff8800; color:#000; margin-top:20px;">RESET ALL PROGRESS</button>
@@ -374,152 +363,153 @@
 
   <div id="tab-runner" class="mod-tab-content">
     <div class="mod-row">
-      <label style="color:#aaa;">Base Speed (<span id="speedVal">5.0</span>)</label>
-      <input type="range" id="modSpeed" min="1" max="20" step="0.5" value="5.0">
+      <label style="color:#aaa;" title="Base movement speed. Speed also increases automatically as your score goes up.">Base Speed (<span id="speedVal">5.0</span>)</label>
+      <input type="range" id="modSpeed" min="1" max="20" step="0.5" value="5.0" title="Drag to change starting speed">
     </div>
     <div class="mod-row">
-      <label style="color:#ff69b4;">Rainbow Mode</label>
-      <label class="toggle-switch">
+      <label style="color:#88ddff;" title="How strongly gravity pulls the player down. Lower = floaty, Higher = heavy drops.">Gravity (<span id="gravVal">0.85</span>)</label>
+      <input type="range" id="modGravity" min="0.1" max="2.0" step="0.05" value="0.85" title="Drag to change gravity strength">
+    </div>
+    <div class="mod-row">
+      <label style="color:#0ff;" title="How high and far the player jumps. Higher values = bigger air time.">Jump Power (<span id="jumpVal">11.5</span>)</label>
+      <input type="range" id="modJump" min="4" max="20" step="0.5" value="11.5" title="Drag to change jump height">
+    </div>
+    <div class="mod-row">
+      <label style="color:#ff69b4;" title="Makes the background and obstacles flash through rainbow colors every beat. Purely visual.">Rainbow Mode</label>
+      <label class="toggle-switch" title="Toggle disco/rainbow color cycling">
         <input type="checkbox" id="modDiscoRunner">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#0ff;">Jetpack Mode</label>
-      <label class="toggle-switch">
+      <label style="color:#0ff;" title="Hold Space to fly upward. Release to fall. No gravity ceiling — you can fly above the top of the screen.">Jetpack Mode</label>
+      <label class="toggle-switch" title="Toggle jetpack — hold Space to fly">
         <input type="checkbox" id="modJetpack">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#f0f;">No-Clip (Free Move)</label>
-      <label class="toggle-switch">
-        <input type="checkbox" id="modNoClip">
-        <span class="toggle-slider"></span>
-      </label>
-    </div>
-    <div class="mod-row">
-      <label style="color:#ffcc00;">God Mode (Invincible)</label>
-      <label class="toggle-switch">
+      <label style="color:#ffcc00;" title="You cannot die. Obstacles pass right through you. Score still counts.">God Mode (Invincible)</label>
+      <label class="toggle-switch" title="Toggle invincibility — obstacles do no damage">
         <input type="checkbox" id="modGodMode">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#88ddff;">Freeze Obstacles</label>
-      <label class="toggle-switch">
+      <label style="color:#88ddff;" title="Stops all obstacles in place. Good for practicing a specific section or just watching the rain.">Freeze Obstacles</label>
+      <label class="toggle-switch" title="Toggle obstacle freeze — they stop moving">
         <input type="checkbox" id="modFreezeObs">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#00ff88;">Tiny Mode (Small Hitbox)</label>
-      <label class="toggle-switch">
+      <label style="color:#00ff88;" title="Shrinks your character's hitbox to 8×8 pixels instead of 20×20. Much easier to slip through tight gaps.">Tiny Mode (Small Hitbox)</label>
+      <label class="toggle-switch" title="Toggle tiny hitbox mode">
         <input type="checkbox" id="modTinyMode">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#ff8800;">Auto-Jump Bot</label>
-      <label class="toggle-switch">
+      <label style="color:#ff8800;" title="The game plays itself. The bot reads upcoming obstacles and jumps at exactly the right time. It avoids flying obstacles by staying grounded.">Auto-Jump Bot</label>
+      <label class="toggle-switch" title="Toggle auto-play bot — it will never die">
         <input type="checkbox" id="modRunnerBot">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <button id="modScoreInject" style="background:#222; color:#0f0; border:1px solid #0f0; padding:4px 8px; border-radius:4px; font-size:0.8em; cursor:pointer;">+50 Score Inject</button>
-      <button id="modClearObs" style="background:#222; color:#ff0; border:1px solid #ff0; padding:4px 8px; border-radius:4px; font-size:0.8em; cursor:pointer; margin-left:6px;">Clear Obstacles</button>
+      <button id="modScoreInject" title="Instantly adds 50 points to your current score" style="background:#222; color:#0f0; border:1px solid #0f0; padding:4px 8px; border-radius:4px; font-size:0.8em; cursor:pointer;">+50 Score Inject</button>
+      <button id="modClearObs" title="Removes all obstacles currently on screen" style="background:#222; color:#ff0; border:1px solid #ff0; padding:4px 8px; border-radius:4px; font-size:0.8em; cursor:pointer; margin-left:6px;">Clear Obstacles</button>
     </div>
-    <button id="modRunnerReset" class="nuke-btn" style="background:#444; color:#fff; margin-top:15px;">RESET RUNNER SETTINGS</button>
+    <button id="modRunnerReset" class="nuke-btn" title="Resets all runner mod settings back to their defaults" style="background:#444; color:#fff; margin-top:15px;">RESET RUNNER SETTINGS</button>
   </div>
 
   <div id="tab-tetris" class="mod-tab-content">
     <div class="mod-row">
-      <label style="color:#aaa;">Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
-      <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5">
+      <label style="color:#aaa;" title="How fast pieces fall. Higher = faster drops. Goes up to 20 (insane mode).">Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
+      <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5" title="Drag to change piece drop speed">
     </div>
     <div class="mod-row">
-      <label style="color:#ffcc00;">Score Multiplier (<span id="tetrisMultVal">1</span>x)</label>
-      <input type="range" id="modTetrisMult" min="1" max="50" step="1" value="1">
+      <label style="color:#ffcc00;" title="Multiplies all points earned. At 50x, clearing 4 lines at once is massive.">Score Multiplier (<span id="tetrisMultVal">1</span>x)</label>
+      <input type="range" id="modTetrisMult" min="1" max="50" step="1" value="1" title="Drag to change score multiplier">
     </div>
     <div class="mod-row">
-      <label style="color:#ff69b4;">Rainbow Blocks</label>
-      <label class="toggle-switch">
+      <label style="color:#ff69b4;" title="Every placed piece is a random color. Purely visual — does not affect gameplay.">Rainbow Blocks</label>
+      <label class="toggle-switch" title="Toggle rainbow colored Tetris pieces">
         <input type="checkbox" id="modTetrisRainbow">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#88ddff;">Ghost Piece Mode</label>
-      <label class="toggle-switch">
+      <label style="color:#88ddff;" title="Shows a transparent outline of where your piece will land. Useful for planning placements.">Ghost Piece Mode</label>
+      <label class="toggle-switch" title="Toggle ghost piece landing preview">
         <input type="checkbox" id="modTetrisGhost">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#ffcc00;">God Mode (Never Lose)</label>
-      <label class="toggle-switch">
+      <label style="color:#ffcc00;" title="Stack overflows are ignored. Pieces keep spawning even when the grid is full. You can never lose.">God Mode (Never Lose)</label>
+      <label class="toggle-switch" title="Toggle god mode — the game never ends">
         <input type="checkbox" id="modTetrisGodMode">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#00ff88;">Slow Motion</label>
-      <label class="toggle-switch">
+      <label style="color:#00ff88;" title="Slows the piece fall timer to a crawl. Useful for learning placement without time pressure.">Slow Motion</label>
+      <label class="toggle-switch" title="Toggle slow motion piece drop">
         <input type="checkbox" id="modTetrisSlow">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#0ff;">Piece Lock (Freeze Drop)</label>
-      <label class="toggle-switch">
+      <label style="color:#0ff;" title="Pieces stop auto-dropping. They will only move down when you press the down arrow or S. Full manual control.">Piece Lock (Freeze Drop)</label>
+      <label class="toggle-switch" title="Toggle piece lock — pieces only drop on manual input">
         <input type="checkbox" id="modTetrisLock">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
-      <label style="color:#f0f;">Set Score</label>
+      <label style="color:#f0f;" title="Type any number and press SET to jump your score to that value instantly.">Set Score</label>
       <div style="display:flex;gap:6px;width:100%;">
-        <input type="number" id="modTetrisScoreSet" min="0" value="0" style="background:#111;color:#0ff;border:1px solid #0ff;padding:4px 6px;border-radius:3px;width:80px;font-size:0.85em;">
-        <button id="modTetrisScoreBtn" style="background:#0ff;color:#000;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.85em;">SET</button>
+        <input type="number" id="modTetrisScoreSet" min="0" value="0" title="Enter a score value" style="background:#111;color:#0ff;border:1px solid #0ff;padding:4px 6px;border-radius:3px;width:80px;font-size:0.85em;">
+        <button id="modTetrisScoreBtn" title="Apply the score value" style="background:#0ff;color:#000;border:none;padding:4px 8px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.85em;">SET</button>
       </div>
     </div>
     <div class="mod-row" style="gap:6px;">
-      <button id="modTetrisAddJunkBtn" style="background:#ff5500;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">ADD JUNK ROW</button>
-      <button id="modTetrisClearBtn" style="background:#ff00ff;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">CLEAR ALL LINES</button>
+      <button id="modTetrisAddJunkBtn" title="Adds a nearly full row at the bottom — great for stress testing or practice" style="background:#ff5500;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">ADD JUNK ROW</button>
+      <button id="modTetrisClearBtn" title="Instantly clears every block from the board" style="background:#ff00ff;color:#000;border:none;padding:6px 10px;border-radius:3px;cursor:pointer;font-weight:bold;font-size:0.8em;flex:1;">CLEAR ALL LINES</button>
     </div>
   </div>
 
   <div id="tab-target" class="mod-tab-content">
     <div class="mod-row">
-      <label style="color:#aaa;">Difficulty</label>
-      <select id="modDifficulty" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
+      <label style="color:#aaa;" title="How many misses before the game ends. Easy = 8, Normal = 6, Hard = 3.">Difficulty</label>
+      <select id="modDifficulty" title="Select difficulty level" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
         <option value="8">Easy (8 Misses)</option>
         <option value="6" selected>Normal (6 Misses)</option>
         <option value="3">Hard (3 Misses)</option>
       </select>
     </div>
     <div class="mod-row">
-      <label style="color:#aaa;">Target Size (<span id="targetSizeVal">30</span>)</label>
-      <input type="range" id="modTargetSize" min="10" max="100" step="5" value="30">
+      <label style="color:#aaa;" title="Changes how big the target circle is. Bigger = easier to click. Smaller = more skill required.">Target Size (<span id="targetSizeVal">30</span>)</label>
+      <input type="range" id="modTargetSize" min="10" max="100" step="5" value="30" title="Drag to change target size">
     </div>
     <div class="mod-row">
-      <label style="color:#ff3333;">Spawn Decoys</label>
-      <label class="toggle-switch">
+      <label style="color:#ff3333;" title="Spawns fake decoy targets that count as a miss if clicked. Tests your aim accuracy.">Spawn Decoys</label>
+      <label class="toggle-switch" title="Toggle decoy targets — clicking them costs a life">
         <input type="checkbox" id="modTargetDecoy">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#88ddff;">Time Freeze (Infinite Lives)</label>
-      <label class="toggle-switch">
+      <label style="color:#88ddff;" title="The miss counter is frozen — you have unlimited lives. The game goes on forever until you close it.">Time Freeze (Infinite Lives)</label>
+      <label class="toggle-switch" title="Toggle infinite lives — misses do not count">
         <input type="checkbox" id="modTargetFreeze">
         <span class="toggle-slider"></span>
       </label>
     </div>
     <div class="mod-row">
-      <label style="color:#0ff;">Aimbot (Auto-Shoot)</label>
-      <label class="toggle-switch">
+      <label style="color:#0ff;" title="The game automatically shoots every target the moment it appears. Enables itself and clears every round.">Aimbot (Auto-Shoot)</label>
+      <label class="toggle-switch" title="Toggle aimbot — auto-shoots every target instantly">
         <input type="checkbox" id="modAimbot">
         <span class="toggle-slider"></span>
       </label>
