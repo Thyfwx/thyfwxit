@@ -889,38 +889,30 @@ document.getElementById('modMoonGrav')?.addEventListener('click', () => {
 });
 
 document.getElementById('modRunnerReset')?.addEventListener('click', () => {
-  document.getElementById('modGravity').value = 0.85;
   currentGravity = 0.85;
-  document.getElementById('gravVal').innerText = 0.85;
-
-  document.getElementById('modJump').value = 11.5;
   currentJumpPower = 11.5;
-  document.getElementById('jumpVal').innerText = 11.5;
 
   document.getElementById('modSpeed').value = 5.0;
   currentBaseSpeed = 5.0;
-  document.getElementById('speedVal').innerText = 5.0;
+  document.getElementById('speedVal').innerText = '5.0';
 
   document.getElementById('modGodMode').checked = false;
   runnerGodMode = false;
-
-  document.getElementById('modRunnerBot').checked = false;
-  runnerAutoBot = false;
-
-  document.getElementById('modInfiniteJump').checked = false;
-  runnerInfiniteJump = false;
 
   document.getElementById('modJetpack').checked = false;
   runnerJetpack = false;
 
   document.getElementById('modNoClip').checked = false;
-  runnerNoClip = false; playerX = 20; runnerUpHeld = false; runnerDownHeld = false;
+  runnerNoClip = false; playerX = 20; runnerLeftHeld = false; runnerRightHeld = false; runnerUpHeld = false; runnerDownHeld = false;
 
   document.getElementById('modFreezeObs').checked = false;
   runnerFreezeObs = false;
 
   document.getElementById('modTinyMode').checked = false;
   runnerTiny = false;
+
+  runnerAutoBot = false;
+  runnerInfiniteJump = false;
 });
 
 document.getElementById('modTetrisSpeed')?.addEventListener('input', (e) => {
@@ -1786,37 +1778,6 @@ function updateRunner(currentTime) {
       else if (r < 0.60) oType = 'tall';
       else if (r < 0.80) oType = 'wide';
       runnerObstacles.push({ x: 400, passed: false, type: oType });
-    }
-
-    if (runnerAutoBot) {
-      const grounded = playerY >= RUNNER_FLOOR_Y - 1;
-      if (grounded) {
-        const ph = runnerTiny ? 8 : 20;
-        const airFrames = 2 * currentJumpPower / currentGravity;
-
-        // Avoid jumping into a flying obstacle overhead
-        const flyingDanger = runnerObstacles.some(o =>
-          !o.passed && o.type === 'flying' && o.x > 0 && o.x < playerX + currentSpeed * airFrames
-        );
-
-        if (!flyingDanger) {
-          const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX);
-          if (threat) {
-            const framesUntil = (threat.x - playerX) / currentSpeed;
-            // Exact trajectory: where would the player be at framesUntil if jumping now?
-            const predictedY = RUNNER_FLOOR_Y
-              - (currentJumpPower * framesUntil)
-              + (currentGravity * framesUntil * (framesUntil + 1) / 2);
-            const obsTopY = threat.type === 'tall' ? 130 : 145;
-            const wouldClear = (predictedY + ph) <= obsTopY;
-            const stillAirborne = predictedY < RUNNER_FLOOR_Y;
-            if (wouldClear && stillAirborne) {
-              velocity = -currentJumpPower;
-              isJumping = true;
-            }
-          }
-        }
-      }
     }
 
     for (let i = 0; i < runnerObstacles.length; i++) {
