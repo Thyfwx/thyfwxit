@@ -54,11 +54,14 @@ let runnerGodMode = false;
 let runnerAutoBot = false;
 let runnerJetpack = false;
 let runnerNoClip = false;
+let runnerInfiniteJump = false;
 let runnerFreezeObs = false;
 let runnerTiny = false;
 let playerX = 20;
 let runnerLeftHeld = false;
 let runnerRightHeld = false;
+let runnerUpHeld = false;
+let runnerDownHeld = false;
 let keySpaceHeld = false;
 let isJumping = false;
 let velocity = 0;
@@ -847,8 +850,8 @@ document.getElementById('modRunnerBot')?.addEventListener('change', (e) => {
   runnerAutoBot = e.target.checked;
 });
 
-document.getElementById('modDiscoRunner')?.addEventListener('change', (e) => {
-  runnerDiscoActive = e.target.checked;
+document.getElementById('modInfiniteJump')?.addEventListener('change', (e) => {
+  runnerInfiniteJump = e.target.checked;
 });
 
 document.getElementById('modJetpack')?.addEventListener('change', (e) => {
@@ -857,7 +860,7 @@ document.getElementById('modJetpack')?.addEventListener('change', (e) => {
 
 document.getElementById('modNoClip')?.addEventListener('change', (e) => {
   runnerNoClip = e.target.checked;
-  if (!runnerNoClip) { playerX = 20; runnerLeftHeld = false; runnerRightHeld = false; }
+  if (!runnerNoClip) { playerX = 20; runnerLeftHeld = false; runnerRightHeld = false; runnerUpHeld = false; runnerDownHeld = false; }
 });
 
 document.getElementById('modFreezeObs')?.addEventListener('change', (e) => {
@@ -904,14 +907,14 @@ document.getElementById('modRunnerReset')?.addEventListener('click', () => {
   document.getElementById('modRunnerBot').checked = false;
   runnerAutoBot = false;
 
-  document.getElementById('modDiscoRunner').checked = false;
-  runnerDiscoActive = false;
+  document.getElementById('modInfiniteJump').checked = false;
+  runnerInfiniteJump = false;
 
   document.getElementById('modJetpack').checked = false;
   runnerJetpack = false;
 
   document.getElementById('modNoClip').checked = false;
-  runnerNoClip = false; playerX = 20;
+  runnerNoClip = false; playerX = 20; runnerUpHeld = false; runnerDownHeld = false;
 
   document.getElementById('modFreezeObs').checked = false;
   runnerFreezeObs = false;
@@ -1352,7 +1355,7 @@ function jump() {
   if (!gameStarted) gameStarted = true;
 
   const grounded = playerY >= RUNNER_FLOOR_Y - 1;
-  if (!grounded) return;
+  if (!grounded && !runnerInfiniteJump) return;
 
   velocity = -currentJumpPower;
   isJumping = true;
@@ -1447,20 +1450,25 @@ window.addEventListener("keydown", function(e) {
       if (!e.repeat) startTargetGame();
     }
   } else {
-    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
-      if (!e.repeat) jump();
-    }
     if (runnerNoClip) {
-      if (e.code === "ArrowLeft" || e.code === "KeyA") runnerLeftHeld = true;
+      if (e.code === "ArrowLeft"  || e.code === "KeyA") runnerLeftHeld  = true;
       if (e.code === "ArrowRight" || e.code === "KeyD") runnerRightHeld = true;
+      if (e.code === "ArrowUp"    || e.code === "KeyW") runnerUpHeld    = true;
+      if (e.code === "ArrowDown"  || e.code === "KeyS") runnerDownHeld  = true;
+    } else {
+      if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
+        if (!e.repeat) jump();
+      }
     }
   }
 }, { passive: false });
 
 window.addEventListener("keyup", e => {
   if (e.code === 'Space' || e.key === " ") keySpaceHeld = false;
-  if (e.code === "ArrowLeft" || e.code === "KeyA") runnerLeftHeld = false;
+  if (e.code === "ArrowLeft"  || e.code === "KeyA") runnerLeftHeld  = false;
   if (e.code === "ArrowRight" || e.code === "KeyD") runnerRightHeld = false;
+  if (e.code === "ArrowUp"    || e.code === "KeyW") runnerUpHeld    = false;
+  if (e.code === "ArrowDown"  || e.code === "KeyS") runnerDownHeld  = false;
 });
 
 if (canvas) {
@@ -1735,31 +1743,36 @@ function updateRunner(currentTime) {
   }
 
   if (gameStarted && !gameOver) {
-    if (runnerJetpack && keySpaceHeld) {
-      velocity -= 1.5;
-      if (velocity < -currentJumpPower) velocity = -currentJumpPower;
-      isJumping = true;
-    } else if (isJumping && !runnerJetpack && !keySpaceHeld && !runnerAutoBot) {
-      if (velocity < -4) velocity = -4;
-    }
-
-    velocity += currentGravity;
-    playerY += velocity;
-
-    if (playerY < RUNNER_MIN_Y) {
-      playerY = RUNNER_MIN_Y;
-      if (velocity < 0) velocity = 0;
-    }
-
-    if (playerY >= RUNNER_FLOOR_Y) {
-      playerY = RUNNER_FLOOR_Y;
-      isJumping = false;
-      velocity = 0;
-    }
-
     if (runnerNoClip) {
-      if (runnerLeftHeld) playerX = Math.max(0, playerX - (currentSpeed + 2));
-      if (runnerRightHeld) playerX = Math.min(360, playerX + (currentSpeed + 2));
+      velocity = 0;
+      isJumping = false;
+      const nc = currentSpeed + 4;
+      if (runnerLeftHeld)  playerX -= nc;
+      if (runnerRightHeld) playerX += nc;
+      if (runnerUpHeld)    playerY -= nc;
+      if (runnerDownHeld)  playerY += nc;
+    } else {
+      if (runnerJetpack && keySpaceHeld) {
+        velocity -= 1.5;
+        if (velocity < -currentJumpPower) velocity = -currentJumpPower;
+        isJumping = true;
+      } else if (isJumping && !runnerJetpack && !keySpaceHeld && !runnerAutoBot) {
+        if (velocity < -4) velocity = -4;
+      }
+
+      velocity += currentGravity;
+      playerY += velocity;
+
+      if (!runnerJetpack && playerY < RUNNER_MIN_Y) {
+        playerY = RUNNER_MIN_Y;
+        if (velocity < 0) velocity = 0;
+      }
+
+      if (playerY >= RUNNER_FLOOR_Y) {
+        playerY = RUNNER_FLOOR_Y;
+        isJumping = false;
+        velocity = 0;
+      }
     }
 
     currentSpeed = currentBaseSpeed + (score / 8);
@@ -1777,15 +1790,31 @@ function updateRunner(currentTime) {
 
     if (runnerAutoBot) {
       const grounded = playerY >= RUNNER_FLOOR_Y - 1;
-      const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > 15);
-      if (threat && grounded) {
-        // Physics-based trigger: obstacle should arrive just before jump peak.
-        // Peak frame = jumpPower / gravity. Trigger so obstacle is ~85% of that away.
-        const peakFrames = currentJumpPower / currentGravity;
-        const jumpTriggerDist = 20 + Math.ceil(currentSpeed * peakFrames * 0.85);
-        if (threat.x < jumpTriggerDist) {
-          velocity = -currentJumpPower;
-          isJumping = true;
+      if (grounded) {
+        const ph = runnerTiny ? 8 : 20;
+        const airFrames = 2 * currentJumpPower / currentGravity;
+
+        // Avoid jumping into a flying obstacle overhead
+        const flyingDanger = runnerObstacles.some(o =>
+          !o.passed && o.type === 'flying' && o.x > 0 && o.x < playerX + currentSpeed * airFrames
+        );
+
+        if (!flyingDanger) {
+          const threat = runnerObstacles.find(o => !o.passed && o.type !== 'flying' && o.x > playerX);
+          if (threat) {
+            const framesUntil = (threat.x - playerX) / currentSpeed;
+            // Exact trajectory: where would the player be at framesUntil if jumping now?
+            const predictedY = RUNNER_FLOOR_Y
+              - (currentJumpPower * framesUntil)
+              + (currentGravity * framesUntil * (framesUntil + 1) / 2);
+            const obsTopY = threat.type === 'tall' ? 130 : 145;
+            const wouldClear = (predictedY + ph) <= obsTopY;
+            const stillAirborne = predictedY < RUNNER_FLOOR_Y;
+            if (wouldClear && stillAirborne) {
+              velocity = -currentJumpPower;
+              isJumping = true;
+            }
+          }
         }
       }
     }
@@ -2649,10 +2678,17 @@ async function _nexusCheckStatus() {
       if (msEl) msEl.textContent = `PING: ${ms}ms`;
       return { ok: true, ms, version: ver };
     }
-  } catch (_) {}
-  if (dot)  { dot.style.color = '#f44'; dot.textContent = '● OFFLINE'; }
-  if (msEl) msEl.textContent = 'PING: --';
-  return { ok: false, ms: null, version: null };
+    const ms2 = Date.now() - t0;
+    if (dot)  { dot.style.color = '#f44'; dot.textContent = `● HTTP ${res.status}`; }
+    if (msEl) msEl.textContent = `PING: ${ms2}ms`;
+    return { ok: false, ms: ms2, version: null, error: `HTTP ${res.status}` };
+  } catch (e) {
+    const ms = Date.now() - t0;
+    const isTimeout = e.name === 'TimeoutError' || ms >= 5800;
+    if (dot)  { dot.style.color = '#f44'; dot.textContent = isTimeout ? '● TIMEOUT' : '● OFFLINE'; }
+    if (msEl) msEl.textContent = `PING: ${ms}ms`;
+    return { ok: false, ms, version: null, error: isTimeout ? 'TIMEOUT' : 'UNREACHABLE' };
+  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2700,7 +2736,7 @@ function initNexusPreview() {
 
   function step() {
     if (i >= bootWords.length) {
-      Promise.all([fetchLatestCommitStatus(), _nexusCheckStatus()]).then(([info, { ok, ms, version }]) => {
+      Promise.all([fetchLatestCommitStatus(), _nexusCheckStatus()]).then(([info, { ok, ms, version, error }]) => {
         if (info) {
           const age = info.hoursAgo < 1
             ? 'just now'
@@ -2715,8 +2751,10 @@ function initNexusPreview() {
           _nexusLog(logEl, '#00ff00', `[OK] Nexus AI ${version || 'v5.3.0'} online. Latency: ${ms}ms`);
           _nexusLog(logEl, '#0ff',    '[SYS] AI core ready — press PING or open full console.');
         } else {
-          _nexusLog(logEl, '#f44',    '[ERR] Backend unreachable. Node may be cold-starting.');
-          _nexusLog(logEl, '#555',    '[SYS] Try again in ~30s or open console directly.');
+          const errLabel = error === 'TIMEOUT' ? 'Probe timed out' : error === 'UNREACHABLE' ? 'Node unreachable' : error || 'Connection failed';
+          _nexusLog(logEl, '#f44',    `[ERR] ${errLabel}${ms != null ? ` — ${ms}ms elapsed` : ''}.`);
+          _nexusLog(logEl, '#ff9100', '[DIAG] Render free tier spins down after inactivity. Cold start takes ~30s.');
+          _nexusLog(logEl, '#555',    '[SYS] Hit PING to retry or open full console to wait for boot.');
         }
       });
       return;
@@ -2766,9 +2804,13 @@ function sendNexusPing() {
       if (dot)  { dot.style.color = '#0f0'; dot.textContent = '● ONLINE'; }
       if (msEl) msEl.textContent = `PING: ${ms}ms`;
     })
-    .catch(() => {
+    .catch((e) => {
+      const ms = Date.now() - t0;
+      const isTimeout = e.name === 'TimeoutError' || ms >= 5800;
       waiting.remove();
-      _nexusLog(logEl, '#f44', '[PING] No response — node may be cold-starting (~30s).');
+      _nexusLog(logEl, '#f44',    `[PING] ${isTimeout ? 'Timeout' : 'No response'} after ${ms}ms — node cold or spinning down.`);
+      _nexusLog(logEl, '#ff9100', '[DIAG] Render free tier goes idle after inactivity. Allow ~30s for cold start.');
+      _nexusLog(logEl, '#555',    '[SYS] Tap PING again or open full console to wait for boot.');
     });
 
   while (logEl.childNodes.length > 40) logEl.removeChild(logEl.firstChild);
