@@ -572,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (footer) {
     const jokeElement = document.createElement("p");
     jokeElement.style.fontSize = "0.8em";
-    jokeElement.style.color = "#888";
+    jokeElement.style.color = "#bdbdbd";
     jokeElement.style.marginTop = "10px";
     jokeElement.innerText = jokes[Math.floor(Math.random() * jokes.length)];
     footer.appendChild(jokeElement);
@@ -580,6 +580,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const a11yBtn = document.getElementById('a11yBtn');
   const a11yMenu = document.getElementById('a11yMenu');
+  const A11Y_STORAGE_KEY = 'thyfwxit_a11y_v1';
 
   function openA11yMenu() {
     a11yMenu.style.display = 'flex';
@@ -591,33 +592,77 @@ document.addEventListener("DOMContentLoaded", () => {
     a11yBtn.setAttribute('aria-expanded', 'false');
     a11yBtn.focus();
   }
+  function toggleA11yMenu() {
+    (a11yMenu.style.display === 'flex' ? closeA11yMenu : openA11yMenu)();
+  }
 
-  a11yBtn?.addEventListener('click', () => {
-    const isOpen = a11yMenu.style.display === 'flex';
-    isOpen ? closeA11yMenu() : openA11yMenu();
+  function loadA11yState() {
+    try {
+      const raw = localStorage.getItem(A11Y_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch { return {}; }
+  }
+  function saveA11yState(btn) {
+    const existing = loadA11yState();
+    existing[btn.dataset.class] = btn.classList.contains('active');
+    try { localStorage.setItem(A11Y_STORAGE_KEY, JSON.stringify(existing)); } catch {}
+  }
+  function applyA11yButtonState(btn, on) {
+    btn.classList.toggle('active', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    document.body.classList.toggle(btn.dataset.class, on);
+  }
+
+  // Restore saved a11y state per-toggle — only toggles the user explicitly set are restored
+  const savedA11y = loadA11yState();
+  document.querySelectorAll('.a11y-opt').forEach(btn => {
+    if (Object.prototype.hasOwnProperty.call(savedA11y, btn.dataset.class)) {
+      applyA11yButtonState(btn, !!savedA11y[btn.dataset.class]);
+    }
   });
+  if (savedA11y['a11y-no-anim']) syncReducedMotionState();
+
+  a11yBtn?.addEventListener('click', toggleA11yMenu);
   a11yBtn?.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openA11yMenu(); }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleA11yMenu(); }
   });
   document.getElementById('a11yCloseBtn')?.addEventListener('click', closeA11yMenu);
+
+  // Escape closes the menu; Tab is trapped while it's open
+  a11yMenu?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); closeA11yMenu(); return; }
+    if (e.key !== 'Tab' || a11yMenu.style.display !== 'flex') return;
+    const focusables = a11yMenu.querySelectorAll('button');
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  });
 
   document.querySelectorAll('.a11y-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       const cls = btn.dataset.class;
       const isActive = btn.classList.toggle('active');
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       document.body.classList.toggle(cls, isActive);
       if (cls === 'a11y-no-anim') syncReducedMotionState();
+      saveA11yState(btn);
     });
   });
 
-  // Auto-apply OS accessibility preferences on load, and watch for live changes
+  // OS accessibility preferences only apply for toggles the user has not explicitly set
   function applyOSPref(mediaQuery, toggleId) {
+    const btn = document.getElementById(toggleId);
+    if (!btn) return;
+    if (Object.prototype.hasOwnProperty.call(savedA11y, btn.dataset.class)) return;
     const mq = window.matchMedia(mediaQuery);
     function apply(matches) {
-      const btn = document.getElementById(toggleId);
-      if (!btn) return;
-      btn.classList.toggle('active', matches);
-      document.body.classList.toggle(btn.dataset.class, matches);
+      applyA11yButtonState(btn, matches);
       if (btn.dataset.class === 'a11y-no-anim') syncReducedMotionState();
     }
     apply(mq.matches);
@@ -671,6 +716,7 @@ function openModTab(evt, tabName) {
   const tablinks = document.getElementsByClassName("mod-tab-btn");
   for (let i = 0; i < tablinks.length; i++) {
     tablinks[i].classList.remove("active");
+    tablinks[i].setAttribute("aria-selected", "false");
   }
 
   const targetTab = document.getElementById(tabName);
@@ -679,7 +725,10 @@ function openModTab(evt, tabName) {
     targetTab.classList.add("active");
   }
 
-  if (evt) evt.currentTarget.classList.add("active");
+  if (evt) {
+    evt.currentTarget.classList.add("active");
+    evt.currentTarget.setAttribute("aria-selected", "true");
+  }
 }
 
 let headerTapCount = 0;

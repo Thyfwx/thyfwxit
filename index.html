@@ -20,7 +20,7 @@
 </head>
 <body>
 
-<a class="skip-link" href="#mainHeader">Skip to main content</a>
+<a class="skip-link" href="#about">Skip to main content</a>
 
 <!-- Accessibility Button -->
 <div id="a11yBtn" role="button" tabindex="0" aria-haspopup="true" aria-expanded="false" aria-label="Open Help &amp; Accessibility Menu" title="Open Help &amp; Accessibility Menu">
@@ -33,15 +33,15 @@
 <div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
   <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility</h3>
   <div class="a11y-grid">
-    <button class="a11y-opt" id="a11yFontToggle"       data-class="a11y-font"       title="Switches body text to a clean serif font (Georgia) that is easier to read for long passages">Readable Font</button>
-    <button class="a11y-opt" id="a11yTextToggle"       data-class="a11y-large-text" title="Increases base font size across the page for easier reading">Large Text</button>
-    <button class="a11y-opt" id="a11ySpaceToggle"      data-class="a11y-spaced"     title="Adds extra line height and letter spacing to reduce text density">Spaced Text</button>
-    <button class="a11y-opt" id="a11yAnimToggle"       data-class="a11y-no-anim"    title="Disables all CSS animations and transitions, including game visual effects. Also stops matrix rain.">Reduce Motion</button>
-    <button class="a11y-opt" id="a11yContrastToggle"   data-class="a11y-contrast"   title="Switches to a high contrast black-and-white mode. All colors are replaced with pure black or white.">High Contrast</button>
-    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind" title="Adjusts the color palette to avoid red/green combinations that are hard to distinguish for colorblind users">Colorblind Mode</button>
-    <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus" title="Makes keyboard focus outlines visible and strong — useful if you navigate with a keyboard or switch device">Focus Indicators</button>
-    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space"  title="Adds extra word spacing and slight letter tracking — helps with dyslexia and dense text">Word Spacing</button>
-    <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg"            title="Hides the matrix rain canvas background — useful if motion in the background is distracting">Pause Background</button>
+    <button class="a11y-opt" id="a11yFontToggle"       data-class="a11y-font"       aria-pressed="false" title="Switches body text to a clean serif font (Georgia) that is easier to read for long passages">Readable Font</button>
+    <button class="a11y-opt" id="a11yTextToggle"       data-class="a11y-large-text" aria-pressed="false" title="Increases base font size across the page for easier reading">Large Text</button>
+    <button class="a11y-opt" id="a11ySpaceToggle"      data-class="a11y-spaced"     aria-pressed="false" title="Adds extra line height and letter spacing to reduce text density">Spaced Text</button>
+    <button class="a11y-opt" id="a11yAnimToggle"       data-class="a11y-no-anim"    aria-pressed="false" title="Disables all CSS animations and transitions, including game visual effects. Also stops matrix rain.">Reduce Motion</button>
+    <button class="a11y-opt" id="a11yContrastToggle"   data-class="a11y-contrast"   aria-pressed="false" title="Switches to a high contrast black-and-white mode. All colors are replaced with pure black or white.">High Contrast</button>
+    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind" aria-pressed="false" title="Adjusts the color palette to avoid red/green combinations that are hard to distinguish for colorblind users">Colorblind Mode</button>
+    <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus" aria-pressed="false" title="Makes keyboard focus outlines visible and strong — useful if you navigate with a keyboard or switch device">Focus Indicators</button>
+    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space"  aria-pressed="false" title="Adds extra word spacing and slight letter tracking — helps with dyslexia and dense text">Word Spacing</button>
+    <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg"            aria-pressed="false" title="Hides the matrix rain canvas background — useful if motion in the background is distracting">Pause Background</button>
   </div>
   <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; margin-top:8px; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
 </div>
@@ -55,7 +55,7 @@
 </header>
 
 <!-- About -->
-<section id="about" data-accent="cyan">
+<section id="about" data-accent="cyan" tabindex="-1">
   <h2>About Me</h2>
   <p>Started out with a tablet — loved playing Android games, then started poking around in the settings, watching tech videos. Got genuinely curious. My family had this one old computer running Windows 7. That thing was slow, it was old, but it still ran and still got everything done. Something about that was just amazing to me.</p>
   <p style="margin-top: 14px;">That curiosity never stopped. Self-taught across the board — unlocking Android phones, getting into locked Windows machines people thought were gone for good, building PCs, bringing slow machines back to life. Software is really where it all connects for me. If it's tech, I can figure it out.</p>
@@ -198,7 +198,7 @@
     <div class="status-item"><span class="status-dot status-loading" id="status-adguard"></span> AdGuard Home</div>
     <div class="status-item"><span class="status-dot status-loading" id="status-ha"></span> Home Assistant</div>
   </div>
-  <p id="statusTimestamp" style="font-size: 0.75em; color: #555; margin-top: 8px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
+  <p id="statusTimestamp" style="font-size: 0.75em; color: #9a9a9a; margin-top: 8px; font-family: 'Share Tech Mono', monospace;">Checking...</p>
 
   <div class="status-details">
     <div class="status-detail-row"><b>Proxmox VE</b> — Main hypervisor. Everything else — VMs, containers, storage — runs on this one node.</div>
@@ -316,14 +316,14 @@
 <div id="modMenu" style="display:none;">
   <h3 id="modMenuHeader">SYSTEM OVERRIDE</h3>
 
-  <div class="mod-tabs">
-    <button class="mod-tab-btn active" onclick="openModTab(event, 'tab-system')">System</button>
-    <button class="mod-tab-btn" onclick="openModTab(event, 'tab-runner')">Runner</button>
-    <button class="mod-tab-btn" onclick="openModTab(event, 'tab-tetris')">Tetris</button>
-    <button class="mod-tab-btn" onclick="openModTab(event, 'tab-target')">Target</button>
+  <div class="mod-tabs" role="tablist" aria-label="Mod menu sections">
+    <button class="mod-tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-system" id="modTabSystemBtn" onclick="openModTab(event, 'tab-system')">System</button>
+    <button class="mod-tab-btn"        role="tab" aria-selected="false" aria-controls="tab-runner" id="modTabRunnerBtn" onclick="openModTab(event, 'tab-runner')">Runner</button>
+    <button class="mod-tab-btn"        role="tab" aria-selected="false" aria-controls="tab-tetris" id="modTabTetrisBtn" onclick="openModTab(event, 'tab-tetris')">Tetris</button>
+    <button class="mod-tab-btn"        role="tab" aria-selected="false" aria-controls="tab-target" id="modTabTargetBtn" onclick="openModTab(event, 'tab-target')">Target</button>
   </div>
 
-  <div id="tab-system" class="mod-tab-content active">
+  <div id="tab-system" class="mod-tab-content active" role="tabpanel" aria-labelledby="modTabSystemBtn">
     <button class="nuke-btn" title="Switch to the Cyber Runner endless runner game" style="background:#222; color:var(--neon-color); border:1px solid var(--neon-color); margin-top:5px;" onclick="window.switchGame('runner')">BOOT CYBER RUNNER</button>
     <button class="nuke-btn" title="Switch to the Matrix Target Simulator shooting game" style="background:#222; color:#ff0000; border:1px solid #ff0000; margin-top:5px;" onclick="window.switchGame('target')">BOOT TARGET SIM</button>
     <button class="nuke-btn" title="Switch to Tetris" style="background:#222; color:cyan; border:1px solid cyan; margin-top:5px; margin-bottom:15px;" onclick="window.switchGame('tetris')">BOOT TETRIS</button>
@@ -361,7 +361,7 @@
     <button id="nukeToggle" class="nuke-btn">&#9760; INITIATE BREACH &#9760;</button>
   </div>
 
-  <div id="tab-runner" class="mod-tab-content">
+  <div id="tab-runner" class="mod-tab-content" role="tabpanel" aria-labelledby="modTabRunnerBtn">
     <div class="mod-row">
       <label style="color:#aaa;" title="Base movement speed. Speed also increases automatically as your score goes up.">Base Speed (<span id="speedVal">5.0</span>)</label>
       <input type="range" id="modSpeed" min="1" max="20" step="0.5" value="5.0" title="Drag to change starting speed">
@@ -423,7 +423,7 @@
     <button id="modRunnerReset" class="nuke-btn" title="Resets all runner mod settings back to their defaults" style="background:#444; color:#fff; margin-top:15px;">RESET RUNNER SETTINGS</button>
   </div>
 
-  <div id="tab-tetris" class="mod-tab-content">
+  <div id="tab-tetris" class="mod-tab-content" role="tabpanel" aria-labelledby="modTabTetrisBtn">
     <div class="mod-row">
       <label style="color:#aaa;" title="How fast pieces fall. Higher = faster drops. Goes up to 20 (insane mode).">Drop Speed (<span id="tetrisSpeedVal">5</span>)</label>
       <input type="range" id="modTetrisSpeed" min="1" max="20" step="1" value="5" title="Drag to change piece drop speed">
@@ -480,7 +480,7 @@
     </div>
   </div>
 
-  <div id="tab-target" class="mod-tab-content">
+  <div id="tab-target" class="mod-tab-content" role="tabpanel" aria-labelledby="modTabTargetBtn">
     <div class="mod-row">
       <label style="color:#aaa;" title="How many misses before the game ends. Easy = 8, Normal = 6, Hard = 3.">Difficulty</label>
       <select id="modDifficulty" title="Select difficulty level" style="background:#111; color:#fff; border:1px solid #444; padding:5px; border-radius:3px;">
