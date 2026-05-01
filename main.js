@@ -730,20 +730,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // Reset — turns off every a11y setting and clears saved prefs
-  document.getElementById('a11yResetBtn')?.addEventListener('click', () => {
-    document.querySelectorAll('.a11y-opt').forEach(btn => {
-      const cls = btn.dataset.class;
-      if (!cls) return;
-      btn.classList.remove('active');
-      btn.setAttribute('aria-pressed', 'false');
-      document.body.classList.remove(cls);
-    });
-    try { localStorage.removeItem(A11Y_STORAGE_KEY); } catch {}
-    syncReducedMotionState();
-    announceA11y('Accessibility settings reset to defaults');
-  });
-
   // Global Alt+A shortcut — open or close the menu from anywhere
   document.addEventListener('keydown', (e) => {
     if (e.altKey && (e.key === 'a' || e.key === 'A')) {
