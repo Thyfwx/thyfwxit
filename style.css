@@ -827,24 +827,24 @@ canvas {
   bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  width: 220px;
+  width: 190px;
   background: #000;
   color: #fff;
   border: 1px solid #0055ff;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: normal;
   text-align: left;
   letter-spacing: normal;
-  padding: 7px 9px;
+  padding: 6px 8px;
   border-radius: 5px;
-  line-height: 1.4;
+  line-height: 1.35;
   white-space: normal;
   z-index: 10003;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s, visibility 0.15s;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.7);
 }
 
 .a11y-opt[data-tip]::before {
@@ -860,6 +860,28 @@ canvas {
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s, visibility 0.15s;
+}
+
+/* Left column (odd-indexed): anchor tooltip at button's left edge */
+.a11y-grid > .a11y-opt:nth-child(odd):not(.a11y-opt-full)[data-tip]::after {
+  left: 0;
+  transform: none;
+}
+.a11y-grid > .a11y-opt:nth-child(odd):not(.a11y-opt-full)[data-tip]::before {
+  left: 18px;
+  transform: none;
+}
+
+/* Right column (even-indexed): anchor tooltip at button's right edge */
+.a11y-grid > .a11y-opt:nth-child(even):not(.a11y-opt-full)[data-tip]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.a11y-grid > .a11y-opt:nth-child(even):not(.a11y-opt-full)[data-tip]::before {
+  left: auto;
+  right: 18px;
+  transform: none;
 }
 
 .a11y-opt[data-tip]:hover::after,
