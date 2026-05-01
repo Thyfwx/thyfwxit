@@ -1051,6 +1051,14 @@ body.a11y-contrast .header-sub { color: #333 !important; }
   50%       { opacity: 0.6; box-shadow: none; }
 }
 
+.card-active-badge.status-online  { color: #0f0;    border-color: #0f0; }
+.card-active-badge.status-offline { color: #ff4444; border-color: #ff4444; animation: none; box-shadow: none; }
+.card-active-badge.status-ongoing { color: #ffcc00; border-color: #ffcc00; animation: ongoingPulse 1.6s ease-in-out infinite; }
+@keyframes ongoingPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(255,204,0,0.5); }
+  50%       { opacity: 0.55; box-shadow: none; }
+}
+
 /* ── Infrastructure service details ── */
 .status-details {
   margin-top: 16px;

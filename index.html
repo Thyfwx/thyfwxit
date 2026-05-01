@@ -59,7 +59,7 @@
   <h2>About Me</h2>
   <p>Started out with a tablet — loved playing Android games, then started poking around in the settings, watching tech videos. Got genuinely curious. My family had this one old computer running Windows 7. That thing was slow, it was old, but it still ran and still got everything done. Something about that was just amazing to me.</p>
   <p style="margin-top: 14px;">That curiosity never stopped. Self-taught across the board — unlocking Android phones, getting into locked Windows machines people thought were gone for good, building PCs, bringing slow machines back to life. Software is really where it all connects for me. If it's tech, I can figure it out.</p>
-  <p style="margin-top: 14px;">The <a href="/nexus/" style="color: var(--neon-color);">Nexus AI Terminal</a> started as a side project just to see what I could actually do with AI. It grew into something real. Everything on this site — the three games, the live infrastructure monitor, the mod menu hidden behind a keyboard code — written by hand. No frameworks, no shortcuts. Just building things and seeing what's possible.</p>
+  <p style="margin-top: 14px;">The <a href="/nexus/" style="color: var(--neon-color);">Nexus AI Terminal</a> started as a side project just to see what I could actually do with AI. It grew into something real. Everything on this site — the three games, the live infrastructure monitor, the mod menu hidden behind a keyboard code — AI-assisted, but designed, directed, and maintained by me. Pure HTML, CSS, and JavaScript. No frameworks.</p>
 </section>
 
 <!-- Projects -->
@@ -71,7 +71,7 @@
       <div class="card-bar">
         <span class="card-dot" style="background:#00ff88;box-shadow:0 0 6px #00ff88;"></span>
         <h3>Proxmox Home Lab</h3>
-        <span class="card-active-badge">ONGOING</span>
+        <span class="card-active-badge status-online" id="proxmoxStatusBadge">ACTIVE</span>
       </div>
       <div class="card-body">
         <p>Running Proxmox at home with a full stack on it — AdGuard for DNS-level ad blocking (saves more battery than you'd think), WireGuard VPN, Uptime Kuma, Docker, Nginx Proxy Manager, Home Assistant, and OpenMediaVault. Still adding things.</p>
@@ -88,10 +88,10 @@
       <div class="card-bar">
         <span class="card-dot" style="background:#ff00ff;box-shadow:0 0 6px #ff00ff;"></span>
         <h3>Nexus AI Terminal</h3>
-        <span class="card-active-badge">IN PROGRESS</span>
+        <span class="card-active-badge status-ongoing" id="nexusStatusBadge">ONGOING</span>
       </div>
       <div class="card-body">
-        <p>Built this just to see how far I could take AI. It grew. Custom terminal interface, multiple AI modes, live system stats, games built right into it. Still actively working on it.</p>
+        <p>Built this just to see how far I could take AI. It grew. Custom terminal interface, multiple AI modes, live system stats, games built right into it. Status above shows whether it's online, offline, or being worked on.</p>
         <div class="card-tags">
           <span class="card-tag">JavaScript</span>
           <span class="card-tag">WebSocket</span>
@@ -121,15 +121,18 @@
     <div class="project-card">
       <div class="card-bar">
         <span class="card-dot" style="background:#00e5ff;box-shadow:0 0 6px #00e5ff;"></span>
-        <h3>MacBook &amp; Mobile Repair</h3>
+        <h3>Device Repair &amp; Recovery</h3>
       </div>
       <div class="card-body">
-        <p>6+ years doing component-level repairs on MacBooks, iPhones, and Android devices. Liquid damage, batteries, Apple silicon diagnostics, Android unlocking. Daily driving both keeps the knowledge current.</p>
+        <p>MacBooks, Windows PCs, iPhones, Android phones, tablets — pretty much anything. Component-level board work, liquid damage cleanup, battery and screen replacements, locked-device unlocks (Android + Windows), full OS recovery without losing data, and software cleanup on slow machines. Daily driving multiple platforms keeps the knowledge current. If it's a device and it's broken, bring it.</p>
         <div class="card-tags">
           <span class="card-tag">MacBook</span>
+          <span class="card-tag">Windows PC</span>
           <span class="card-tag">iPhone</span>
           <span class="card-tag">Android</span>
+          <span class="card-tag">Tablets</span>
           <span class="card-tag">Component Repair</span>
+          <span class="card-tag">OS Recovery</span>
         </div>
       </div>
     </div>

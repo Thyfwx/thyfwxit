@@ -3,6 +3,10 @@ const MATRIX_INTERVAL = 1000 / 24;
 const RUNNER_FLOOR_Y = 150;
 const RUNNER_MIN_Y = 0;
 
+// Nexus status — flip this to update the badge on the Nexus project card.
+// Valid values: 'ONLINE' | 'OFFLINE' | 'ONGOING'
+window.NEXUS_STATUS = 'ONGOING';
+
 let runnerLastTime = 0;
 let runnerFirstFrame = true;
 let targetLastTime = 0;
@@ -327,6 +331,20 @@ function triggerShake() {
   setTimeout(() => gameArea.classList.remove("shake-effect"), 400);
 }
 
+function setProjectStatusBadge(id, status) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const valid = { ONLINE: 'status-online', OFFLINE: 'status-offline', ONGOING: 'status-ongoing' };
+  const cls = valid[status] || 'status-ongoing';
+  el.classList.remove('status-online', 'status-offline', 'status-ongoing');
+  el.classList.add(cls);
+  el.textContent = valid[status] ? status : 'ONGOING';
+}
+
+function applyNexusStatusBadge() {
+  setProjectStatusBadge('nexusStatusBadge', window.NEXUS_STATUS || 'ONGOING');
+}
+
 async function fetchUptimeStatus() {
   // Badge API has Access-Control-Allow-Origin: * — no CORS issues.
   // SVG response contains ">Up<" or ">Down<" which we read directly.
@@ -375,10 +393,18 @@ async function fetchUptimeStatus() {
     clearTimeout(tid);
     results.forEach(({ dotId, up }) => setDot(dotId, up));
 
+    const proxmoxResult = results.find(r => r.dotId === 'status-proxmox');
+    setProjectStatusBadge('proxmoxStatusBadge', proxmoxResult && proxmoxResult.up ? 'ONLINE' : 'OFFLINE');
+    if (proxmoxResult && proxmoxResult.up) {
+      const badge = document.getElementById('proxmoxStatusBadge');
+      if (badge) badge.textContent = 'ACTIVE';
+    }
+
     const ts = document.getElementById('statusTimestamp');
     if (ts) ts.textContent = 'Last checked: ' + new Date().toLocaleTimeString();
   } catch (e) {
     Object.keys(monitorMap).forEach(dotId => setDot(dotId, false));
+    setProjectStatusBadge('proxmoxStatusBadge', 'OFFLINE');
     const ts = document.getElementById('statusTimestamp');
     if (ts) ts.textContent = 'Unable to reach status server';
   }
@@ -476,6 +502,7 @@ function startTargetGame() {
 }
 
 window.onload = () => {
+  applyNexusStatusBadge();
   fetchUptimeStatus();
   setInterval(fetchUptimeStatus, 60000);
   fetchLatestCommit();
