@@ -19,7 +19,7 @@ Workflow: edit on `sandbox` → `git diff main..sandbox` → on approval, `git c
 ## Project layout
 
 ```
-~/Documents/Projects/thyfwxit/
+~/Documents/Domain_Project/thyfwxit/
 ├── index.html        # Single-page portfolio (~3500 lines, NOT embedded — uses external assets)
 ├── main.js           # All page logic — games, accessibility, status, mod menu
 ├── style.css         # All styling
