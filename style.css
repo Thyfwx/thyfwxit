@@ -203,8 +203,7 @@ body.a11y-contrast .mod-row label {
   color: #fff;
   width: 280px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.9);
-  overflow-y: auto;
-  max-height: 82vh;
+  overflow: visible;
 }
 
 header {

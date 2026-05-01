@@ -1,5 +1,5 @@
-// 🛰️ NEXUS GLOBAL COMMAND CENTER v5.3.0
-window.NEXUS_VERSION = 'v5.3.0';
+// 🛰️ NEXUS GLOBAL COMMAND CENTER v5.3.8
+window.NEXUS_VERSION = 'v5.3.8';
 
 // Core Environment
 window.isLocal = (function() {
@@ -26,8 +26,13 @@ window.guiTitle = null;
 window.nexusCanvas = null;
 
 // System State
+window.backendReady = false;
+window.OWNER_MODE = false;
 window.termWs = null;
 window.messageHistory = [];
+window.nexusErrors = [];
+window.unfilteredRage = 0; // Rage meter for reactivity
+window.isLockedOut = false; // Lockout state
 window.cmdHistory = JSON.parse(localStorage.getItem('nexus_cmd_history') || '[]');
 window.historyIndex = -1;
 window.currentMode = localStorage.getItem('nexus_mode') || 'nexus';
@@ -35,9 +40,10 @@ window.currentMode = localStorage.getItem('nexus_mode') || 'nexus';
 // Mode Colors
 window.MODE_COLORS = {
     nexus: '#4af',
-    shadow: '#ff6600',
+    unfiltered: '#ff6600',
     coder: '#0f0',
-    education: '#00ffcc'
+    education: '#00ffcc',
+    education_coder: '#ff00ff'
 };
 
 // --- Thinking Animation ---
