@@ -33,50 +33,17 @@
 <div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
   <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility <span style="display:block;font-size:0.62em;color:#888;font-weight:normal;letter-spacing:0;margin-top:4px;">Settings save automatically · Press Alt+A to open</span></h3>
   <div class="a11y-grid">
-    <button class="a11y-opt" id="a11yFontToggle" data-class="a11y-font" aria-pressed="false">
-      <span class="a11y-opt-title">Readable Font</span>
-      <span class="a11y-opt-desc">Switches body text to a clean serif font (Georgia) that is easier to read for long passages.</span>
-    </button>
-    <button class="a11y-opt" id="a11yTextToggle" data-class="a11y-large-text" aria-pressed="false">
-      <span class="a11y-opt-title">Large Text</span>
-      <span class="a11y-opt-desc">Increases base font size across the page for easier reading.</span>
-    </button>
-    <button class="a11y-opt" id="a11ySpaceToggle" data-class="a11y-spaced" aria-pressed="false">
-      <span class="a11y-opt-title">Spaced Text</span>
-      <span class="a11y-opt-desc">Adds extra line height and letter spacing to reduce text density.</span>
-    </button>
-    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space" aria-pressed="false">
-      <span class="a11y-opt-title">Word Spacing</span>
-      <span class="a11y-opt-desc">Adds extra word spacing and slight letter tracking — helps with dyslexia and dense text.</span>
-    </button>
-    <button class="a11y-opt" id="a11yUnderlineToggle" data-class="a11y-underline-links" aria-pressed="false">
-      <span class="a11y-opt-title">Underline Links</span>
-      <span class="a11y-opt-desc">Adds underlines to every link — for users who can't rely on color alone to spot clickable text.</span>
-    </button>
-    <button class="a11y-opt" id="a11yContrastToggle" data-class="a11y-contrast" aria-pressed="false">
-      <span class="a11y-opt-title">High Contrast</span>
-      <span class="a11y-opt-desc">Switches to a high-contrast black-and-white mode for maximum legibility.</span>
-    </button>
-    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind" aria-pressed="false">
-      <span class="a11y-opt-title">Colorblind Mode</span>
-      <span class="a11y-opt-desc">Replaces red/green colors with a blue/amber palette that's easier to distinguish.</span>
-    </button>
-    <button class="a11y-opt" id="a11yFocusToggle" data-class="a11y-focus" aria-pressed="false">
-      <span class="a11y-opt-title">Focus Indicators</span>
-      <span class="a11y-opt-desc">Strong, highly visible focus outlines — for keyboard and switch-device navigation.</span>
-    </button>
-    <button class="a11y-opt" id="a11yLargeTapToggle" data-class="a11y-large-tap" aria-pressed="false">
-      <span class="a11y-opt-title">Large Tap Targets</span>
-      <span class="a11y-opt-desc">Makes every button at least 44×44 pixels — recommended for touch and motor difficulties.</span>
-    </button>
-    <button class="a11y-opt" id="a11yAnimToggle" data-class="a11y-no-anim" aria-pressed="false">
-      <span class="a11y-opt-title">Reduce Motion</span>
-      <span class="a11y-opt-desc">Disables all animations and transitions, including matrix rain and game visual effects.</span>
-    </button>
-    <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg" aria-pressed="false">
-      <span class="a11y-opt-title">Pause Background</span>
-      <span class="a11y-opt-desc">Hides the matrix rain canvas — useful if movement in the background is distracting.</span>
-    </button>
+    <button class="a11y-opt" id="a11yFontToggle"       data-class="a11y-font"       aria-pressed="false" title="Switches body text to a clean serif font (Georgia) that is easier to read for long passages.">Readable Font</button>
+    <button class="a11y-opt" id="a11yTextToggle"       data-class="a11y-large-text" aria-pressed="false" title="Increases base font size across the page for easier reading.">Large Text</button>
+    <button class="a11y-opt" id="a11ySpaceToggle"      data-class="a11y-spaced"     aria-pressed="false" title="Adds extra line height and letter spacing to reduce text density.">Spaced Text</button>
+    <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space"  aria-pressed="false" title="Adds extra word spacing and slight letter tracking — helps with dyslexia and dense text.">Word Spacing</button>
+    <button class="a11y-opt" id="a11yUnderlineToggle" data-class="a11y-underline-links" aria-pressed="false" title="Adds underlines to every link — for users who can't rely on color alone to spot clickable text.">Underline Links</button>
+    <button class="a11y-opt" id="a11yContrastToggle"   data-class="a11y-contrast"   aria-pressed="false" title="Switches to a high-contrast black-and-white mode for maximum legibility.">High Contrast</button>
+    <button class="a11y-opt" id="a11yColorblindToggle" data-class="a11y-colorblind" aria-pressed="false" title="Replaces red/green colors with a blue/amber palette that's easier to distinguish.">Colorblind Mode</button>
+    <button class="a11y-opt" id="a11yFocusToggle"      data-class="a11y-focus"      aria-pressed="false" title="Strong, highly visible focus outlines — for keyboard and switch-device navigation.">Focus Indicators</button>
+    <button class="a11y-opt" id="a11yLargeTapToggle"   data-class="a11y-large-tap"  aria-pressed="false" title="Makes every button at least 44×44 pixels — recommended for touch and motor difficulties.">Large Tap Targets</button>
+    <button class="a11y-opt" id="a11yAnimToggle"       data-class="a11y-no-anim"    aria-pressed="false" title="Disables all animations and transitions, including matrix rain and game visual effects.">Reduce Motion</button>
+    <button class="a11y-opt" id="a11yNoBgToggle"       data-class="a11y-no-bg"      aria-pressed="false" title="Hides the matrix rain canvas — useful if movement in the background is distracting.">Pause Background</button>
   </div>
   <div style="display:flex; gap:6px; margin-top:8px;">
     <button id="a11yResetBtn" class="nuke-btn" style="background:#5a1a1a; border:1px solid #ff6666; flex:1; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;" title="Turns off every accessibility setting and clears your saved preferences">Reset</button>
