@@ -592,7 +592,45 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const jokes = [
     "I would tell you a UDP joke, but you might not get it.",
-    "Why do programmers prefer dark mode? Because light attracts bugs."
+    "Why do programmers prefer dark mode? Because light attracts bugs.",
+    "There are 10 kinds of people: those who understand binary, and those who don't.",
+    "A SQL query walks into a bar, walks up to two tables, and asks: 'Mind if I join you?'",
+    "There's no place like 127.0.0.1.",
+    "Old admins never die — they just lose their privileges.",
+    "How many programmers does it take to change a light bulb? None — that's a hardware problem.",
+    "Why don't sysadmins go outside? Too many bugs, no admin rights.",
+    "I told my computer I needed a break. It said: 'No problem, I'll go to sleep.'",
+    "It's not a bug, it's an undocumented feature.",
+    "Real programmers count from 0.",
+    "Why was the JavaScript developer sad? Because he didn't Node how to Express himself.",
+    "Debugging: removing the needles from the haystack.",
+    "DNS — it's always DNS.",
+    "I'd make a joke about TCP, but you'd want me to repeat it.",
+    "Why did the function go to therapy? Too many unresolved arguments.",
+    "What's a programmer's favorite hangout? The Foo Bar.",
+    "The two hardest things in programming: cache invalidation, naming things, and off-by-one errors.",
+    "It works on my machine. — every developer, ever.",
+    "Hardware: the parts of a computer that you can kick.",
+    "Software: the parts of a computer that you can curse at.",
+    "404: joke not found.",
+    "I have a great IPv6 joke, but very few people will get it.",
+    "Why did the developer drown? He didn't know how to handle streams.",
+    "An SSL certificate walks into a bar. The bartender says: 'Sorry, can't serve you — you're expired.'",
+    "Computers are fast. Programmers keep them slow.",
+    "Programmer's diet: 99% caffeine, 1% panic.",
+    "Why do Python programmers wear glasses? They can't C.",
+    "Linux: free is a feature, not a price.",
+    "RAID is not a backup. Say it with me: RAID is not a backup.",
+    "The best part about UDP jokes is I don't care if you get them.",
+    "Why did the regex go to the gym? To strengthen its match.",
+    "Backups don't matter. Restores matter.",
+    "Have you tried turning it off and on again?",
+    "Documentation: a love letter to your future self.",
+    "Why did the developer go broke? Because he used up all his cache.",
+    "Why was the database admin always calm? Because he had a lot of indexes to refer to.",
+    "A programmer's wife says 'Pick up bread on your way home.' He never came back — he found a better loop.",
+    "There are two ways to write error-free programs. Only the third one works.",
+    "Why did the network engineer break up with the cable? She wasn't his type."
   ];
 
   const footer = document.querySelector("footer");
@@ -671,15 +709,57 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.querySelectorAll('.a11y-opt').forEach(btn => {
+  function announceA11y(msg) {
+    const live = document.getElementById('a11yAnnouncer');
+    if (!live) return;
+    live.textContent = '';
+    setTimeout(() => { live.textContent = msg; }, 50);
+  }
+
+  document.querySelectorAll('.a11y-opt:not(.a11y-preset)').forEach(btn => {
     btn.addEventListener('click', () => {
       const cls = btn.dataset.class;
+      if (!cls) return;
       const isActive = btn.classList.toggle('active');
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       document.body.classList.toggle(cls, isActive);
       if (cls === 'a11y-no-anim') syncReducedMotionState();
       saveA11yState(btn);
+      announceA11y(`${btn.textContent.trim()} ${isActive ? 'on' : 'off'}`);
     });
+  });
+
+  // Dyslexia-Friendly preset — turns on Readable Font, Large Text, Spaced Text, Word Spacing
+  document.getElementById('a11yDyslexiaPreset')?.addEventListener('click', () => {
+    const dyslexiaSet = ['a11y-font', 'a11y-large-text', 'a11y-spaced', 'a11y-word-space'];
+    document.querySelectorAll('.a11y-opt:not(.a11y-preset)').forEach(btn => {
+      if (dyslexiaSet.includes(btn.dataset.class) && !btn.classList.contains('active')) {
+        btn.click();
+      }
+    });
+    announceA11y('Dyslexia-friendly preset enabled');
+  });
+
+  // Reset — turns off every a11y setting and clears saved prefs
+  document.getElementById('a11yResetBtn')?.addEventListener('click', () => {
+    document.querySelectorAll('.a11y-opt:not(.a11y-preset)').forEach(btn => {
+      const cls = btn.dataset.class;
+      if (!cls) return;
+      btn.classList.remove('active');
+      btn.setAttribute('aria-pressed', 'false');
+      document.body.classList.remove(cls);
+    });
+    try { localStorage.removeItem(A11Y_STORAGE_KEY); } catch {}
+    syncReducedMotionState();
+    announceA11y('Accessibility settings reset to defaults');
+  });
+
+  // Global Alt+A shortcut — open or close the menu from anywhere
+  document.addEventListener('keydown', (e) => {
+    if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+      e.preventDefault();
+      toggleA11yMenu();
+    }
   });
 
   // OS accessibility preferences only apply for toggles the user has not explicitly set

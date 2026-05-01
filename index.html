@@ -31,7 +31,8 @@
 
 <!-- Accessibility Menu -->
 <div id="a11yMenu" role="dialog" aria-modal="true" aria-labelledby="a11yMenuTitle">
-  <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility</h3>
+  <h3 id="a11yMenuTitle" style="margin-top: 0; margin-bottom: 10px; color: #0055ff; font-family: Arial, sans-serif; font-size: 1em; text-align: center; padding-bottom: 10px; border-bottom: 1px solid #0055ff44;">Accessibility <span style="display:block;font-size:0.62em;color:#888;font-weight:normal;letter-spacing:0;margin-top:4px;">Settings save automatically · Press Alt+A to open</span></h3>
+  <button class="a11y-opt a11y-opt-full a11y-preset" id="a11yDyslexiaPreset" title="Turns on Readable Font, Large Text, Spaced Text, and Word Spacing — a one-click profile tuned for dyslexia">⚡ Dyslexia-Friendly Preset</button>
   <div class="a11y-grid">
     <button class="a11y-opt" id="a11yFontToggle"       data-class="a11y-font"       aria-pressed="false" title="Switches body text to a clean serif font (Georgia) that is easier to read for long passages">Readable Font</button>
     <button class="a11y-opt" id="a11yTextToggle"       data-class="a11y-large-text" aria-pressed="false" title="Increases base font size across the page for easier reading">Large Text</button>
@@ -42,9 +43,15 @@
     <button class="a11y-opt a11y-opt-full" id="a11yFocusToggle" data-class="a11y-focus" aria-pressed="false" title="Makes keyboard focus outlines visible and strong — useful if you navigate with a keyboard or switch device">Focus Indicators</button>
     <button class="a11y-opt" id="a11yWordSpaceToggle" data-class="a11y-word-space"  aria-pressed="false" title="Adds extra word spacing and slight letter tracking — helps with dyslexia and dense text">Word Spacing</button>
     <button class="a11y-opt" id="a11yNoBgToggle" data-class="a11y-no-bg"            aria-pressed="false" title="Hides the matrix rain canvas background — useful if motion in the background is distracting">Pause Background</button>
+    <button class="a11y-opt" id="a11yUnderlineToggle" data-class="a11y-underline-links" aria-pressed="false" title="Adds underlines to all links — useful if you can't rely on color alone to identify clickable text">Underline Links</button>
+    <button class="a11y-opt" id="a11yLargeTapToggle" data-class="a11y-large-tap" aria-pressed="false" title="Makes every button at least 44 pixels tall and wide — recommended for touch users and motor difficulties">Large Tap Targets</button>
   </div>
-  <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; margin-top:8px; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
+  <div style="display:flex; gap:6px; margin-top:8px;">
+    <button id="a11yResetBtn" class="nuke-btn" style="background:#5a1a1a; border:1px solid #ff6666; flex:1; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;" title="Turns off every accessibility setting and clears your saved preferences">Reset</button>
+    <button id="a11yCloseBtn" class="nuke-btn" style="background:#333; border:1px solid #0055ff; flex:2; font-family:Arial, sans-serif; font-size:0.85em; padding:8px;">Close</button>
+  </div>
 </div>
+<div id="a11yAnnouncer" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
 <canvas id="matrixCanvas"></canvas>
 <div id="kawaiiOv" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9998; overflow:hidden; transform:translateZ(0); will-change:transform;"></div>

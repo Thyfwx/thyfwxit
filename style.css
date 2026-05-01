@@ -1164,6 +1164,29 @@ body.a11y-word-space select { word-spacing: 0.18em; letter-spacing: 0.03em; }
 
 /* ── Accessibility: Pause Background ── */
 body.a11y-no-bg #matrixCanvas { display: none !important; }
+
+body.a11y-underline-links a { text-decoration: underline !important; text-underline-offset: 3px; }
+
+body.a11y-large-tap button,
+body.a11y-large-tap input[type="checkbox"] + .toggle-slider,
+body.a11y-large-tap a.card-link,
+body.a11y-large-tap .skip-link,
+body.a11y-large-tap .a11y-opt {
+  min-height: 44px !important;
+  min-width: 44px !important;
+}
+
+.a11y-preset {
+  background: linear-gradient(135deg, #0055ff, #7a30ff) !important;
+  color: #ffffff !important;
+  border: 1px solid #99aaff !important;
+  font-weight: bold !important;
+  margin-bottom: 6px !important;
+  letter-spacing: 0.5px !important;
+}
+.a11y-preset:hover {
+  filter: brightness(1.15);
+}
 body.a11y-no-bg #kawaiiOv     { display: none !important; }
 
 
