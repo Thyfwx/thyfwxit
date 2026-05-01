@@ -201,10 +201,10 @@ body.a11y-contrast .mod-row label {
   flex-direction: column;
   gap: 6px;
   color: #fff;
-  width: 260px;
+  width: 320px;
   box-shadow: 0 8px 25px rgba(0,0,0,0.9);
   overflow-y: auto;
-  max-height: 80vh;
+  max-height: 82vh;
 }
 
 header {
@@ -787,34 +787,77 @@ canvas {
 
 .a11y-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
+  grid-template-columns: 1fr;
+  gap: 6px;
 }
 
 .a11y-opt {
   background: #1c1c1c;
   border: 1px solid #2a2a2a;
-  color: #777;
-  padding: 9px 6px;
-  border-radius: 20px;
+  color: #ccc;
+  padding: 9px 12px 10px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 0.78em;
+  font-size: 0.85em;
   font-family: Arial, sans-serif;
-  text-align: center;
+  text-align: left;
   transition: background 0.2s, color 0.2s, border-color 0.2s;
   user-select: none;
-  line-height: 1.2;
+  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+  padding-right: 56px;
+}
+
+.a11y-opt-title {
+  font-weight: bold;
+  letter-spacing: 0.2px;
+}
+
+.a11y-opt-desc {
+  font-size: 0.78em;
+  color: #888;
+  font-weight: normal;
+  line-height: 1.35;
+}
+
+.a11y-opt::after {
+  content: 'OFF';
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 1px;
+  color: #555;
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.a11y-opt.active::after {
+  content: 'ON';
+  color: #fff;
+  border-color: #99c2ff;
+  background: #003a99;
 }
 
 .a11y-opt:hover {
   border-color: #0055ff;
-  color: #ccc;
+  background: #1f2533;
 }
 
 .a11y-opt.active {
-  background: #0055ff;
+  background: #1a2a4d;
   border-color: #0055ff;
   color: #fff;
+}
+
+.a11y-opt.active .a11y-opt-desc {
+  color: #aac4ff;
 }
 
 .a11y-opt-full {
@@ -1051,9 +1094,9 @@ body.a11y-contrast .header-sub { color: #333 !important; }
   50%       { opacity: 0.6; box-shadow: none; }
 }
 
-.card-active-badge.status-online  { color: #0f0;    border-color: #0f0; }
-.card-active-badge.status-offline { color: #ff4444; border-color: #ff4444; animation: none; box-shadow: none; }
-.card-active-badge.status-ongoing { color: #ffcc00; border-color: #ffcc00; animation: ongoingPulse 1.6s ease-in-out infinite; }
+.card-active-badge.is-online  { color: #0f0;    border-color: #0f0; background: transparent; }
+.card-active-badge.is-offline { color: #ff4444; border-color: #ff4444; background: transparent; animation: none; box-shadow: none; }
+.card-active-badge.is-ongoing { color: #ffcc00; border-color: #ffcc00; background: transparent; animation: ongoingPulse 1.6s ease-in-out infinite; }
 @keyframes ongoingPulse {
   0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(255,204,0,0.5); }
   50%       { opacity: 0.55; box-shadow: none; }
@@ -1176,17 +1219,6 @@ body.a11y-large-tap .a11y-opt {
   min-width: 44px !important;
 }
 
-.a11y-preset {
-  background: linear-gradient(135deg, #0055ff, #7a30ff) !important;
-  color: #ffffff !important;
-  border: 1px solid #99aaff !important;
-  font-weight: bold !important;
-  margin-bottom: 6px !important;
-  letter-spacing: 0.5px !important;
-}
-.a11y-preset:hover {
-  filter: brightness(1.15);
-}
 body.a11y-no-bg #kawaiiOv     { display: none !important; }
 
 

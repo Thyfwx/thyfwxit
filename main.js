@@ -334,9 +334,9 @@ function triggerShake() {
 function setProjectStatusBadge(id, status) {
   const el = document.getElementById(id);
   if (!el) return;
-  const valid = { ONLINE: 'status-online', OFFLINE: 'status-offline', ONGOING: 'status-ongoing' };
-  const cls = valid[status] || 'status-ongoing';
-  el.classList.remove('status-online', 'status-offline', 'status-ongoing');
+  const valid = { ONLINE: 'is-online', OFFLINE: 'is-offline', ONGOING: 'is-ongoing' };
+  const cls = valid[status] || 'is-ongoing';
+  el.classList.remove('is-online', 'is-offline', 'is-ongoing');
   el.classList.add(cls);
   el.textContent = valid[status] ? status : 'ONGOING';
 }
@@ -716,7 +716,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { live.textContent = msg; }, 50);
   }
 
-  document.querySelectorAll('.a11y-opt:not(.a11y-preset)').forEach(btn => {
+  document.querySelectorAll('.a11y-opt').forEach(btn => {
     btn.addEventListener('click', () => {
       const cls = btn.dataset.class;
       if (!cls) return;
@@ -725,24 +725,14 @@ document.addEventListener("DOMContentLoaded", () => {
       document.body.classList.toggle(cls, isActive);
       if (cls === 'a11y-no-anim') syncReducedMotionState();
       saveA11yState(btn);
-      announceA11y(`${btn.textContent.trim()} ${isActive ? 'on' : 'off'}`);
+      const label = btn.querySelector('.a11y-opt-title')?.textContent?.trim() || btn.textContent.trim();
+      announceA11y(`${label} ${isActive ? 'on' : 'off'}`);
     });
-  });
-
-  // Dyslexia-Friendly preset — turns on Readable Font, Large Text, Spaced Text, Word Spacing
-  document.getElementById('a11yDyslexiaPreset')?.addEventListener('click', () => {
-    const dyslexiaSet = ['a11y-font', 'a11y-large-text', 'a11y-spaced', 'a11y-word-space'];
-    document.querySelectorAll('.a11y-opt:not(.a11y-preset)').forEach(btn => {
-      if (dyslexiaSet.includes(btn.dataset.class) && !btn.classList.contains('active')) {
-        btn.click();
-      }
-    });
-    announceA11y('Dyslexia-friendly preset enabled');
   });
 
   // Reset — turns off every a11y setting and clears saved prefs
   document.getElementById('a11yResetBtn')?.addEventListener('click', () => {
-    document.querySelectorAll('.a11y-opt:not(.a11y-preset)').forEach(btn => {
+    document.querySelectorAll('.a11y-opt').forEach(btn => {
       const cls = btn.dataset.class;
       if (!cls) return;
       btn.classList.remove('active');
